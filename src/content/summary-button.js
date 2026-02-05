@@ -10,31 +10,6 @@
   let settings = {};
   let summaryButton = null;
 
-  const PROVIDER_DEFAULT_MODELS = {
-    gemini: 'gemini-pro',
-    openai: 'gpt-4o-mini',
-    mistral: 'mistral-small',
-    deepseek: 'deepseek-chat',
-    grok: 'grok-2-mini'
-  };
-
-  function resolveModel(provider, selectedModel, geminiModel, byProvider, providerDefaults) {
-    const defaults = providerDefaults || PROVIDER_DEFAULT_MODELS;
-    const mapped = byProvider && byProvider[provider];
-    const providerDefault = provider === 'gemini'
-      ? (geminiModel || defaults.gemini)
-      : (defaults[provider] || defaults.gemini);
-    const candidate = (selectedModel || '').trim() || (mapped || '').trim();
-    if (!candidate) return providerDefault;
-    const knownDefaults = new Set(Object.values(defaults));
-    if (geminiModel) knownDefaults.add(geminiModel);
-    if (knownDefaults.has(candidate) && candidate !== providerDefault) {
-      return providerDefault;
-    }
-    return candidate;
-  }
-
-
   /**
    * Initialize the summary button
    */
@@ -222,7 +197,15 @@
           if (chunks.length >= 5) break;
         }
         const provider = settings.aiProvider || 'gemini';
-        const model = resolveModel(provider, settings.aiModel, settings.geminiModel, settings.aiModelByProvider, settings.aiProviderDefaultModels);
+        const model = (settings.aiModel && settings.aiModel.trim())
+          ? settings.aiModel.trim()
+          : ({
+              gemini: settings.geminiModel || 'gemini-pro',
+              openai: 'gpt-4o-mini',
+              mistral: 'mistral-small',
+              deepseek: 'deepseek-chat',
+              grok: 'grok-2-mini'
+            }[provider] || 'gemini-pro');
         const chunkBullets = [];
         for (const ch of chunks) {
           const cp = `Summarize this transcript chunk into 5 concise bullet points:\n\n${ch}`;
@@ -244,7 +227,15 @@
     }
     prompt += `\nOutput Format (JSON):\n{\n  "title": "A catchy title for the summary",\n  "mainPoints": ["Point 1", "Point 2", "Point 3", "Point 4"],\n  "keyTakeaways": ["Takeaway 1", "Takeaway 2", "Takeaway 3"],\n  "topics": ["Topic 1", "Topic 2", "Topic 3"],\n  "duration": "Brief comment on length/pacing"\n}\n`;
     const provider = settings.aiProvider || 'gemini';
-    const model = resolveModel(provider, settings.aiModel, settings.geminiModel, settings.aiModelByProvider, settings.aiProviderDefaultModels);
+    const model = (settings.aiModel && settings.aiModel.trim())
+      ? settings.aiModel.trim()
+      : ({
+          gemini: settings.geminiModel || 'gemini-pro',
+          openai: 'gpt-4o-mini',
+          mistral: 'mistral-small',
+          deepseek: 'deepseek-chat',
+          grok: 'grok-2-mini'
+        }[provider] || 'gemini-pro');
     const resp = await new Promise((resolve) => {
       chrome.runtime.sendMessage(
         {
