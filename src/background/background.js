@@ -7,6 +7,22 @@
 const DEFAULT_SETTINGS = {
   // Master Switch
   extensionEnabled: true,
+  aiProvider: 'gemini',
+  aiModel: 'gemini-pro',
+  aiModelByProvider: {
+    gemini: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    mistral: 'mistral-small',
+    deepseek: 'deepseek-chat',
+    grok: 'grok-2-mini'
+  },
+  aiProviderDefaultModels: {
+    gemini: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    mistral: 'mistral-small',
+    deepseek: 'deepseek-chat',
+    grok: 'grok-2-mini'
+  },
 
   // Blocking Controls
   tempBlockUntil: 0,
@@ -17,6 +33,10 @@ const DEFAULT_SETTINGS = {
   // User Profile & API
   geminiApiKey: '',
   geminiModel: 'gemini-pro',
+  openaiApiKey: '',
+  mistralApiKey: '',
+  deepseekApiKey: '',
+  grokApiKey: '',
   profileName: 'Guest User',
   profileGoal: '',
   statsTimeSaved: 0,
@@ -55,7 +75,7 @@ const DEFAULT_SETTINGS = {
   passwordProtection: false,
   blockedKeywords: [],
   blockedChannels: [],
-  blockedPatterns: []
+  blockedPatterns: [],
 
   // Enhanced UI Controls
   autoPauseInactive: false,
@@ -223,21 +243,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           const stored = await chrome.storage.sync.get(null);
           const provider = message.provider || stored.aiProvider || 'gemini';
-          const model = message.model || stored.aiModel || stored.geminiModel || 'gemini-pro';
+          const defaults = stored.aiProviderDefaultModels || {
+            gemini: 'gemini-pro',
+            openai: 'gpt-4o-mini',
+            mistral: 'mistral-small',
+            deepseek: 'deepseek-chat',
+            grok: 'grok-2-mini'
+          };
+          const byProvider = stored.aiModelByProvider || {};
+          const modelCandidate = message.model || byProvider[provider] || stored.aiModel || (provider === 'gemini' ? stored.geminiModel : '') || '';
+          const model = modelCandidate || defaults[provider] || defaults.gemini;
           const prompt = message.prompt || '';
           let apiUrl = '';
           let headers = {};
           let body = {};
 
+          const keyMap = {
+            gemini: stored.geminiApiKey || '',
+            openai: stored.openaiApiKey || '',
+            mistral: stored.mistralApiKey || '',
+            deepseek: stored.deepseekApiKey || '',
+            grok: stored.grokApiKey || ''
+          };
+          if (!keyMap[provider]) {
+            sendResponse({ success: false, error: `Provider ${provider}: missing API key` });
+            return;
+          }
+
           if (provider === 'gemini') {
-            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${stored.geminiApiKey || ''}`;
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${keyMap.gemini}`;
             headers = { 'Content-Type': 'application/json' };
             body = { contents: [{ parts: [{ text: prompt }] }] };
           } else if (provider === 'openai') {
             apiUrl = 'https://api.openai.com/v1/chat/completions';
             headers = {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${stored.openaiApiKey || ''}`
+              'Authorization': `Bearer ${keyMap.openai}`
             };
             body = {
               model,
@@ -250,7 +291,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             apiUrl = 'https://api.mistral.ai/v1/chat/completions';
             headers = {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${stored.mistralApiKey || ''}`
+              'Authorization': `Bearer ${keyMap.mistral}`
             };
             body = {
               model,
@@ -263,7 +304,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             apiUrl = 'https://api.deepseek.com/v1/chat/completions';
             headers = {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${stored.deepseekApiKey || ''}`
+              'Authorization': `Bearer ${keyMap.deepseek}`
             };
             body = {
               model,
@@ -276,7 +317,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             apiUrl = 'https://api.x.ai/v1/chat/completions';
             headers = {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${stored.grokApiKey || ''}`
+              'Authorization': `Bearer ${keyMap.grok}`
             };
             body = {
               model,
@@ -287,17 +328,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             };
           }
 
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(body)
-          });
+          async function doFetch() {
+            return fetch(apiUrl, { method: 'POST', headers, body: JSON.stringify(body) });
+          }
+          let response = await doFetch();
+          if (!response.ok && (response.status === 429 || response.status >= 500)) {
+            await new Promise(r => setTimeout(r, 800));
+            response = await doFetch();
+          }
 
           if (!response.ok) {
-            let errMsg = 'AI request failed';
+            let errMsg = `Provider ${provider}: HTTP ${response.status}`;
             try {
               const err = await response.json();
-              errMsg = err.error?.message || JSON.stringify(err);
+              const msg = err.error?.message || JSON.stringify(err);
+              if (response.status === 401 || response.status === 403) errMsg += ' (invalid or missing key)';
+              if (response.status === 404) errMsg += ' (model not found)';
+              if (response.status === 429) errMsg += ' (rate limit)';
+              errMsg += ` - ${msg}`;
             } catch {}
             sendResponse({ success: false, error: errMsg });
             return;

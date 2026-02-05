@@ -75,7 +75,7 @@
     const annotationContainer = document.querySelector('#annotation-shape-container');
     if (annotationContainer) {
       hideElement(annotationContainer, 'display');
-    });
+    }
 
     // Engagement panels (info, description)
     const engagementPanels = document.querySelectorAll(

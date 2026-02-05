@@ -158,7 +158,11 @@ function populateUI(settings) {
   const providerSel = document.getElementById('aiProvider');
   if (providerSel) providerSel.value = settings.aiProvider || 'gemini';
   const aiModel = document.getElementById('aiModel');
-  if (aiModel) aiModel.value = settings.aiModel || settings.geminiModel || 'gemini-pro';
+  if (aiModel) {
+    const byProvider = settings.aiModelByProvider || {};
+    const currentProvider = (providerSel && providerSel.value) || settings.aiProvider || 'gemini';
+    aiModel.value = byProvider[currentProvider] || settings.aiModel || settings.geminiModel || 'gemini-pro';
+  }
   document.getElementById('homePageRedirect').value = settings.homePageRedirect || 'none';
   const tl = document.getElementById('transcriptLang');
   if (tl) tl.value = settings.transcriptLang || 'en';
@@ -249,14 +253,20 @@ function addEventListeners() {
   // API Key
   document.getElementById('saveApiKey').addEventListener('click', async () => {
     const key = document.getElementById('geminiApiKey').value;
+    const providerNow = document.getElementById('aiProvider').value;
+    const modelNow = document.getElementById('aiModel').value;
+    const current = await loadSettings();
+    const byProvider = Object.assign({}, current.aiModelByProvider || {});
+    byProvider[providerNow] = modelNow;
     const settingsToSave = {
       geminiApiKey: key,
       openaiApiKey: document.getElementById('openaiApiKey').value,
       mistralApiKey: document.getElementById('mistralApiKey').value,
       deepseekApiKey: document.getElementById('deepseekApiKey').value,
       grokApiKey: document.getElementById('grokApiKey').value,
-      aiProvider: document.getElementById('aiProvider').value,
-      aiModel: document.getElementById('aiModel').value
+      aiProvider: providerNow,
+      aiModel: modelNow,
+      aiModelByProvider: byProvider
     };
     await saveSettings(settingsToSave);
     showFeedback('saveApiKey', 'Key Saved!');
@@ -266,7 +276,20 @@ function addEventListeners() {
   const providerSel2 = document.getElementById('aiProvider');
   if (providerSel2) {
     providerSel2.addEventListener('change', async (e) => {
-      await saveSettings({ aiProvider: e.target.value });
+      const p = e.target.value;
+      const s = await loadSettings();
+      const byProvider = s.aiModelByProvider || {};
+      const defaults = s.aiProviderDefaultModels || {
+        gemini: 'gemini-pro',
+        openai: 'gpt-4o-mini',
+        mistral: 'mistral-small',
+        deepseek: 'deepseek-chat',
+        grok: 'grok-2-mini'
+      };
+      const modelVal = byProvider[p] || s.aiModel || (p === 'gemini' ? s.geminiModel : '') || defaults[p] || defaults.gemini;
+      const aiModelInput = document.getElementById('aiModel');
+      if (aiModelInput) aiModelInput.value = modelVal;
+      await saveSettings({ aiProvider: p, aiModel: modelVal });
       notifyContentScript();
     });
   }

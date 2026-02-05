@@ -10,6 +10,31 @@
   let settings = {};
   let summaryButton = null;
 
+  const PROVIDER_DEFAULT_MODELS = {
+    gemini: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    mistral: 'mistral-small',
+    deepseek: 'deepseek-chat',
+    grok: 'grok-2-mini'
+  };
+
+  function resolveModel(provider, selectedModel, geminiModel, byProvider, providerDefaults) {
+    const defaults = providerDefaults || PROVIDER_DEFAULT_MODELS;
+    const mapped = byProvider && byProvider[provider];
+    const providerDefault = provider === 'gemini'
+      ? (geminiModel || defaults.gemini)
+      : (defaults[provider] || defaults.gemini);
+    const candidate = (selectedModel || '').trim() || (mapped || '').trim();
+    if (!candidate) return providerDefault;
+    const knownDefaults = new Set(Object.values(defaults));
+    if (geminiModel) knownDefaults.add(geminiModel);
+    if (knownDefaults.has(candidate) && candidate !== providerDefault) {
+      return providerDefault;
+    }
+    return candidate;
+  }
+
+
   /**
    * Initialize the summary button
    */
@@ -197,15 +222,7 @@
           if (chunks.length >= 5) break;
         }
         const provider = settings.aiProvider || 'gemini';
-        const model = (settings.aiModel && settings.aiModel.trim())
-          ? settings.aiModel.trim()
-          : ({
-              gemini: settings.geminiModel || 'gemini-pro',
-              openai: 'gpt-4o-mini',
-              mistral: 'mistral-small',
-              deepseek: 'deepseek-chat',
-              grok: 'grok-2-mini'
-            }[provider] || 'gemini-pro');
+        const model = resolveModel(provider, settings.aiModel, settings.geminiModel, settings.aiModelByProvider, settings.aiProviderDefaultModels);
         const chunkBullets = [];
         for (const ch of chunks) {
           const cp = `Summarize this transcript chunk into 5 concise bullet points:\n\n${ch}`;
@@ -227,15 +244,7 @@
     }
     prompt += `\nOutput Format (JSON):\n{\n  "title": "A catchy title for the summary",\n  "mainPoints": ["Point 1", "Point 2", "Point 3", "Point 4"],\n  "keyTakeaways": ["Takeaway 1", "Takeaway 2", "Takeaway 3"],\n  "topics": ["Topic 1", "Topic 2", "Topic 3"],\n  "duration": "Brief comment on length/pacing"\n}\n`;
     const provider = settings.aiProvider || 'gemini';
-    const model = (settings.aiModel && settings.aiModel.trim())
-      ? settings.aiModel.trim()
-      : ({
-          gemini: settings.geminiModel || 'gemini-pro',
-          openai: 'gpt-4o-mini',
-          mistral: 'mistral-small',
-          deepseek: 'deepseek-chat',
-          grok: 'grok-2-mini'
-        }[provider] || 'gemini-pro');
+    const model = resolveModel(provider, settings.aiModel, settings.geminiModel, settings.aiModelByProvider, settings.aiProviderDefaultModels);
     const resp = await new Promise((resolve) => {
       chrome.runtime.sendMessage(
         {
@@ -250,28 +259,51 @@
     if (!resp.success) throw new Error(resp.error || `AI request failed (${provider})`);
     const text = resp.text || '';
     
-    // Clean up markdown code blocks if present
-    const jsonStr = text.replace(/```json\n|\n```/g, '').trim();
-    
+    const primary = text.replace(/```json\n|\n```/g, '').trim();
+    let jsonStr = primary;
+    let parsed;
     try {
-      const parsed = JSON.parse(jsonStr);
-      // Normalize structure
-      return {
-        title: parsed.title || 'Summary',
-        mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints : [jsonStr],
-        keyTakeaways: Array.isArray(parsed.keyTakeaways) ? parsed.keyTakeaways : [],
-        topics: Array.isArray(parsed.topics) ? parsed.topics : [],
-        duration: parsed.duration || ''
-      };
-    } catch (e) {
-      console.warn('[YFP] Failed to parse JSON, returning raw text', e);
+      parsed = JSON.parse(jsonStr);
+    } catch (e1) {
+      const firstBrace = primary.indexOf('{');
+      const lastBrace = primary.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonStr = primary.slice(firstBrace, lastBrace + 1);
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch (e2) {}
+      }
+      if (!parsed) {
+        const retryPrompt = `${prompt}\nReturn only a valid JSON object matching the schema. No markdown fences or explanations.`;
+        const retryResp = await new Promise((resolve) => {
+          chrome.runtime.sendMessage(
+            { action: 'aiSummarize', provider, model, prompt: retryPrompt },
+            (r) => resolve(r || { success: false, error: 'No response' })
+          );
+        });
+        if (retryResp && retryResp.success && retryResp.text) {
+          const retryClean = retryResp.text.replace(/```json\n|\n```/g, '').trim();
+          try {
+            parsed = JSON.parse(retryClean);
+          } catch (e3) {}
+        }
+      }
+    }
+    if (!parsed) {
       return {
         title: 'Summary',
-        mainPoints: [text], // Fallback
+        mainPoints: [text],
         keyTakeaways: [],
         topics: [],
         duration: ''
       };
+    }
+    return {
+      title: parsed.title || 'Summary',
+      mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints : [jsonStr],
+      keyTakeaways: Array.isArray(parsed.keyTakeaways) ? parsed.keyTakeaways : [],
+      topics: Array.isArray(parsed.topics) ? parsed.topics : [],
+      duration: parsed.duration || ''
     }
   }
 
@@ -409,6 +441,12 @@
       }
       if (changes.aiModel) {
         settings.aiModel = changes.aiModel.newValue;
+      }
+      if (changes.aiModelByProvider) {
+        settings.aiModelByProvider = changes.aiModelByProvider.newValue;
+      }
+      if (changes.aiProviderDefaultModels) {
+        settings.aiProviderDefaultModels = changes.aiProviderDefaultModels.newValue;
       }
       if (changes.openaiApiKey) settings.openaiApiKey = changes.openaiApiKey.newValue;
       if (changes.mistralApiKey) settings.mistralApiKey = changes.mistralApiKey.newValue;

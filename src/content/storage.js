@@ -7,6 +7,20 @@
 const DEFAULT_SETTINGS = {
   aiProvider: 'gemini',
   aiModel: 'gemini-pro',
+  aiModelByProvider: {
+    gemini: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    mistral: 'mistral-small',
+    deepseek: 'deepseek-chat',
+    grok: 'grok-2-mini'
+  },
+  aiProviderDefaultModels: {
+    gemini: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    mistral: 'mistral-small',
+    deepseek: 'deepseek-chat',
+    grok: 'grok-2-mini'
+  },
   openaiApiKey: '',
   mistralApiKey: '',
   deepseekApiKey: '',

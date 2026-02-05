@@ -103,7 +103,10 @@
         return true;
 
       case 'hideShorts':
-        window.YFPShortsBlocker?.removeShorts();
+        {
+          const flag = message.value === undefined ? true : !!message.value;
+          window.YFPShortsBlocker?.updateSettings({ hideShorts: flag });
+        }
         sendResponse({ success: true });
         break;
 
@@ -183,7 +186,7 @@
   setInterval(() => {
     // Ensure features are still active
     if (window.YFPShortsBlocker) {
-      window.YFPShortsBlocker.removeShorts();
+      window.YFPShortsBlocker.updateSettings({ hideShorts: true });
     }
 
     if (window.YFPAdBlocker && typeof loadSettings === 'function') {
