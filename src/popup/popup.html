@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusTube</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Navigation Bar -->
+    <nav class="navbar glass-panel">
+      <button class="nav-btn" id="nav-settings" title="Settings">⚙️</button>
+      <div class="logo-section">
+        <img src="../icons/banner.png" alt="FocusTube" class="logo-image">
+      </div>
+      <button class="nav-btn" id="nav-profile" title="Profile">👤</button>
+    </nav>
+
+    <!-- HOME VIEW -->
+    <div id="home-view" class="view-container active">
+      <!-- Master Toggle -->
+      <div class="glass-panel master-control">
+        <div class="master-label">
+          <h2>Extension Status</h2>
+          <p id="status-text">Active and protecting</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="extensionEnabled" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Focus Controls -->
+      <div class="glass-panel focus-control-panel">
+        <h3 class="panel-title">Block YouTube</h3>
+        
+        <div class="timer-grid">
+          <button class="timer-btn" id="block-5min">5 Min</button>
+          <button class="timer-btn" id="block-15min">15 Min</button>
+          <button class="timer-btn" id="block-30min">30 Min</button>
+          <button class="timer-btn" id="block-1hr">1 Hour</button>
+        </div>
+
+        <div class="custom-time-input">
+          <input type="number" id="custom-block-duration" class="time-input" placeholder="Minutes" min="1">
+          <button class="timer-btn" id="block-custom">Block</button>
+        </div>
+
+        <div class="setting-item" style="border:none; padding: 12px 0 0;">
+          <div class="setting-info">
+            <label class="setting-label">Scheduled Block</label>
+            <div class="schedule-inputs">
+              <input type="time" id="schedule-start">
+              <span>to</span>
+              <input type="time" id="schedule-end">
+            </div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="scheduleBlockEnabled">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="settings-view" class="view-container">
+      <button class="action-btn back-btn" data-target="home-view">← Back</button>
+      
+      <div class="glass-panel" style="padding: 16px;">
+        <h3 class="panel-title">AI Settings</h3>
+        <div class="input-group">
+          <label for="geminiApiKey">Gemini API Key</label>
+          <input type="password" id="geminiApiKey" class="glass-input" placeholder="Enter your API Key">
+        </div>
+        <div class="input-group">
+          <label for="openaiApiKey">OpenAI API Key</label>
+          <input type="password" id="openaiApiKey" class="glass-input" placeholder="sk-...">
+        </div>
+        <div class="input-group">
+          <label for="mistralApiKey">Mistral API Key</label>
+          <input type="password" id="mistralApiKey" class="glass-input" placeholder="mistral-...">
+        </div>
+        <div class="input-group">
+          <label for="deepseekApiKey">DeepSeek API Key</label>
+          <input type="password" id="deepseekApiKey" class="glass-input" placeholder="ds-...">
+        </div>
+        <div class="input-group">
+          <label for="grokApiKey">Grok API Key</label>
+          <input type="password" id="grokApiKey" class="glass-input" placeholder="xai-...">
+        </div>
+        <div class="input-group">
+          <label for="aiProvider">Base Model Provider</label>
+          <select id="aiProvider" class="glass-input" style="width:auto; padding: 4px 8px;">
+            <option value="gemini">Gemini</option>
+            <option value="openai">OpenAI</option>
+            <option value="mistral">Mistral</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="grok">Grok (xAI)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="aiModel">Sub Model</label>
+          <input type="text" id="aiModel" class="glass-input" placeholder="e.g., gemini-pro, gpt-4o-mini, mistral-small">
+        </div>
+        <div class="input-group">
+          <label for="useTranscript">Use transcript in AI summary</label>
+          <label class="toggle-switch" style="margin-left: 8px;">
+            <input type="checkbox" id="useTranscript">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="input-group">
+          <label for="transcriptLang">Transcript language</label>
+          <select id="transcriptLang" class="glass-input" style="width:auto; padding: 4px 8px;">
+            <option value="en">en</option>
+            <option value="en-US">en-US</option>
+            <option value="hi">hi</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="geminiModel" style="display:none;">Model</label>
+          <select id="geminiModel" class="glass-input" style="display:none; width:auto; padding: 4px 8px;"></select>
+        </div>
+        <div class="setting-item" style="border:none; padding-top: 8px;">
+          <div class="setting-info">
+            <label class="setting-label">Show Summary Button</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="showSummaryButton">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <button id="saveApiKey" class="action-btn" style="margin-top:0;">Save Key</button>
+      </div>
+
+      <div class="glass-panel settings-list">
+        <h3 class="panel-title" style="padding: 16px 16px 0;">Home Page</h3>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Home Redirect</label>
+            <p class="setting-description">Where to go instead of Home</p>
+          </div>
+          <select id="homePageRedirect" class="glass-input" style="width: auto; padding: 4px 8px;">
+            <option value="none">None</option>
+            <option value="subscriptions">Subscriptions</option>
+            <option value="search">Search</option>
+            <option value="blank">Blank Page</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Suggestions</label>
+            <p class="setting-description">Remove video grid</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideSuggestions">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Trending</label>
+            <p class="setting-description">Remove trending section</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideTrending">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide "People Also Watched"</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hidePeopleAlsoWatched">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="glass-panel settings-list">
+        <h3 class="panel-title" style="padding: 16px 16px 0;">Navigation</h3>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Sidebar</label>
+            <p class="setting-description">Hide main navigation menu</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideSidebar">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Shorts Tab</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideNavShorts">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Explore</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideNavExplore">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Gaming</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideNavGaming">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Trending Tab</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideNavTrending">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="glass-panel settings-list">
+        <h3 class="panel-title" style="padding: 16px 16px 0;">Header Controls</h3>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Notifications</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideNotifications">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Voice Search</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideVoiceSearch">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Create Button</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideCreateButton">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="glass-panel settings-list">
+        <h3 class="panel-title" style="padding: 16px 16px 0;">Video Controls</h3>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Use Native Player</label>
+            <p class="setting-description">Simpler player, less distractions</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="useNativePlayer">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Force High Quality</label>
+            <p class="setting-description">Always use 4K/HD</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="forceHighestQuality">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Banner Ads</label>
+            <p class="setting-description">Remove banner ads</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideBannerAds">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Skip Ads</label>
+            <p class="setting-description">Auto-skip video ads</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="skipVideoAds">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Shorts</label>
+            <p class="setting-description">Remove Shorts from feed</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideShorts">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Comments</label>
+            <p class="setting-description">Remove comments section</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideComments">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Disable Autoplay</label>
+            <p class="setting-description">Prevent next video</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="disableAutoplay">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Auto Pause</label>
+            <p class="setting-description">Pause when tab inactive</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoPauseInactive">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Auto Theater Mode</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoTheaterMode">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Info Cards</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideInfoCards">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide End Screens</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideEndScreens">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Live Chat</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideLiveChat">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Next Video</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideNextVideo">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide More Videos</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideMoreVideos">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Video Metrics</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideVideoMetrics">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Video Duration</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideVideoDuration">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Merch Shelf</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideMerch">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Hide Share Buttons</label>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hideShareButtons">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div id="profile-view" class="view-container">
+      <button class="action-btn back-btn" data-target="home-view">← Back</button>
+      
+      <div class="glass-panel profile-header">
+        <div class="profile-avatar">👤</div>
+        <h2 id="profile-name-display">Guest User</h2>
+        <p id="profile-goal-display" style="opacity: 0.7; font-size: 12px;">No goal set</p>
+        
+        <div class="profile-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="stats-time-saved">0h</div>
+            <div class="stat-label">Time Saved</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stats-ads-blocked">0</div>
+            <div class="stat-label">Ads Blocked</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 16px;">
+        <h3 class="panel-title">Edit Profile</h3>
+        <div class="input-group">
+          <label for="profileName">Name</label>
+          <input type="text" id="profileName" class="glass-input" placeholder="Your Name">
+        </div>
+        <div class="input-group">
+          <label for="profileGoal">Focus Goal</label>
+          <input type="text" id="profileGoal" class="glass-input" placeholder="e.g., Learn React">
+        </div>
+        <button id="saveProfile" class="action-btn">Save Profile</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
