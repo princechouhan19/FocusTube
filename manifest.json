@@ -48,6 +48,7 @@
         "src/content/header-controller.js",
         "src/content/summary-button.js",
         "src/content/video-player-controller.js",
+        "src/content/keyword-blocker.js",
         "src/content/channel-blocker.js",
         "src/content/url-blocker.js",
         "src/content/auto-pause.js",

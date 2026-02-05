@@ -29,6 +29,7 @@
       { name: 'HeaderController', init: () => window.YFPHeaderController?.init() },
       { name: 'SummaryButton', init: () => window.YFPSummaryButton?.init() },
       { name: 'VideoPlayerController', init: () => window.YFPVideoPlayerController?.init() },
+      { name: 'KeywordBlocker', init: () => window.YFPKeywordBlocker?.init() },
       { name: 'ChannelBlocker', init: () => window.YFPChannelBlocker?.init() },
       { name: 'URLBlocker', init: () => window.YFPURLBlocker?.init() },
       { name: 'AutoPause', init: () => window.YFPAutoPause?.init() },

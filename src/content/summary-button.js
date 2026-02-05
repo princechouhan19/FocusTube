@@ -10,6 +10,50 @@
   let settings = {};
   let summaryButton = null;
 
+  const PROVIDER_DEFAULT_MODELS = {
+    gemini: 'gemini-pro',
+    openai: 'gpt-4o-mini',
+    mistral: 'mistral-small',
+    deepseek: 'deepseek-chat',
+    grok: 'grok-2-mini'
+  };
+
+  function resolveModel(provider, selectedModel, geminiModel) {
+    const providerDefault = provider === 'gemini'
+      ? (geminiModel || PROVIDER_DEFAULT_MODELS.gemini)
+      : PROVIDER_DEFAULT_MODELS[provider] || PROVIDER_DEFAULT_MODELS.gemini;
+    const candidate = (selectedModel || '').trim();
+    if (!candidate) return providerDefault;
+
+    const knownDefaults = new Set(Object.values(PROVIDER_DEFAULT_MODELS));
+    if (geminiModel) knownDefaults.add(geminiModel);
+    if (knownDefaults.has(candidate) && candidate !== providerDefault) {
+      return providerDefault;
+    }
+    return candidate;
+  }
+
+  function resolveVideoId() {
+    try {
+      const url = new URL(window.location.href);
+      const queryId = url.searchParams.get('v');
+      if (queryId) return queryId;
+      const shortsMatch = (url.pathname || '').match(/\/shorts\/([a-zA-Z0-9_-]{6,})/);
+      if (shortsMatch && shortsMatch[1]) return shortsMatch[1];
+      const canonical = document.querySelector('link[rel="canonical"]')?.href || '';
+      if (canonical) {
+        const canonicalUrl = new URL(canonical, window.location.origin);
+        const canonicalId = canonicalUrl.searchParams.get('v');
+        if (canonicalId) return canonicalId;
+        const canonicalShorts = (canonicalUrl.pathname || '').match(/\/shorts\/([a-zA-Z0-9_-]{6,})/);
+        if (canonicalShorts && canonicalShorts[1]) return canonicalShorts[1];
+      }
+      const metaId = document.querySelector('meta[itemprop="videoId"]')?.content;
+      return metaId || '';
+    } catch {
+      return '';
+    }
+  }
   /**
    * Initialize the summary button
    */
@@ -151,7 +195,7 @@
                         document.querySelector('#description')?.textContent ||
                         document.querySelector('ytd-text-inline-expander')?.textContent || '';
 
-    const vid = new URL(window.location.href).searchParams.get('v');
+    const vid = resolveVideoId();
     let transcript = '';
     if (settings.useTranscript) {
       const trResp = await new Promise((resolve) => {
@@ -186,6 +230,9 @@
     console.log('[YFP] Generating summary for:', videoData.title);
 
     let prompt = `You are an assistant that summarizes YouTube content concisely.\n\nVideo Title:\n${videoData.title}\n\nDescription:\n${videoData.description}\n`;
+    if (!videoData.transcript) {
+      prompt += '\nTranscript: Not available for this video. Base your summary on title and description only.\n';
+    }
     if (videoData.transcript) {
       const t = videoData.transcript;
       if (t.length > 8000) {
@@ -197,15 +244,7 @@
           if (chunks.length >= 5) break;
         }
         const provider = settings.aiProvider || 'gemini';
-        const model = (settings.aiModel && settings.aiModel.trim())
-          ? settings.aiModel.trim()
-          : ({
-              gemini: settings.geminiModel || 'gemini-pro',
-              openai: 'gpt-4o-mini',
-              mistral: 'mistral-small',
-              deepseek: 'deepseek-chat',
-              grok: 'grok-2-mini'
-            }[provider] || 'gemini-pro');
+        const model = resolveModel(provider, settings.aiModel, settings.geminiModel);
         const chunkBullets = [];
         for (const ch of chunks) {
           const cp = `Summarize this transcript chunk into 5 concise bullet points:\n\n${ch}`;
@@ -227,15 +266,7 @@
     }
     prompt += `\nOutput Format (JSON):\n{\n  "title": "A catchy title for the summary",\n  "mainPoints": ["Point 1", "Point 2", "Point 3", "Point 4"],\n  "keyTakeaways": ["Takeaway 1", "Takeaway 2", "Takeaway 3"],\n  "topics": ["Topic 1", "Topic 2", "Topic 3"],\n  "duration": "Brief comment on length/pacing"\n}\n`;
     const provider = settings.aiProvider || 'gemini';
-    const model = (settings.aiModel && settings.aiModel.trim())
-      ? settings.aiModel.trim()
-      : ({
-          gemini: settings.geminiModel || 'gemini-pro',
-          openai: 'gpt-4o-mini',
-          mistral: 'mistral-small',
-          deepseek: 'deepseek-chat',
-          grok: 'grok-2-mini'
-        }[provider] || 'gemini-pro');
+    const model = resolveModel(provider, settings.aiModel, settings.geminiModel);
     const resp = await new Promise((resolve) => {
       chrome.runtime.sendMessage(
         {

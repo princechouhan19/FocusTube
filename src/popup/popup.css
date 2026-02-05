@@ -340,6 +340,68 @@ input:checked + .toggle-slider:before {
   border-color: var(--primary-color);
 }
 
+/* Inline input row for small controls */
+.inline-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+/* Small glass button consistent with theme */
+.glass-button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--primary-color);
+}
+
+/* Tag list and tag chip for block keywords */
+.yfp-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.yfp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.yfp-tag-remove {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.yfp-tag-remove:hover {
+  color: var(--danger-color);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* Profile Section */
 .profile-header {
   text-align: center;

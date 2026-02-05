@@ -90,11 +90,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Populate UI with current settings
   populateUI(settings);
   populateProfile(settings);
+  renderBlockedKeywords(settings.blockedKeywords || []);
 
   // Add event listeners
   addEventListeners();
   addBlockingListeners();
   addProfileListeners();
+  addKeywordBlocklistListeners();
 });
 
 /**
@@ -321,6 +323,68 @@ function addBlockingListeners() {
     const mins = parseInt(document.getElementById('custom-block-duration').value);
     if (mins > 0) setTempBlock(mins);
   });
+}
+
+/**
+ * Keyword Blocklist UI
+ */
+function renderBlockedKeywords(list) {
+  const container = document.getElementById('blockedKeywordsList');
+  if (!container) return;
+  container.innerHTML = '';
+  (list || []).forEach(k => {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'yfp-tag';
+    const text = document.createElement('span');
+    text.textContent = k;
+    const remove = document.createElement('button');
+    remove.textContent = '✕';
+    remove.dataset.keyword = k;
+    remove.className = 'yfp-tag-remove';
+    wrapper.appendChild(text);
+    wrapper.appendChild(remove);
+    container.appendChild(wrapper);
+  });
+}
+
+async function addKeywordBlocklistListeners() {
+  const addBtn = document.getElementById('addBlockedKeyword');
+  const input = document.getElementById('blockedKeywordInput');
+  const listEl = document.getElementById('blockedKeywordsList');
+
+  if (addBtn && input) {
+    addBtn.addEventListener('click', async () => {
+      const val = (input.value || '').trim();
+      if (!val) return;
+      const current = (await loadSettings()).blockedKeywords || [];
+      if (!current.includes(val)) {
+        const next = [...current, val];
+        await saveSettings({ blockedKeywords: next });
+        renderBlockedKeywords(next);
+        notifyContentScript();
+      }
+      input.value = '';
+    });
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addBtn.click();
+      }
+    });
+  }
+
+  if (listEl) {
+    listEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.yfp-tag-remove');
+      if (!btn) return;
+      const kw = btn.dataset.keyword;
+      const current = (await loadSettings()).blockedKeywords || [];
+      const next = current.filter(k => k !== kw);
+      await saveSettings({ blockedKeywords: next });
+      renderBlockedKeywords(next);
+      notifyContentScript();
+    });
+  }
 }
 
 async function setTempBlock(minutes) {

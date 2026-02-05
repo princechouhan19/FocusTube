@@ -355,6 +355,23 @@
         
         <div class="setting-item">
           <div class="setting-info">
+            <label class="setting-label">Blocked Topics</label>
+            <p class="setting-description">Hide videos matching these keywords</p>
+          </div>
+          <div class="inline-input-row">
+            <input id="blockedKeywordInput" class="glass-input" placeholder="Add topic keyword (e.g., Free fire)" style="flex:1;">
+            <button id="addBlockedKeyword" class="glass-button">Add</button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label">Current Blocklist</label>
+            <p class="setting-description">Click ✕ to remove</p>
+          </div>
+          <div id="blockedKeywordsList" class="yfp-tag-list"></div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-info">
             <label class="setting-label">Auto Pause</label>
             <p class="setting-description">Pause when tab inactive</p>
           </div>

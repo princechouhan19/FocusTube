@@ -77,7 +77,8 @@ const DEFAULT_SETTINGS = {
   hideVideoMetrics: false,
   hideVideoDuration: false,
   hideMerch: false,
-  customCSSRules: []
+  customCSSRules: [],
+  blockedKeywords: [],
 };
 
 /**

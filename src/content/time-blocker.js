@@ -145,7 +145,7 @@
     const bannerURL = chrome.runtime.getURL('src/icons/banner.png');
     blockOverlay.innerHTML = `
       <div style="text-align: center;">
-        <img class="yfp-banner" src="${bannerURL}" alt="FocusTube" style="height:48px; width:auto; object-fit:contain; margin-bottom:16px;" />
+        <img class="yfp-banner" src="${bannerURL}" alt="FocusTube" style="height:100px; width:120px; object-fit:cover; margin-bottom:16px;" />
         <div style="font-size: 64px; margin-bottom: 24px;">🚫</div>
         <h1 style="font-size: 32px; margin-bottom: 16px; color: #ff7675;">YouTube is Blocked</h1>
         <p id="yfp-block-message" style="font-size: 18px; opacity: 0.8; margin-bottom: 32px;"></p>

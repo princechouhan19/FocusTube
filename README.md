@@ -20,6 +20,18 @@ Reduce distractions, improve focus, and give users full control over YouTube's i
 - **Force Video Quality** - Default to highest available quality automatically
 - **Native HTML5 Player** - Option to use browser controls instead of YouTube's custom UI
 
+### 📸 Feature Screenshots
+
+Blocklist (beta) and focused browsing:
+
+![Blocked Topics – Beta](src/Images/BlockListBeta.png)
+![Hide Suggestions and Navigation](src/Images/HidesuggestionandNavigation.png)
+
+Time blocking UI and overlay:
+
+![Time Blocker UI](src/Images/TimeblockerUi.png)
+![Time Blocker Overlay](src/Images/TimeblockOverlay.png)
+
 ### 🏠 Home Page Features
 
 - **Hide Suggestions** - Remove recommended videos and "People also watched"
