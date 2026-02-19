@@ -32,6 +32,11 @@ Time blocking UI and overlay:
 ![Time Blocker UI](src/Images/TimeblockerUi.png)
 ![Time Blocker Overlay](src/Images/TimeblockOverlay.png)
 
+New Time Blocker Screens:
+
+![Time Blocker New 1](src/Images/TimeBlockerNew1.png)
+![Time Blocker New 2](src/Images/TimeBlockerNew2.png)
+
 ### 🏠 Home Page Features
 
 - **Hide Suggestions** - Remove recommended videos and "People also watched"

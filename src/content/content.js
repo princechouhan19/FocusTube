@@ -35,6 +35,7 @@
       { name: 'AutoPause', init: () => window.YFPAutoPause?.init() },
       { name: 'TheaterMode', init: () => window.YFPTheaterMode?.init() },
       { name: 'MetricsHider', init: () => window.YFPMetricsHider?.init() },
+      { name: 'GlassTheme', init: () => window.YFPGlassTheme?.init() },
       { name: 'CSSFilter', init: () => window.YFPCSSFilter?.init() },
       { name: 'CommentHider', init: () => window.YFPCommentHider?.init() },
       { name: 'CardsHider', init: () => window.YFPCardsHider?.init() }

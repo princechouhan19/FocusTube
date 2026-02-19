@@ -10,6 +10,7 @@
   let settings = {};
   let playerObserver = null;
   let isNativePlayerActive = false;
+  let playabilityOverlayObserver = null;
 
   /**
    * Initialize* player controller
@@ -18,11 +19,69 @@
     if (typeof loadSettings === 'function') {
       settings = await loadSettings();
     }
+
+    setupPlayabilityOverlayGuard();
+    suppressPlayabilityErrorOverlay();
     
     if (settings.useNativePlayer) {
       enableNativePlayer();
       setupPlayerObserver();
     }
+  }
+
+  function isVideoPlayable() {
+    const video = document.querySelector('video');
+    if (!video) return false;
+    const hasSrc = !!(video.currentSrc || video.src);
+    if (!hasSrc) return false;
+    return video.readyState >= 2 || !video.paused || video.currentTime > 0;
+  }
+
+  function suppressPlayabilityErrorOverlay() {
+    const selectors = [
+      'yt-playability-error-supported-renderers#error-screen',
+      '#error-screen.yt-playability-error-supported-renderers',
+      'ytd-watch-flexy #error-screen',
+      'yt-playability-error-supported-renderers #container.style-scope.yt-playability-error-supported-renderers'
+    ];
+    const nodes = document.querySelectorAll(selectors.join(', '));
+    const playable = isVideoPlayable();
+    nodes.forEach((node) => {
+      if (playable) {
+        node.setAttribute('data-yfp-playability-hidden', '1');
+        node.style.setProperty('display', 'none', 'important');
+        node.style.setProperty('visibility', 'hidden', 'important');
+        node.style.setProperty('pointer-events', 'none', 'important');
+      } else if (node.getAttribute('data-yfp-playability-hidden') === '1') {
+        node.removeAttribute('data-yfp-playability-hidden');
+        node.style.removeProperty('display');
+        node.style.removeProperty('visibility');
+        node.style.removeProperty('pointer-events');
+      }
+    });
+  }
+
+  function setupPlayabilityOverlayGuard() {
+    if (playabilityOverlayObserver) {
+      playabilityOverlayObserver.disconnect();
+    }
+    playabilityOverlayObserver = new MutationObserver(
+      debounce(() => suppressPlayabilityErrorOverlay(), 120),
+    );
+    const root = document.documentElement || document;
+    if (root) {
+      playabilityOverlayObserver.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true
+      });
+    }
+    ['loadedmetadata', 'loadeddata', 'play', 'timeupdate'].forEach((evt) => {
+      document.addEventListener(evt, suppressPlayabilityErrorOverlay, true);
+    });
+    window.addEventListener('yt-navigate-finish', () => {
+      setTimeout(suppressPlayabilityErrorOverlay, 120);
+    });
   }
 
   /**

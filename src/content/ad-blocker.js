@@ -210,7 +210,9 @@
       }
     }, 200));
 
-    observer.observe(document.body, {
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    observer.observe(root, {
       childList: true,
       subtree: true
     });

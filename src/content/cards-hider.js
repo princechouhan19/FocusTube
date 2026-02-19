@@ -211,7 +211,9 @@
       }
     }, 150));
 
-    cardsObserver.observe(document.body, {
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    cardsObserver.observe(root, {
       childList: true,
       subtree: true
     });

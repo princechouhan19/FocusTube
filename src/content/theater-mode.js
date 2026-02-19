@@ -139,7 +139,9 @@
       }
     }, 500));
 
-    theaterObserver.observe(document.body, {
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    theaterObserver.observe(root, {
       childList: true,
       subtree: true
     });

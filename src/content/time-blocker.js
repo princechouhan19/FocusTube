@@ -3,8 +3,8 @@
  * Blocks YouTube based on temporary timers or daily schedules
  */
 
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
   // Module state
   let settings = {};
@@ -16,18 +16,18 @@
    */
   async function init() {
     // Load settings
-    if (typeof loadSettings === 'function') {
+    if (typeof loadSettings === "function") {
       settings = await loadSettings();
     } else {
       // Fallback if storage helper not loaded yet
-      settings = await new Promise(resolve => {
+      settings = await new Promise((resolve) => {
         chrome.storage.sync.get(null, resolve);
       });
     }
 
     // Start checking
     checkBlockingRules();
-    
+
     // Set up regular check (every 1 second)
     if (checkInterval) clearInterval(checkInterval);
     checkInterval = setInterval(checkBlockingRules, 1000);
@@ -47,26 +47,54 @@
     const now = Date.now();
     if (settings.tempBlockUntil && now < settings.tempBlockUntil) {
       const remainingMs = settings.tempBlockUntil - now;
-      const mm = Math.floor(remainingMs / 60000).toString().padStart(2, '0');
-      const ss = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
-      showBlockOverlay('Focus Timer Active', settings.tempBlockUntil);
+      const mm = Math.floor(remainingMs / 60000)
+        .toString()
+        .padStart(2, "0");
+      const ss = Math.floor((remainingMs % 60000) / 1000)
+        .toString()
+        .padStart(2, "0");
+      showBlockOverlay("Focus Timer Active", settings.tempBlockUntil);
       return;
-    } else if (settings.tempBlockUntil && Date.now() >= settings.tempBlockUntil) {
+    } else if (
+      settings.tempBlockUntil &&
+      Date.now() >= settings.tempBlockUntil
+    ) {
       // Clean up expired timer
       // We don't saveSettings here to avoid race conditions/perf, just ignore it locally
     }
 
     // 3. Check Scheduled Block
-    if (settings.scheduleBlockEnabled && settings.scheduleBlockStart && settings.scheduleBlockEnd) {
-      if (isCurrentTimeInRange(settings.scheduleBlockStart, settings.scheduleBlockEnd)) {
+    if (
+      settings.scheduleBlockEnabled &&
+      settings.scheduleBlockStart &&
+      settings.scheduleBlockEnd
+    ) {
+      if (
+        isCurrentTimeInRange(
+          settings.scheduleBlockStart,
+          settings.scheduleBlockEnd,
+        )
+      ) {
         const nowDate = new Date();
-        const [endH, endM] = settings.scheduleBlockEnd.split(':').map(Number);
-        const endDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), endH, endM, 0, 0);
-        if (endDate < nowDate) endDate.setDate(endDate.getDate() + 1);
+        const [endH, endM] = settings.scheduleBlockEnd.split(":").map(Number);
+        let endDate = new Date(
+          nowDate.getFullYear(),
+          nowDate.getMonth(),
+          nowDate.getDate(),
+          endH,
+          endM,
+          0,
+          0,
+        );
+
+        // Handle overnight schedules (e.g. 23:00 to 07:00)
+        // If the end time is earlier than now, it means it ends tomorrow
+        if (endDate < nowDate) {
+          endDate.setDate(endDate.getDate() + 1);
+        }
+
         const remainingMs = endDate.getTime() - nowDate.getTime();
-        const mm = Math.floor(remainingMs / 60000).toString().padStart(2, '0');
-        const ss = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
-        showBlockOverlay('Scheduled Block', endDate.getTime());
+        showBlockOverlay("Scheduled Block", endDate.getTime());
         return;
       }
     }
@@ -80,14 +108,14 @@
    */
   function isCurrentTimeInRange(startStr, endStr) {
     if (!startStr || !endStr) return false;
-    
+
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    const [startH, startM] = startStr.split(':').map(Number);
+    const [startH, startM] = startStr.split(":").map(Number);
     const startMinutes = startH * 60 + startM;
 
-    const [endH, endM] = endStr.split(':').map(Number);
+    const [endH, endM] = endStr.split(":").map(Number);
     const endMinutes = endH * 60 + endM;
 
     if (startMinutes <= endMinutes) {
@@ -103,46 +131,50 @@
    * Show Blocking Overlay
    */
   function showBlockOverlay(message, endTs) {
-    if (document.getElementById('yfp-time-block-overlay')) {
+    if (document.getElementById("yfp-time-block-overlay")) {
       // Update message if exists
-      const msgEl = document.getElementById('yfp-block-message');
+      const msgEl = document.getElementById("yfp-block-message");
       if (msgEl) {
         const now = Date.now();
         const remainingMs = Math.max(0, (endTs || now) - now);
-        const mm = Math.floor(remainingMs / 60000).toString().padStart(2, '0');
-        const ss = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
+        const mm = Math.floor(remainingMs / 60000)
+          .toString()
+          .padStart(2, "0");
+        const ss = Math.floor((remainingMs % 60000) / 1000)
+          .toString()
+          .padStart(2, "0");
         msgEl.textContent = `${message}: ${mm}:${ss} remaining`;
       }
-      const overlay = document.getElementById('yfp-time-block-overlay');
+      const overlay = document.getElementById("yfp-time-block-overlay");
       if (overlay) {
-        overlay.dataset.endTs = endTs ? String(endTs) : '';
-        overlay.dataset.prefix = message || '';
+        overlay.dataset.endTs = endTs ? String(endTs) : "";
+        overlay.dataset.prefix = message || "";
       }
       return;
     }
 
     // Create overlay
-    blockOverlay = document.createElement('div');
-    blockOverlay.id = 'yfp-time-block-overlay';
+    blockOverlay = document.createElement("div");
+    blockOverlay.id = "yfp-time-block-overlay";
     Object.assign(blockOverlay.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: '#0f0f0f',
-      zIndex: '2147483647', // Max z-index
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontFamily: 'Segoe UI, sans-serif',
-      pointerEvents: 'all' // Ensure it captures all clicks
+      position: "fixed",
+      top: "0",
+      left: "0",
+      width: "100vw",
+      height: "100vh",
+      backgroundColor: "#0f0f0f",
+      zIndex: "2147483647", // Max z-index
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "white",
+      fontFamily: "Segoe UI, sans-serif",
+      pointerEvents: "all", // Ensure it captures all clicks
     });
 
     // Content
-    const bannerURL = chrome.runtime.getURL('src/icons/banner.png');
+    const bannerURL = chrome.runtime.getURL("src/icons/banner.png");
     blockOverlay.innerHTML = `
       <div style="text-align: center;">
         <img class="yfp-banner" src="${bannerURL}" alt="FocusTube" style="height:100px; width:120px; object-fit:cover; margin-bottom:16px;" />
@@ -154,18 +186,22 @@
         </div>
       </div>
     `;
-    blockOverlay.dataset.endTs = endTs ? String(endTs) : '';
-    blockOverlay.dataset.prefix = message || '';
+    blockOverlay.dataset.endTs = endTs ? String(endTs) : "";
+    blockOverlay.dataset.prefix = message || "";
     (function setInitialText() {
       const now = Date.now();
       const end = endTs || now;
       const remainingMs = Math.max(0, end - now);
-      const mm = Math.floor(remainingMs / 60000).toString().padStart(2, '0');
-      const ss = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
-      const msgEl = blockOverlay.querySelector('#yfp-block-message');
+      const mm = Math.floor(remainingMs / 60000)
+        .toString()
+        .padStart(2, "0");
+      const ss = Math.floor((remainingMs % 60000) / 1000)
+        .toString()
+        .padStart(2, "0");
+      const msgEl = blockOverlay.querySelector("#yfp-block-message");
       if (msgEl) msgEl.textContent = `${message}: ${mm}:${ss} remaining`;
     })();
-    const bannerImg = blockOverlay.querySelector('.yfp-banner');
+    const bannerImg = blockOverlay.querySelector(".yfp-banner");
     if (bannerImg) {
       bannerImg.onerror = async () => {
         try {
@@ -174,17 +210,17 @@
           const blobUrl = URL.createObjectURL(blob);
           bannerImg.src = blobUrl;
         } catch {
-          bannerImg.style.display = 'none';
+          bannerImg.style.display = "none";
         }
       };
     }
 
     // Prevent scrolling and hide main content
-    document.body.style.overflow = 'hidden';
-    
+    document.body.style.overflow = "hidden";
+
     // Add aggressive blocking style
-    const blockStyle = document.createElement('style');
-    blockStyle.id = 'yfp-block-style';
+    const blockStyle = document.createElement("style");
+    blockStyle.id = "yfp-block-style";
     blockStyle.textContent = `
       ytd-app, #page-manager, #masthead-container, #guide, #content, #player, .ytd-page-manager {
         display: none !important;
@@ -203,21 +239,21 @@
       }
     `;
     (document.head || document.documentElement).appendChild(blockStyle);
-    
+
     // Add to DOM
     document.documentElement.appendChild(blockOverlay);
-    
+
     // Stop any playing video
-    const video = document.querySelector('video');
+    const video = document.querySelector("video");
     if (video) {
       video.pause();
-      video.src = ''; // Force stop buffering
+      video.src = ""; // Force stop buffering
     }
 
     // Anti-tamper check (ensure overlay stays on top)
     if (!blockOverlay.dataset.tamperInterval) {
       const tamperInterval = setInterval(() => {
-        const overlay = document.getElementById('yfp-time-block-overlay');
+        const overlay = document.getElementById("yfp-time-block-overlay");
         if (!overlay) {
           showBlockOverlay(message, endTs);
           return;
@@ -225,17 +261,21 @@
         if (document.documentElement.lastElementChild !== overlay) {
           document.documentElement.appendChild(overlay);
         }
-        if (document.body.style.overflow !== 'hidden') {
-          document.body.style.overflow = 'hidden';
+        if (document.body.style.overflow !== "hidden") {
+          document.body.style.overflow = "hidden";
         }
         const end = overlay.dataset.endTs ? parseInt(overlay.dataset.endTs) : 0;
-        const prefix = overlay.dataset.prefix || message || '';
+        const prefix = overlay.dataset.prefix || message || "";
         if (end > 0) {
           const now = Date.now();
           const remainingMs = Math.max(0, end - now);
-          const mm = Math.floor(remainingMs / 60000).toString().padStart(2, '0');
-          const ss = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
-          const msgEl = document.getElementById('yfp-block-message');
+          const mm = Math.floor(remainingMs / 60000)
+            .toString()
+            .padStart(2, "0");
+          const ss = Math.floor((remainingMs % 60000) / 1000)
+            .toString()
+            .padStart(2, "0");
+          const msgEl = document.getElementById("yfp-block-message");
           if (msgEl) msgEl.textContent = `${prefix}: ${mm}:${ss} remaining`;
         }
       }, 1000);
@@ -247,9 +287,9 @@
    * Remove Blocking Overlay
    */
   function removeBlockOverlay() {
-    const overlay = document.getElementById('yfp-time-block-overlay');
-    const blockStyle = document.getElementById('yfp-block-style');
-    
+    const overlay = document.getElementById("yfp-time-block-overlay");
+    const blockStyle = document.getElementById("yfp-block-style");
+
     if (blockStyle) {
       blockStyle.remove();
     }
@@ -259,7 +299,7 @@
         clearInterval(parseInt(overlay.dataset.tamperInterval));
       }
       overlay.remove();
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
       blockOverlay = null;
     }
   }
@@ -273,13 +313,19 @@
   }
 
   // Listen for settings changes
-  if (typeof onSettingsChanged === 'function') {
+  if (typeof onSettingsChanged === "function") {
     onSettingsChanged((changes) => {
-      const keys = ['extensionEnabled', 'tempBlockUntil', 'scheduleBlockEnabled', 'scheduleBlockStart', 'scheduleBlockEnd'];
+      const keys = [
+        "extensionEnabled",
+        "tempBlockUntil",
+        "scheduleBlockEnabled",
+        "scheduleBlockStart",
+        "scheduleBlockEnd",
+      ];
       let shouldUpdate = false;
       let newVals = {};
 
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (changes[key] && changes[key].newValue !== undefined) {
           newVals[key] = changes[key].newValue;
           shouldUpdate = true;
@@ -296,7 +342,6 @@
   window.YFPTimeBlocker = {
     init,
     updateSettings,
-    checkBlockingRules
+    checkBlockingRules,
   };
-
 })();

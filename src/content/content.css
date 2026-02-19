@@ -19,10 +19,10 @@
   align-items: center;
   gap: 8px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   margin: 12px 0;
-  padding: 12px 20px;
+  padding: 14px 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
     0 8px 32px rgba(31, 38, 135, 0.15),
@@ -123,9 +123,9 @@
     0 24px 80px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
     inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-  max-height: 85vh;
-  max-width: 680px;
-  width: 94%;
+  max-height: 90vh;
+  max-width: 860px;
+  width: min(92vw, 860px);
   z-index: 2147483647;
   overflow: hidden;
   animation: yfp-slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -231,14 +231,70 @@
 
 /* Modal Body - Frosted Content Area */
 .yfp-modal-body {
-  padding: 24px;
-  max-height: calc(85vh - 90px);
+  padding: 30px;
+  max-height: calc(90vh - 96px);
   overflow-y: auto;
   background: linear-gradient(180deg,
     rgba(255, 255, 255, 0.7) 0%,
     rgba(255, 255, 255, 0.6) 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+.yfp-modal-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.yfp-summary-title {
+  margin: 0 0 18px 0;
+  font-size: 28px;
+  line-height: 1.25;
+  color: #111827;
+}
+
+.yfp-summary-section {
+  margin: 20px 0 0 0;
+}
+
+.yfp-summary-section h5 {
+  margin: 0 0 10px 0;
+  font-size: 21px;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.yfp-summary-section ul {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.yfp-summary-section li {
+  margin: 8px 0;
+  font-size: 18px;
+  line-height: 1.65;
+  color: #1f2937;
+}
+
+.yfp-tags {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.yfp-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(79, 70, 229, 0.16);
+  border: 1px solid rgba(79, 70, 229, 0.35);
+  color: #312e81;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 /* Custom Scrollbar - Glassmorphic */
@@ -407,11 +463,31 @@
   }
 
   .yfp-modal-body {
-    padding: 20px;
+    padding: 22px 18px;
   }
 
   .yfp-summary-button {
-    padding: 10px 16px;
+    padding: 12px 18px;
+    font-size: 14px;
+  }
+
+  .yfp-modal-header h3 {
+    font-size: 20px;
+  }
+
+  .yfp-summary-title {
+    font-size: 23px;
+  }
+
+  .yfp-summary-section h5 {
+    font-size: 18px;
+  }
+
+  .yfp-summary-section li {
+    font-size: 16px;
+  }
+
+  .yfp-tag {
     font-size: 13px;
   }
 }
@@ -625,4 +701,152 @@
 
 .yfp-pause-indicator svg {
   flex-shrink: 0;
+}
+
+/* Modern Glass Theme */
+html.yfp-modern-glass {
+  color-scheme: dark;
+  --yfp-glass-bg: rgba(20, 26, 38, 0.42);
+  --yfp-glass-bg-soft: rgba(20, 26, 38, 0.28);
+  --yfp-glass-border: rgba(255, 255, 255, 0.18);
+  --yfp-glass-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --yfp-glass-radius: 18px;
+  --yt-spec-base-background: #0e1524;
+  --yt-spec-raised-background: rgba(22, 30, 45, 0.65);
+  --yt-spec-general-background-a: rgba(22, 30, 45, 0.65);
+  --yt-spec-general-background-b: rgba(25, 35, 53, 0.72);
+  --yt-spec-brand-background-solid: rgba(19, 26, 40, 0.82);
+  --yt-spec-menu-background: rgba(24, 33, 49, 0.84);
+  --yt-spec-additive-background: rgba(255, 255, 255, 0.08);
+}
+
+html.yfp-modern-glass body {
+  background:
+    radial-gradient(1200px 800px at 10% -10%, rgba(80, 130, 255, 0.22), transparent 60%),
+    radial-gradient(1200px 800px at 100% 0%, rgba(10, 200, 255, 0.16), transparent 58%),
+    linear-gradient(180deg, #0d1320 0%, #111827 52%, #0e1524 100%) !important;
+  background-attachment: fixed !important;
+}
+
+html.yfp-modern-glass ytd-app,
+html.yfp-modern-glass ytd-watch-flexy,
+html.yfp-modern-glass ytd-browse {
+  background: transparent !important;
+}
+
+html.yfp-modern-glass #page-manager {
+  padding: 10px 12px 16px !important;
+  box-sizing: border-box !important;
+}
+
+html.yfp-modern-glass #contents.ytd-rich-grid-renderer,
+html.yfp-modern-glass ytd-rich-grid-renderer #contents {
+  padding-top: 8px !important;
+  gap: 16px !important;
+}
+
+html.yfp-modern-glass ytd-rich-grid-row,
+html.yfp-modern-glass ytd-rich-item-renderer {
+  margin-top: 10px !important;
+}
+
+html.yfp-modern-glass ytd-feed-filter-chip-bar-renderer,
+html.yfp-modern-glass #chips-wrapper,
+html.yfp-modern-glass yt-chip-cloud-renderer {
+  margin-bottom: 10px !important;
+  padding: 6px 8px !important;
+}
+
+html.yfp-modern-glass ytd-guide-renderer #sections,
+html.yfp-modern-glass ytd-guide-renderer #items {
+  padding: 8px !important;
+}
+
+html.yfp-modern-glass ytd-rich-grid-row,
+html.yfp-modern-glass ytd-two-column-browse-results-renderer,
+html.yfp-modern-glass ytd-two-column-search-results-renderer,
+html.yfp-modern-glass ytd-watch-next-secondary-results-renderer,
+html.yfp-modern-glass ytd-item-section-renderer {
+  background: transparent !important;
+}
+
+html.yfp-modern-glass #masthead-container,
+html.yfp-modern-glass ytd-guide-renderer,
+html.yfp-modern-glass ytd-mini-guide-renderer,
+html.yfp-modern-glass #guide-content,
+html.yfp-modern-glass ytd-watch-flexy #primary,
+html.yfp-modern-glass ytd-watch-flexy #secondary,
+html.yfp-modern-glass ytd-rich-grid-renderer,
+html.yfp-modern-glass ytd-rich-item-renderer #content,
+html.yfp-modern-glass ytd-video-renderer,
+html.yfp-modern-glass ytd-compact-video-renderer,
+html.yfp-modern-glass ytd-grid-video-renderer,
+html.yfp-modern-glass ytd-playlist-panel-renderer,
+html.yfp-modern-glass ytd-comments,
+html.yfp-modern-glass ytd-comment-thread-renderer,
+html.yfp-modern-glass ytd-engagement-panel-section-list-renderer,
+html.yfp-modern-glass ytd-searchbox #container,
+html.yfp-modern-glass #chips-wrapper {
+  background: var(--yfp-glass-bg) !important;
+  border: 1px solid var(--yfp-glass-border) !important;
+  border-radius: var(--yfp-glass-radius) !important;
+  backdrop-filter: blur(14px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+  box-shadow: var(--yfp-glass-shadow) !important;
+}
+
+html.yfp-modern-glass ytd-watch-flexy #primary,
+html.yfp-modern-glass ytd-watch-flexy #secondary {
+  padding: 14px !important;
+}
+
+html.yfp-modern-glass ytd-rich-item-renderer,
+html.yfp-modern-glass ytd-video-renderer,
+html.yfp-modern-glass ytd-compact-video-renderer,
+html.yfp-modern-glass ytd-grid-video-renderer {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+html.yfp-modern-glass ytd-thumbnail img,
+html.yfp-modern-glass ytd-thumbnail #thumbnail {
+  border-radius: 14px !important;
+}
+
+html.yfp-modern-glass a.yt-simple-endpoint:hover,
+html.yfp-modern-glass ytd-rich-item-renderer:hover,
+html.yfp-modern-glass ytd-video-renderer:hover,
+html.yfp-modern-glass ytd-compact-video-renderer:hover {
+  transform: translateY(-2px);
+  transition: transform 0.18s ease;
+}
+
+html.yfp-modern-glass #movie_player,
+html.yfp-modern-glass .html5-video-player,
+html.yfp-modern-glass video {
+  border-radius: 20px !important;
+}
+
+html.yfp-modern-glass .ytp-chrome-bottom,
+html.yfp-modern-glass .ytp-gradient-bottom,
+html.yfp-modern-glass .ytp-popup,
+html.yfp-modern-glass .ytp-settings-menu {
+  background: var(--yfp-glass-bg-soft) !important;
+  border: 1px solid var(--yfp-glass-border) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+html.yfp-modern-glass ytd-searchbox #search {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 900px) {
+  html.yfp-modern-glass ytd-watch-flexy #primary,
+  html.yfp-modern-glass ytd-watch-flexy #secondary {
+    border-radius: 14px !important;
+    padding: 10px !important;
+  }
 }

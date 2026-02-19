@@ -54,6 +54,7 @@
         "src/content/auto-pause.js",
         "src/content/theater-mode.js",
         "src/content/metrics-hider.js",
+        "src/content/glass-theme.js",
         "src/content/css-filter.js",
         "src/content/comment-hider.js",
         "src/content/cards-hider.js",

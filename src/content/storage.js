@@ -4,18 +4,20 @@
  */
 
 // Default settings configuration
+let hasLoggedContextInvalidation = false;
+
 const DEFAULT_SETTINGS = {
   aiProvider: 'gemini',
-  aiModel: 'gemini-pro',
+  aiModel: 'gemini-1.5-flash',
   aiModelByProvider: {
-    gemini: 'gemini-pro',
+    gemini: 'gemini-1.5-flash',
     openai: 'gpt-4o-mini',
     mistral: 'mistral-small',
     deepseek: 'deepseek-chat',
     grok: 'grok-2-mini'
   },
   aiProviderDefaultModels: {
-    gemini: 'gemini-pro',
+    gemini: 'gemini-1.5-flash',
     openai: 'gpt-4o-mini',
     mistral: 'mistral-small',
     deepseek: 'deepseek-chat',
@@ -27,7 +29,7 @@ const DEFAULT_SETTINGS = {
   grokApiKey: '',
   // AI Settings
   geminiApiKey: '',
-  geminiModel: 'gemini-pro',
+  geminiModel: 'gemini-1.5-flash',
   useTranscript: true,
   transcriptLang: 'en',
   // Video Page Features
@@ -68,6 +70,7 @@ const DEFAULT_SETTINGS = {
   // Enhanced UI Controls
   autoPauseInactive: false,
   autoTheaterMode: false,
+  modernGlassTheme: false,
   hideComments: false,
   hideInfoCards: false,
   hideEndScreens: false,
@@ -90,7 +93,15 @@ async function loadSettings() {
     const stored = await chrome.storage.sync.get(null);
     return { ...DEFAULT_SETTINGS, ...stored };
   } catch (error) {
-    console.error('Error loading settings:', error);
+    const msg = String(error && error.message ? error.message : error || '');
+    if (msg.includes('Extension context invalidated')) {
+      if (!hasLoggedContextInvalidation) {
+        hasLoggedContextInvalidation = true;
+        console.warn('Extension reloaded: content scripts will recover after page refresh.');
+      }
+    } else {
+      console.error('Error loading settings:', error);
+    }
     return { ...DEFAULT_SETTINGS };
   }
 }
@@ -103,7 +114,10 @@ async function saveSetting(key, value) {
     await chrome.storage.sync.set({ [key]: value });
     return true;
   } catch (error) {
-    console.error('Error saving setting:', error);
+    const msg = String(error && error.message ? error.message : error || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.error('Error saving setting:', error);
+    }
     return false;
   }
 }
@@ -116,7 +130,10 @@ async function saveSettingsAll(settings) {
     await chrome.storage.sync.set(settings);
     return true;
   } catch (error) {
-    console.error('Error saving settings:', error);
+    const msg = String(error && error.message ? error.message : error || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.error('Error saving settings:', error);
+    }
     return false;
   }
 }
@@ -130,7 +147,10 @@ async function resetSettings() {
     await chrome.storage.sync.set(DEFAULT_SETTINGS);
     return true;
   } catch (error) {
-    console.error('Error resetting settings:', error);
+    const msg = String(error && error.message ? error.message : error || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.error('Error resetting settings:', error);
+    }
     return false;
   }
 }
@@ -143,7 +163,10 @@ async function exportSettings() {
     const settings = await loadSettings();
     return JSON.stringify(settings, null, 2);
   } catch (error) {
-    console.error('Error exporting settings:', error);
+    const msg = String(error && error.message ? error.message : error || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.error('Error exporting settings:', error);
+    }
     return null;
   }
 }
@@ -158,7 +181,10 @@ async function importSettings(jsonString) {
     await chrome.storage.sync.set(settings);
     return true;
   } catch (error) {
-    console.error('Error importing settings:', error);
+    const msg = String(error && error.message ? error.message : error || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.error('Error importing settings:', error);
+    }
     return false;
   }
 }

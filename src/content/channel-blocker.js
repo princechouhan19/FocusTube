@@ -148,7 +148,9 @@
       blockChannelVideos();
     }, 200));
 
-    channelObserver.observe(document.body, {
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    channelObserver.observe(root, {
       childList: true,
       subtree: true
     });
@@ -305,7 +307,9 @@
       injectBlockChannelButton();
     }, 500));
 
-    buttonObserver.observe(document.body, {
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    buttonObserver.observe(root, {
       childList: true,
       subtree: true
     });

@@ -11,14 +11,27 @@ const DEFAULT_SETTINGS = {
   // Blocking Controls
   tempBlockUntil: 0,
   scheduleBlockEnabled: false,
-  scheduleBlockStart: '09:00',
-  scheduleBlockEnd: '17:00',
+  scheduleBlockStart: "09:00",
+  scheduleBlockEnd: "17:00",
 
   // User Profile & API
-  geminiApiKey: '',
-  geminiModel: 'gemini-pro',
-  profileName: 'Guest User',
-  profileGoal: '',
+  aiProvider: "gemini",
+  aiModel: "gemini-1.5-flash",
+  aiModelByProvider: {
+    gemini: "gemini-1.5-flash",
+    openai: "gpt-4o-mini",
+    mistral: "mistral-small",
+    deepseek: "deepseek-chat",
+    grok: "grok-2-mini",
+  },
+  geminiApiKey: "",
+  openaiApiKey: "",
+  mistralApiKey: "",
+  deepseekApiKey: "",
+  grokApiKey: "",
+  geminiModel: "gemini-1.5-flash",
+  profileName: "Guest User",
+  profileGoal: "",
   statsTimeSaved: 0,
   statsAdsBlocked: 0,
 
@@ -30,11 +43,42 @@ const DEFAULT_SETTINGS = {
   disableAutoplay: true,
   forceHighestQuality: true,
   useNativePlayer: false,
+  useTranscript: false,
+  transcriptLang: "en",
 
   // Enhanced UI Controls
   hideComments: false,
   hideInfoCards: false,
-  autoTheaterMode: false
+  autoTheaterMode: false,
+  modernGlassTheme: false,
+};
+
+const PROVIDER_MODELS = {
+  gemini: [
+    { value: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash (Exp)" },
+    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
+    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
+    { value: "gemini-pro", label: "Gemini 1.0 Pro" },
+  ],
+  openai: [
+    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+    { value: "gpt-4o", label: "GPT-4o" },
+    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+  ],
+  mistral: [
+    { value: "mistral-tiny", label: "Mistral Tiny" },
+    { value: "mistral-small", label: "Mistral Small" },
+    { value: "mistral-medium", label: "Mistral Medium" },
+    { value: "mistral-large-latest", label: "Mistral Large" },
+  ],
+  deepseek: [
+    { value: "deepseek-chat", label: "DeepSeek Chat" },
+    { value: "deepseek-coder", label: "DeepSeek Coder" },
+  ],
+  grok: [
+    { value: "grok-2-mini", label: "Grok 2 Mini" },
+    { value: "grok-2", label: "Grok 2" },
+  ],
 };
 
 /**
@@ -45,7 +89,7 @@ async function loadSettings() {
     const stored = await chrome.storage.sync.get(null);
     return { ...DEFAULT_SETTINGS, ...stored };
   } catch (error) {
-    console.error('Error loading settings:', error);
+    console.error("Error loading settings:", error);
     return { ...DEFAULT_SETTINGS };
   }
 }
@@ -56,10 +100,10 @@ async function loadSettings() {
 async function saveSettings(settings) {
   try {
     await chrome.storage.sync.set(settings);
-    console.log('Settings saved:', settings);
+    console.log("Settings saved:", settings);
     return true;
   } catch (error) {
-    console.error('Error saving settings:', error);
+    console.error("Error saving settings:", error);
     return false;
   }
 }
@@ -68,25 +112,48 @@ async function saveSettings(settings) {
  * Initialize popup UI
  */
 const TOGGLES_LIST = [
-  'skipVideoAds', 'hideBannerAds', 'hideShorts', 'hideComments', 'disableAutoplay',
-  'hideSuggestions', 'hideTrending', 'hidePeopleAlsoWatched',
-  'hideSidebar', 'hideNavShorts', 'hideNavExplore', 'hideNavGaming', 'hideNavTrending',
-  'autoTheaterMode', 'hideInfoCards', 'hideEndScreens', 'hideLiveChat',
-  'showSummaryButton', 'forceHighestQuality', 'useNativePlayer', 'autoPauseInactive',
-  'hideNotifications', 'hideVoiceSearch', 'hideCreateButton',
-  'hideNextVideo', 'hideMoreVideos', 'hideVideoMetrics', 'hideVideoDuration', 'hideMerch',
-  'hideShareButtons', 'useTranscript'
+  "skipVideoAds",
+  "hideBannerAds",
+  "hideShorts",
+  "hideComments",
+  "disableAutoplay",
+  "hideSuggestions",
+  "hideTrending",
+  "hidePeopleAlsoWatched",
+  "hideSidebar",
+  "hideNavShorts",
+  "hideNavExplore",
+  "hideNavGaming",
+  "hideNavTrending",
+  "autoTheaterMode",
+  "hideInfoCards",
+  "hideEndScreens",
+  "hideLiveChat",
+  "showSummaryButton",
+  "forceHighestQuality",
+  "useNativePlayer",
+  "hideNotifications",
+  "hideVoiceSearch",
+  "hideCreateButton",
+  "hideNextVideo",
+  "hideMoreVideos",
+  "hideVideoMetrics",
+  "hideVideoDuration",
+  "hideMerch",
+  "hideShareButtons",
+  "useTranscript",
+  "modernGlassTheme",
 ];
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('Initializing popup...');
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("Initializing popup...");
 
   // Load settings
   const settings = await loadSettings();
 
   // Initialize Views
   initNavigation();
-  
+
   // Populate UI with current settings
   populateUI(settings);
   populateProfile(settings);
@@ -104,34 +171,34 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 function initNavigation() {
   const views = {
-    home: document.getElementById('home-view'),
-    settings: document.getElementById('settings-view'),
-    profile: document.getElementById('profile-view')
+    home: document.getElementById("home-view"),
+    settings: document.getElementById("settings-view"),
+    profile: document.getElementById("profile-view"),
   };
 
   const navBtns = {
-    settings: document.getElementById('nav-settings'),
-    profile: document.getElementById('nav-profile')
+    settings: document.getElementById("nav-settings"),
+    profile: document.getElementById("nav-profile"),
   };
 
-  const backBtns = document.querySelectorAll('.back-btn');
+  const backBtns = document.querySelectorAll(".back-btn");
 
   function switchView(viewName) {
-    Object.values(views).forEach(el => el.classList.remove('active'));
-    views[viewName].classList.add('active');
+    Object.values(views).forEach((el) => el.classList.remove("active"));
+    views[viewName].classList.add("active");
   }
 
-  navBtns.settings.addEventListener('click', () => switchView('settings'));
-  navBtns.profile.addEventListener('click', () => switchView('profile'));
+  navBtns.settings.addEventListener("click", () => switchView("settings"));
+  navBtns.profile.addEventListener("click", () => switchView("profile"));
 
-  backBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+  backBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
       const target = btn.dataset.target;
-      if (views[target.split('-')[0]]) {
-         switchView(target.split('-')[0]);
+      if (views[target.split("-")[0]]) {
+        switchView(target.split("-")[0]);
       } else {
         // Fallback to home if target id format differs
-        switchView('home');
+        switchView("home");
       }
     });
   });
@@ -142,48 +209,48 @@ function initNavigation() {
  */
 function populateUI(settings) {
   // Master Switch
-  const extEnabled = document.getElementById('extensionEnabled');
+  const extEnabled = document.getElementById("extensionEnabled");
   extEnabled.checked = settings.extensionEnabled;
   updateStatusText(settings.extensionEnabled);
 
   // Blocking Schedule
-  document.getElementById('schedule-start').value = settings.scheduleBlockStart;
-  document.getElementById('schedule-end').value = settings.scheduleBlockEnd;
-  document.getElementById('scheduleBlockEnabled').checked = settings.scheduleBlockEnabled;
+  document.getElementById("schedule-start").value = settings.scheduleBlockStart;
+  document.getElementById("schedule-end").value = settings.scheduleBlockEnd;
+  document.getElementById("scheduleBlockEnabled").checked =
+    settings.scheduleBlockEnabled;
 
   // Settings View Inputs
-  document.getElementById('geminiApiKey').value = settings.geminiApiKey || '';
-  document.getElementById('openaiApiKey').value = settings.openaiApiKey || '';
-  document.getElementById('mistralApiKey').value = settings.mistralApiKey || '';
-  document.getElementById('deepseekApiKey').value = settings.deepseekApiKey || '';
-  document.getElementById('grokApiKey').value = settings.grokApiKey || '';
-  const providerSel = document.getElementById('aiProvider');
-  if (providerSel) providerSel.value = settings.aiProvider || 'gemini';
-  const aiModel = document.getElementById('aiModel');
-  if (aiModel) {
-    const byProvider = settings.aiModelByProvider || {};
-    const currentProvider = (providerSel && providerSel.value) || settings.aiProvider || 'gemini';
-    aiModel.value = byProvider[currentProvider] || settings.aiModel || settings.geminiModel || 'gemini-pro';
-  }
-  document.getElementById('homePageRedirect').value = settings.homePageRedirect || 'none';
-  const tl = document.getElementById('transcriptLang');
-  if (tl) tl.value = settings.transcriptLang || 'en';
-  
+  document.getElementById("geminiApiKey").value = settings.geminiApiKey || "";
+  document.getElementById("openaiApiKey").value = settings.openaiApiKey || "";
+  document.getElementById("mistralApiKey").value = settings.mistralApiKey || "";
+  document.getElementById("deepseekApiKey").value =
+    settings.deepseekApiKey || "";
+  document.getElementById("grokApiKey").value = settings.grokApiKey || "";
+  const providerSel = document.getElementById("aiProvider");
+  if (providerSel) providerSel.value = settings.aiProvider || "gemini";
+
+  // Populate models based on provider
+  updateModelDropdown(providerSel.value, settings);
+  document.getElementById("homePageRedirect").value =
+    settings.homePageRedirect || "none";
+  const tl = document.getElementById("transcriptLang");
+  if (tl) tl.value = settings.transcriptLang || "en";
+
   // Toggles
-  TOGGLES_LIST.forEach(id => {
+  TOGGLES_LIST.forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.checked = settings[id];
   });
 }
 
 function updateStatusText(enabled) {
-  const text = document.getElementById('status-text');
+  const text = document.getElementById("status-text");
   if (enabled) {
-    text.textContent = 'Active and protecting';
-    text.style.color = 'var(--success-color)';
+    text.textContent = "Active and protecting";
+    text.style.color = "var(--success-color)";
   } else {
-    text.textContent = 'Extension disabled';
-    text.style.color = 'var(--danger-color)';
+    text.textContent = "Extension disabled";
+    text.style.color = "var(--danger-color)";
   }
 }
 
@@ -191,18 +258,23 @@ function updateStatusText(enabled) {
  * Populate Profile Data
  */
 function populateProfile(settings) {
-  document.getElementById('profile-name-display').textContent = settings.profileName || 'Guest User';
-  document.getElementById('profile-goal-display').textContent = settings.profileGoal || 'No goal set';
-  
-  document.getElementById('profileName').value = settings.profileName || '';
-  document.getElementById('profileGoal').value = settings.profileGoal || '';
+  document.getElementById("profile-name-display").textContent =
+    settings.profileName || "Guest User";
+  document.getElementById("profile-goal-display").textContent =
+    settings.profileGoal || "No goal set";
 
-  document.getElementById('stats-time-saved').textContent = formatTime(settings.statsTimeSaved);
-  document.getElementById('stats-ads-blocked').textContent = settings.statsAdsBlocked;
+  document.getElementById("profileName").value = settings.profileName || "";
+  document.getElementById("profileGoal").value = settings.profileGoal || "";
+
+  document.getElementById("stats-time-saved").textContent = formatTime(
+    settings.statsTimeSaved,
+  );
+  document.getElementById("stats-ads-blocked").textContent =
+    settings.statsAdsBlocked;
 }
 
 function formatTime(minutes) {
-  if (!minutes) return '0h';
+  if (!minutes) return "0h";
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h > 0) return `${h}h ${m}m`;
@@ -214,21 +286,28 @@ function formatTime(minutes) {
  */
 function addEventListeners() {
   // Master Switch
-  document.getElementById('extensionEnabled').addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await saveSettings({ extensionEnabled: enabled });
-    updateStatusText(enabled);
-    notifyContentScript();
-  });
+  document
+    .getElementById("extensionEnabled")
+    .addEventListener("change", async (e) => {
+      const enabled = e.target.checked;
+      await saveSettings({ extensionEnabled: enabled });
+      updateStatusText(enabled);
+      notifyContentScript();
+    });
 
   // Schedule Inputs
-  const scheduleInputs = ['schedule-start', 'schedule-end', 'scheduleBlockEnabled'];
-  scheduleInputs.forEach(id => {
-    document.getElementById(id).addEventListener('change', async () => {
+  const scheduleInputs = [
+    "schedule-start",
+    "schedule-end",
+    "scheduleBlockEnabled",
+  ];
+  scheduleInputs.forEach((id) => {
+    document.getElementById(id).addEventListener("change", async () => {
       const settings = {
-        scheduleBlockStart: document.getElementById('schedule-start').value,
-        scheduleBlockEnd: document.getElementById('schedule-end').value,
-        scheduleBlockEnabled: document.getElementById('scheduleBlockEnabled').checked
+        scheduleBlockStart: document.getElementById("schedule-start").value,
+        scheduleBlockEnd: document.getElementById("schedule-end").value,
+        scheduleBlockEnabled: document.getElementById("scheduleBlockEnabled")
+          .checked,
       };
       await saveSettings(settings);
       notifyContentScript();
@@ -236,10 +315,10 @@ function addEventListeners() {
   });
 
   // Settings Toggles
-  TOGGLES_LIST.forEach(id => {
+  TOGGLES_LIST.forEach((id) => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener('change', async (e) => {
+      el.addEventListener("change", async (e) => {
         await saveSettings({ [id]: e.target.checked });
         notifyContentScript();
       });
@@ -247,57 +326,70 @@ function addEventListeners() {
   });
 
   // Home Page Redirect
-  document.getElementById('homePageRedirect').addEventListener('change', async (e) => {
-    await saveSettings({ homePageRedirect: e.target.value });
-    notifyContentScript();
-  });
+  document
+    .getElementById("homePageRedirect")
+    .addEventListener("change", async (e) => {
+      await saveSettings({ homePageRedirect: e.target.value });
+      notifyContentScript();
+    });
 
   // API Key
-  document.getElementById('saveApiKey').addEventListener('click', async () => {
-    const key = document.getElementById('geminiApiKey').value;
-    const providerNow = document.getElementById('aiProvider').value;
-    const modelNow = document.getElementById('aiModel').value;
+  document.getElementById("saveApiKey").addEventListener("click", async () => {
+    const key = document.getElementById("geminiApiKey").value;
+    const providerNow = document.getElementById("aiProvider").value;
+    const modelNow = document.getElementById("aiModel").value;
     const current = await loadSettings();
     const byProvider = Object.assign({}, current.aiModelByProvider || {});
     byProvider[providerNow] = modelNow;
     const settingsToSave = {
       geminiApiKey: key,
-      openaiApiKey: document.getElementById('openaiApiKey').value,
-      mistralApiKey: document.getElementById('mistralApiKey').value,
-      deepseekApiKey: document.getElementById('deepseekApiKey').value,
-      grokApiKey: document.getElementById('grokApiKey').value,
+      openaiApiKey: document.getElementById("openaiApiKey").value,
+      mistralApiKey: document.getElementById("mistralApiKey").value,
+      deepseekApiKey: document.getElementById("deepseekApiKey").value,
+      grokApiKey: document.getElementById("grokApiKey").value,
       aiProvider: providerNow,
       aiModel: modelNow,
-      aiModelByProvider: byProvider
+      aiModelByProvider: byProvider,
     };
     await saveSettings(settingsToSave);
-    showFeedback('saveApiKey', 'Key Saved!');
+    showFeedback("saveApiKey", "Key Saved!");
     notifyContentScript();
   });
 
-  const providerSel2 = document.getElementById('aiProvider');
+  const providerSel2 = document.getElementById("aiProvider");
   if (providerSel2) {
-    providerSel2.addEventListener('change', async (e) => {
+    providerSel2.addEventListener("change", async (e) => {
       const p = e.target.value;
       const s = await loadSettings();
-      const byProvider = s.aiModelByProvider || {};
-      const defaults = s.aiProviderDefaultModels || {
-        gemini: 'gemini-pro',
-        openai: 'gpt-4o-mini',
-        mistral: 'mistral-small',
-        deepseek: 'deepseek-chat',
-        grok: 'grok-2-mini'
-      };
-      const modelVal = byProvider[p] || s.aiModel || (p === 'gemini' ? s.geminiModel : '') || defaults[p] || defaults.gemini;
-      const aiModelInput = document.getElementById('aiModel');
-      if (aiModelInput) aiModelInput.value = modelVal;
-      await saveSettings({ aiProvider: p, aiModel: modelVal });
+      updateModelDropdown(p, s);
+
+      // Save new provider and current model for that provider
+      const aiModelInput = document.getElementById("aiModel");
+      const newModel = aiModelInput.value;
+      await saveSettings({ aiProvider: p, aiModel: newModel });
       notifyContentScript();
     });
   }
-  const tlSel = document.getElementById('transcriptLang');
+
+  const aiModelInput = document.getElementById("aiModel");
+  if (aiModelInput) {
+    aiModelInput.addEventListener("change", async (e) => {
+      const modelVal = e.target.value;
+      const provider = document.getElementById("aiProvider").value;
+      const s = await loadSettings();
+      const byProvider = s.aiModelByProvider || {};
+      byProvider[provider] = modelVal;
+
+      await saveSettings({
+        aiModel: modelVal,
+        aiModelByProvider: byProvider,
+      });
+      notifyContentScript();
+    });
+  }
+  const tlSel = document.getElementById("transcriptLang");
   if (tlSel) {
-    tlSel.addEventListener('change', async (e) => {
+    tlSel.addEventListener("change", async (e) => {
       await saveSettings({ transcriptLang: e.target.value });
       notifyContentScript();
     });
@@ -309,38 +401,70 @@ function addEventListeners() {
  */
 function addBlockingListeners() {
   const buttons = {
-    'block-5min': 5,
-    'block-15min': 15,
-    'block-30min': 30,
-    'block-1hr': 60
+    "block-5min": 5,
+    "block-15min": 15,
+    "block-30min": 30,
+    "block-1hr": 60,
   };
 
   Object.entries(buttons).forEach(([id, minutes]) => {
-    document.getElementById(id).addEventListener('click', () => setTempBlock(minutes));
+    document
+      .getElementById(id)
+      .addEventListener("click", () => setTempBlock(minutes));
   });
 
-  document.getElementById('block-custom').addEventListener('click', () => {
-    const mins = parseInt(document.getElementById('custom-block-duration').value);
-    if (mins > 0) setTempBlock(mins);
+  const customDurationInput = document.getElementById("custom-block-duration");
+  if (customDurationInput) {
+    customDurationInput.addEventListener("input", (e) => {
+      const el = e.target;
+      const cleaned = sanitizeMinutesInput(el.value);
+      if (cleaned !== el.value) el.value = cleaned;
+    });
+    customDurationInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("block-custom").click();
+      }
+    });
+  }
+
+  document.getElementById("block-custom").addEventListener("click", () => {
+    const mins = parseCustomDurationMinutes(customDurationInput?.value || "");
+    if (mins > 0) {
+      if (customDurationInput) customDurationInput.value = String(mins);
+      setTempBlock(mins);
+    }
   });
+}
+
+function sanitizeMinutesInput(value) {
+  return String(value || "").replace(/[^\d]/g, "");
+}
+
+function parseCustomDurationMinutes(value) {
+  const normalized = sanitizeMinutesInput(value);
+  if (!normalized) return 0;
+  const mins = Number.parseInt(normalized, 10);
+  if (!Number.isFinite(mins) || mins <= 0) return 0;
+  return Math.min(mins, 9999999);
 }
 
 /**
  * Keyword Blocklist UI
  */
 function renderBlockedKeywords(list) {
-  const container = document.getElementById('blockedKeywordsList');
+  const container = document.getElementById("blockedKeywordsList");
   if (!container) return;
-  container.innerHTML = '';
-  (list || []).forEach(k => {
-    const wrapper = document.createElement('span');
-    wrapper.className = 'yfp-tag';
-    const text = document.createElement('span');
+  container.innerHTML = "";
+  (list || []).forEach((k) => {
+    const wrapper = document.createElement("span");
+    wrapper.className = "yfp-tag";
+    const text = document.createElement("span");
     text.textContent = k;
-    const remove = document.createElement('button');
-    remove.textContent = '✕';
+    const remove = document.createElement("button");
+    remove.textContent = "✕";
     remove.dataset.keyword = k;
-    remove.className = 'yfp-tag-remove';
+    remove.className = "yfp-tag-remove";
     wrapper.appendChild(text);
     wrapper.appendChild(remove);
     container.appendChild(wrapper);
@@ -348,13 +472,13 @@ function renderBlockedKeywords(list) {
 }
 
 async function addKeywordBlocklistListeners() {
-  const addBtn = document.getElementById('addBlockedKeyword');
-  const input = document.getElementById('blockedKeywordInput');
-  const listEl = document.getElementById('blockedKeywordsList');
+  const addBtn = document.getElementById("addBlockedKeyword");
+  const input = document.getElementById("blockedKeywordInput");
+  const listEl = document.getElementById("blockedKeywordsList");
 
   if (addBtn && input) {
-    addBtn.addEventListener('click', async () => {
-      const val = (input.value || '').trim();
+    addBtn.addEventListener("click", async () => {
+      const val = (input.value || "").trim();
       if (!val) return;
       const current = (await loadSettings()).blockedKeywords || [];
       if (!current.includes(val)) {
@@ -363,10 +487,10 @@ async function addKeywordBlocklistListeners() {
         renderBlockedKeywords(next);
         notifyContentScript();
       }
-      input.value = '';
+      input.value = "";
     });
-    input.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter') {
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
         e.preventDefault();
         addBtn.click();
       }
@@ -374,12 +498,12 @@ async function addKeywordBlocklistListeners() {
   }
 
   if (listEl) {
-    listEl.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.yfp-tag-remove');
+    listEl.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".yfp-tag-remove");
       if (!btn) return;
       const kw = btn.dataset.keyword;
       const current = (await loadSettings()).blockedKeywords || [];
-      const next = current.filter(k => k !== kw);
+      const next = current.filter((k) => k !== kw);
       await saveSettings({ blockedKeywords: next });
       renderBlockedKeywords(next);
       notifyContentScript();
@@ -388,19 +512,19 @@ async function addKeywordBlocklistListeners() {
 }
 
 async function setTempBlock(minutes) {
-  const until = Date.now() + (minutes * 60 * 1000);
+  const until = Date.now() + minutes * 60 * 1000;
   await saveSettings({ tempBlockUntil: until });
   notifyContentScript();
-  
+
   // Visual feedback
   const btn = document.activeElement;
-  if (btn && btn.classList.contains('timer-btn')) {
+  if (btn && btn.classList.contains("timer-btn")) {
     const originalText = btn.textContent;
-    btn.textContent = 'Blocked!';
-    btn.classList.add('active');
+    btn.textContent = "Blocked!";
+    btn.classList.add("active");
     setTimeout(() => {
       btn.textContent = originalText;
-      btn.classList.remove('active');
+      btn.classList.remove("active");
     }, 2000);
   }
 }
@@ -409,14 +533,14 @@ async function setTempBlock(minutes) {
  * Profile Logic Listeners
  */
 function addProfileListeners() {
-  document.getElementById('saveProfile').addEventListener('click', async () => {
+  document.getElementById("saveProfile").addEventListener("click", async () => {
     const settings = {
-      profileName: document.getElementById('profileName').value,
-      profileGoal: document.getElementById('profileGoal').value
+      profileName: document.getElementById("profileName").value,
+      profileGoal: document.getElementById("profileGoal").value,
     };
     await saveSettings(settings);
     populateProfile(settings); // Update display immediately
-    showFeedback('saveProfile', 'Profile Saved!');
+    showFeedback("saveProfile", "Profile Saved!");
   });
 }
 
@@ -424,9 +548,11 @@ function addProfileListeners() {
  * Helper: Notify Content Script
  */
 async function notifyContentScript() {
-  const tabs = await chrome.tabs.query({ url: '*://*.youtube.com/*' });
+  const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/*" });
   for (const tab of tabs) {
-    chrome.tabs.sendMessage(tab.id, { action: 'reloadSettings' }).catch(() => {});
+    chrome.tabs
+      .sendMessage(tab.id, { action: "reloadSettings" })
+      .catch(() => {});
   }
 }
 
@@ -436,13 +562,44 @@ async function notifyContentScript() {
 function showFeedback(buttonId, message) {
   const button = document.getElementById(buttonId);
   if (!button) return;
-  
+
   const originalText = button.textContent;
-  button.textContent = '✓ ' + message;
-  button.style.background = 'var(--success-color)';
-  
+  button.textContent = "✓ " + message;
+  button.style.background = "var(--success-color)";
+
   setTimeout(() => {
     button.textContent = originalText;
-    button.style.background = '';
+    button.style.background = "";
   }, 2000);
+}
+
+function updateModelDropdown(provider, settings) {
+  const modelSelect = document.getElementById("aiModel");
+  if (!modelSelect) return;
+
+  const models = PROVIDER_MODELS[provider] || [];
+  modelSelect.innerHTML = models
+    .map((m) => `<option value="${m.value}">${m.label}</option>`)
+    .join("");
+
+  // Select current model
+  const byProvider = settings.aiModelByProvider || {};
+  const defaults = {
+    gemini: "gemini-1.5-flash",
+    openai: "gpt-4o-mini",
+    mistral: "mistral-small",
+    deepseek: "deepseek-chat",
+    grok: "grok-2-mini",
+  };
+
+  const currentModel =
+    byProvider[provider] || settings.aiModel || defaults[provider];
+
+  // Check if current model exists in options, if not select first or add it
+  const exists = models.some((m) => m.value === currentModel);
+  if (exists) {
+    modelSelect.value = currentModel;
+  } else if (models.length > 0) {
+    modelSelect.value = models[0].value;
+  }
 }

@@ -179,7 +179,9 @@
       }
     }, 200));
 
-    metricsObserver.observe(document.body, {
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    metricsObserver.observe(root, {
       childList: true,
       subtree: true
     });

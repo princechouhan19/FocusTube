@@ -6,14 +6,20 @@
   'use strict';
 
   let settings = {};
-  let keywords = [];
+  let keywordConfigs = [];
   let observer = null;
+  let bodyClickBound = false;
+  const blockedVideoMap = new Map(); // videoId -> matched keyword
+  const watchMatchCache = new Map(); // videoId -> matched keyword (or '')
+  let watchCheckToken = 0;
 
   const VIDEO_ITEM_SELECTORS = [
     'ytd-rich-item-renderer',
     'ytd-video-renderer',
     'ytd-compact-video-renderer',
     'ytd-grid-video-renderer',
+    'ytd-compact-radio-renderer',
+    'ytd-rich-section-renderer',
     'ytd-playlist-panel-video-renderer',
     'ytd-reel-video-renderer',
     'ytd-reel-shelf-renderer',
@@ -21,35 +27,178 @@
     'ytd-post-renderer'
   ].join(', ');
 
-  function normalize(str) {
-    return (str || '').toLowerCase();
+  function normalizeText(str) {
+    return String(str || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
-  function compileMatchers(list) {
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function compileKeywordConfigs(list) {
     const arr = Array.isArray(list) ? list : [];
     return arr
       .map(k => (k || '').trim())
       .filter(k => k.length > 0)
-      .map(k => new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+      .map((k) => {
+        const normalized = normalizeText(k);
+        const parts = normalized.split(' ').filter(Boolean);
+        // Flexible phrase matching: "free fire" should match with variable spacing/punctuation.
+        const pattern = parts.map(escapeRegex).join('\\s+');
+        return {
+          raw: k,
+          normalized,
+          regex: new RegExp(pattern, 'i')
+        };
+      });
   }
 
-  function shouldBlockText(text, matchers) {
-    const t = text || '';
-    for (const rx of matchers) {
-      if (rx.test(t)) return true;
+  function findMatchedKeyword(text, configs) {
+    const normalized = normalizeText(text);
+    if (!normalized) return '';
+    for (const cfg of configs) {
+      if (cfg.regex.test(normalized)) {
+        return cfg.raw;
+      }
     }
-    return false;
+    return '';
+  }
+
+  function getVideoIdFromHref(href) {
+    if (!href) return '';
+    try {
+      const url = new URL(href, window.location.origin);
+      const v = url.searchParams.get('v');
+      if (v) return v;
+      const m = (url.pathname || '').match(/\/shorts\/([a-zA-Z0-9_-]{6,})/);
+      if (m && m[1]) return m[1];
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  function getItemVideoId(item) {
+    const a = item.querySelector('a[href*="watch?v="], a[href*="/shorts/"]');
+    return getVideoIdFromHref(a?.href || '');
+  }
+
+  function getItemSearchableText(item) {
+    const title =
+      item.querySelector('#video-title')?.textContent ||
+      item.querySelector('a#video-title')?.textContent ||
+      item.querySelector('h3 a')?.textContent ||
+      '';
+    const channel =
+      item.querySelector('#channel-name')?.textContent ||
+      item.querySelector('ytd-channel-name')?.textContent ||
+      '';
+    const aria = Array.from(item.querySelectorAll('a[aria-label]'))
+      .map((a) => a.getAttribute('aria-label') || '')
+      .join(' ');
+    const tags = extractHashtags(item);
+    const allText = item.textContent || '';
+    return `${title} ${channel} ${aria} ${tags} ${allText}`;
+  }
+
+  function decodeHtmlEntities(input) {
+    if (!input) return '';
+    return String(input)
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&#x27;|&apos;/g, "'")
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, ' ');
+  }
+
+  function getCurrentVideoId() {
+    try {
+      const url = new URL(window.location.href);
+      const v = url.searchParams.get('v');
+      if (v) return v;
+      const shorts = (url.pathname || '').match(/\/shorts\/([a-zA-Z0-9_-]{6,})/);
+      if (shorts && shorts[1]) return shorts[1];
+      return '';
+    } catch {
+      return '';
+    }
   }
   
   function ensureOverlayCSS() {
     injectStyles('yfp-keyword-overlay-css', `
       .yfp-blocked-item{position:relative !important;}
-      .yfp-focus-overlay{position:absolute; inset:0; background:rgba(15,15,15,0.92); display:flex; align-items:center; justify-content:center; color:#fff; z-index:2147483646; border-radius:12px; backdrop-filter:blur(2px)}
-      .yfp-focus-overlay .label{padding:12px 16px; border:1px solid rgba(255,255,255,0.12); border-radius:12px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); font-weight:700; letter-spacing:0.3px}
+      .yfp-focus-overlay{
+        position:absolute; inset:0; z-index:2147483646; border-radius:14px;
+        display:flex; align-items:center; justify-content:center;
+        background:linear-gradient(135deg, rgba(6,10,18,0.9) 0%, rgba(14,18,30,0.94) 100%);
+        backdrop-filter:blur(6px) saturate(125%);
+      }
+      .yfp-focus-overlay .label{
+        width:min(92%,360px); text-align:center; padding:14px 14px;
+        border:1px solid rgba(255,255,255,0.16); border-radius:14px;
+        background:linear-gradient(135deg, rgba(102,126,234,0.34) 0%, rgba(118,75,162,0.34) 100%);
+        box-shadow:0 10px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+      }
+      .yfp-focus-overlay .kicker{font-size:11px; letter-spacing:0.7px; text-transform:uppercase; opacity:0.9; margin-bottom:6px}
+      .yfp-focus-overlay .topic{display:inline-block; margin-bottom:8px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.2); font-size:12px; font-weight:700}
+      .yfp-focus-overlay .title{font-size:16px; font-weight:800; line-height:1.25; margin-bottom:4px}
+      .yfp-focus-overlay .sub{font-size:12px; line-height:1.35; opacity:0.94}
+
+      .yfp-keyword-watch-overlay{
+        position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center; justify-content:center; padding:22px;
+        background:
+          radial-gradient(900px 500px at 15% 5%, rgba(91,124,255,0.22), transparent 60%),
+          radial-gradient(700px 450px at 90% 0%, rgba(128,83,255,0.2), transparent 60%),
+          rgba(6,8,14,0.94);
+        backdrop-filter:blur(6px);
+      }
+      .yfp-keyword-watch-overlay .box{
+        max-width:760px; width:min(94vw,760px); border-radius:22px; padding:30px 26px;
+        border:1px solid rgba(255,255,255,0.2);
+        background:linear-gradient(145deg, rgba(18,24,40,0.78) 0%, rgba(20,28,48,0.72) 100%);
+        color:#edf2ff; text-align:center;
+        box-shadow:0 24px 54px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.12);
+      }
+      .yfp-keyword-watch-overlay .kicker{
+        font-size:12px; text-transform:uppercase; letter-spacing:1.3px; color:#c9d6ff; opacity:0.9; margin-bottom:12px
+      }
+      .yfp-keyword-watch-overlay h2{margin:0 0 10px 0; font-size:38px; line-height:1.08; letter-spacing:-0.6px}
+      .yfp-keyword-watch-overlay p{margin:0 0 12px 0; font-size:19px; line-height:1.5; color:#dce5ff}
+      .yfp-keyword-watch-overlay .topic{
+        display:inline-block; margin:2px 0 16px 0; padding:8px 14px; border-radius:999px;
+        background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.24);
+        font-size:14px; font-weight:800; color:#f6f8ff
+      }
+      .yfp-keyword-watch-overlay .quote{
+        margin:6px auto 16px auto; max-width:620px; padding:10px 14px; border-radius:12px;
+        font-size:14px; line-height:1.45; color:#d9e2ff; background:rgba(255,255,255,0.06);
+        border:1px solid rgba(255,255,255,0.1)
+      }
+      .yfp-keyword-watch-overlay button{
+        margin-top:10px; border:0; border-radius:12px; padding:13px 20px; min-width:170px;
+        font-size:15px; font-weight:800; letter-spacing:0.2px; cursor:pointer;
+        background:linear-gradient(135deg,#ffffff 0%, #e8eeff 100%); color:#1f2a44;
+        box-shadow:0 10px 22px rgba(0,0,0,0.28);
+      }
+      .yfp-keyword-watch-overlay button:hover{transform:translateY(-1px)}
+      .yfp-keyword-watch-overlay button:active{transform:translateY(0)}
+      @media (max-width: 768px){
+        .yfp-keyword-watch-overlay .box{padding:24px 18px; border-radius:18px}
+        .yfp-keyword-watch-overlay h2{font-size:30px}
+        .yfp-keyword-watch-overlay p{font-size:17px}
+      }
     `);
   }
   
-  function overlayItem(item) {
+  function overlayItem(item, matchedKeyword) {
     ensureOverlayCSS();
     const target = item.querySelector('#thumbnail') || item;
     if (target.querySelector('.yfp-focus-overlay')) return;
@@ -58,14 +207,23 @@
       target.style.position = 'relative';
     }
     const overlay = createElement('div', { className: 'yfp-focus-overlay' });
-    const label = createElement('div', { className: 'label' }, 'Stay Focused');
+    const label = createElement('div', { className: 'label' });
+    label.innerHTML = `
+      <div class="kicker">Focus Filter</div>
+      <div class="topic">${matchedKeyword}</div>
+      <div class="title">Topic Blocked</div>
+      <div class="sub">Keep momentum and protect your focus.</div>
+    `;
     overlay.appendChild(label);
     target.appendChild(overlay);
     item.classList.add('yfp-blocked-item');
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    }, true);
+    if (!item.dataset.yfpClickGuard) {
+      item.dataset.yfpClickGuard = '1';
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, true);
+    }
   }
   
   function removeOverlay(item) {
@@ -84,61 +242,209 @@
     return tags.join(' ');
   }
 
+  function ensureBodyClickGuard() {
+    if (bodyClickBound) return;
+    bodyClickBound = true;
+    document.addEventListener('click', (e) => {
+      if (!keywordConfigs.length) return;
+      const link = e.target.closest('a[href]');
+      if (!link) return;
+      const videoId = getVideoIdFromHref(link.href);
+      const text = `${link.textContent || ''} ${link.getAttribute('aria-label') || ''}`;
+      const matched = blockedVideoMap.get(videoId) || findMatchedKeyword(text, keywordConfigs);
+      if (matched) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+  }
+
+  function getCurrentWatchText() {
+    const title =
+      document.querySelector('#title h1 yt-formatted-string')?.textContent ||
+      document.title.replace(' - YouTube', '') ||
+      '';
+    const channel =
+      document.querySelector('ytd-video-owner-renderer #channel-name')?.textContent ||
+      '';
+    const description =
+      document.querySelector('#description')?.textContent ||
+      '';
+    const metaKeywords = document.querySelector('meta[name="keywords"]')?.content || '';
+    const ogTitle = document.querySelector('meta[property="og:title"]')?.content || '';
+    const ogDescription = document.querySelector('meta[property="og:description"]')?.content || '';
+    return `${title} ${channel} ${description} ${metaKeywords} ${ogTitle} ${ogDescription}`;
+  }
+
+  async function fetchWatchTextFromPage(videoId) {
+    if (!videoId) return '';
+    try {
+      const resp = await fetch(`https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include'
+      });
+      if (!resp.ok) return '';
+      const html = await resp.text();
+      if (!html) return '';
+
+      const metaTitle = (html.match(/<meta[^>]+(?:name|property)=["'](?:title|og:title)["'][^>]+content=["']([^"']+)["']/i) || [])[1] || '';
+      const metaDesc = (html.match(/<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']/i) || [])[1] || '';
+      const metaKeywords = (html.match(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i) || [])[1] || '';
+      const shortDescription = (html.match(/"shortDescription":"([^"]{1,10000})"/i) || [])[1] || '';
+      const playerTitle = (html.match(/"title":\{"runs":\[\{"text":"([^"]{1,500})"/i) || [])[1] || '';
+      const keywordsArray = (html.match(/"keywords":\[(.{1,3000}?)\]/i) || [])[1] || '';
+
+      return decodeHtmlEntities(
+        `${metaTitle} ${metaDesc} ${metaKeywords} ${shortDescription} ${playerTitle} ${keywordsArray}`
+      );
+    } catch {
+      return '';
+    }
+  }
+
+  async function resolveWatchMatchedKeyword() {
+    const localText = getCurrentWatchText();
+    const localMatch = findMatchedKeyword(localText, keywordConfigs);
+    if (localMatch) return localMatch;
+
+    const videoId = getCurrentVideoId();
+    if (!videoId) return '';
+
+    if (watchMatchCache.has(videoId)) {
+      return watchMatchCache.get(videoId) || '';
+    }
+
+    const fetchedText = await fetchWatchTextFromPage(videoId);
+    const fetchedMatch = findMatchedKeyword(fetchedText, keywordConfigs);
+    watchMatchCache.set(videoId, fetchedMatch || '');
+    if (watchMatchCache.size > 250) {
+      const firstKey = watchMatchCache.keys().next().value;
+      if (firstKey) watchMatchCache.delete(firstKey);
+    }
+    return fetchedMatch || '';
+  }
+
+  function removeWatchOverlay() {
+    const existing = document.getElementById('yfp-keyword-watch-overlay');
+    if (existing) existing.remove();
+  }
+
+  function showWatchOverlay(matchedKeyword) {
+    ensureOverlayCSS();
+    removeWatchOverlay();
+    const overlay = createElement('div', {
+      id: 'yfp-keyword-watch-overlay',
+      className: 'yfp-keyword-watch-overlay'
+    });
+    overlay.innerHTML = `
+      <div class="box">
+        <div class="kicker">FocusTube Protection</div>
+        <h2>Stay Focused</h2>
+        <div class="topic">Blocked Topic: ${matchedKeyword}</div>
+        <p>This video matches your blocked topic list.</p>
+        <div class="quote">Every focused minute compounds into real progress. You are building discipline right now.</div>
+        <button id="yfp-keyword-go-home">Go To Home</button>
+      </div>
+    `;
+    document.documentElement.appendChild(overlay);
+    const btn = overlay.querySelector('#yfp-keyword-go-home');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        window.location.href = 'https://www.youtube.com';
+      });
+    }
+  }
+
+  async function enforceWatchOverlayIfNeeded() {
+    if (!keywordConfigs.length) {
+      removeWatchOverlay();
+      return;
+    }
+    const path = window.location.pathname || '';
+    if (!path.startsWith('/watch') && !path.startsWith('/shorts')) {
+      removeWatchOverlay();
+      return;
+    }
+
+    const token = ++watchCheckToken;
+    const matched = await resolveWatchMatchedKeyword();
+    if (token !== watchCheckToken) return;
+
+    if (matched) showWatchOverlay(matched);
+    else removeWatchOverlay();
+  }
+
   async function init() {
     if (typeof loadSettings === 'function') {
       settings = await loadSettings();
     }
-    keywords = settings.blockedKeywords || [];
+    keywordConfigs = compileKeywordConfigs(settings.blockedKeywords || []);
+    watchMatchCache.clear();
+    ensureBodyClickGuard();
     applyBlocking();
     setupObserver();
+    window.addEventListener('yt-navigate-finish', () => {
+      setTimeout(() => {
+        applyBlocking();
+      }, 250);
+    });
   }
 
   function setupObserver() {
     if (observer) observer.disconnect();
     observer = new MutationObserver(debounce(() => applyBlocking(), 300));
-    observer.observe(document.body, { childList: true, subtree: true });
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    observer.observe(root, { childList: true, subtree: true });
   }
 
   function applyBlocking() {
-    if (!keywords || keywords.length === 0) return;
-    const matchers = compileMatchers(keywords);
+    const items = document.querySelectorAll(VIDEO_ITEM_SELECTORS);
+
+    if (!keywordConfigs.length) {
+      blockedVideoMap.clear();
+      items.forEach(removeOverlay);
+      removeWatchOverlay();
+      return;
+    }
+
+    blockedVideoMap.clear();
+
     // Block search results page if query matches
     try {
       const url = new URL(window.location.href);
       if (url.pathname === '/results') {
         const qRaw = url.searchParams.get('search_query') || url.searchParams.get('q') || '';
         const q = decodeURIComponent(qRaw.replace(/\+/g, ' ')).toLowerCase();
-        if (shouldBlockText(q, matchers)) {
-          window.location.href = 'https://www.youtube.com';
+        const matchedQ = findMatchedKeyword(q, keywordConfigs);
+        if (matchedQ) {
+          showWatchOverlay(matchedQ);
           return;
         }
       }
     } catch {}
-    const items = document.querySelectorAll(VIDEO_ITEM_SELECTORS);
+
     items.forEach(item => {
-      const titleEl = item.querySelector('#video-title') ||
-                      item.querySelector('yt-formatted-string.title') ||
-                      item.querySelector('h3 a') ||
-                      item.querySelector('a#video-title');
-      const title = titleEl?.textContent || '';
-      const metaText = item.textContent || '';
-      const tagsText = extractHashtags(item);
-      const match = shouldBlockText(title, matchers) || shouldBlockText(metaText, matchers) || shouldBlockText(tagsText, matchers);
-      if (match) {
-        overlayItem(item);
+      const text = getItemSearchableText(item);
+      const matched = findMatchedKeyword(text, keywordConfigs);
+      if (matched) {
+        const vid = getItemVideoId(item);
+        if (vid) blockedVideoMap.set(vid, matched);
+        overlayItem(item, matched);
       } else {
         removeOverlay(item);
       }
     });
+
+    enforceWatchOverlayIfNeeded();
   }
 
   function updateSettings(newSettings) {
-    const prev = keywords;
     settings = { ...settings, ...newSettings };
-    keywords = settings.blockedKeywords || [];
-    if (JSON.stringify(prev) !== JSON.stringify(keywords)) {
-      applyBlocking();
-    }
+    keywordConfigs = compileKeywordConfigs(settings.blockedKeywords || []);
+    watchMatchCache.clear();
+    applyBlocking();
   }
 
   if (typeof onSettingsChanged === 'function') {
