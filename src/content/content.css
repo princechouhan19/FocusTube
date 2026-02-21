@@ -155,26 +155,19 @@
   }
 }
 
-/* Modal Header - Vibrant Gradient Glass */
+/* Modal Header - Solid Black Header */
 .yfp-modal-header {
   position: relative;
-  background: linear-gradient(135deg, 
-    rgba(139, 92, 246, 0.85) 0%,
-    rgba(99, 102, 241, 0.85) 50%,
-    rgba(59, 130, 246, 0.85) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #ffffff;
+  background: #000000; /* Deep Black */
+  color: #f8fafc;
   padding: 20px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    0 4px 16px rgba(99, 102, 241, 0.2);
+  border-bottom: 1px solid #27272a; /* Subtle borders */
 }
 
-/* Gradient overlay for depth */
+/* Gradient overlay for depth (Neutral) */
 .yfp-modal-header::before {
   content: '';
   position: absolute;
@@ -184,7 +177,7 @@
   height: 2px;
   background: linear-gradient(90deg, 
     transparent,
-    rgba(255, 255, 255, 0.6),
+    rgba(255, 255, 255, 0.2),
     transparent);
 }
 
@@ -229,16 +222,12 @@
   transform: rotate(90deg) scale(0.95);
 }
 
-/* Modal Body - Frosted Content Area */
+/* Modal Body - Solid Black */
 .yfp-modal-body {
   padding: 30px;
   max-height: calc(90vh - 96px);
   overflow-y: auto;
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.7) 0%,
-    rgba(255, 255, 255, 0.6) 100%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: #0a0a0a; /* Almost black */
 }
 
 .yfp-modal-header h3 {
@@ -250,20 +239,21 @@
 
 .yfp-summary-title {
   margin: 0 0 18px 0;
-  font-size: 28px;
-  line-height: 1.25;
-  color: #111827;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #f8fafc; /* Crisp white */
 }
 
 .yfp-summary-section {
-  margin: 20px 0 0 0;
+  margin: 24px 0 0 0;
 }
 
 .yfp-summary-section h5 {
-  margin: 0 0 10px 0;
-  font-size: 21px;
+  margin: 0 0 12px 0;
+  font-size: 20px;
   font-weight: 700;
-  color: #4f46e5;
+  color: #a1a1aa; /* Light gray */
 }
 
 .yfp-summary-section ul {
@@ -272,10 +262,10 @@
 }
 
 .yfp-summary-section li {
-  margin: 8px 0;
-  font-size: 18px;
-  line-height: 1.65;
-  color: #1f2937;
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #d4d4d8; /* Readable gray */
 }
 
 .yfp-tags {
@@ -288,61 +278,62 @@
 .yfp-tag {
   display: inline-flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(79, 70, 229, 0.16);
-  border: 1px solid rgba(79, 70, 229, 0.35);
-  color: #312e81;
-  font-size: 15px;
-  font-weight: 600;
+  background: #18181b; /* Dark pill */
+  border: 1px solid #3f3f46;
+  color: #e4e4e7;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s ease;
 }
 
-/* Custom Scrollbar - Glassmorphic */
+.yfp-tag:hover {
+  transform: translateY(-2px);
+  background: #27272a;
+}
+
+/* Custom Scrollbar - Dark */
 .yfp-modal-body::-webkit-scrollbar {
   width: 10px;
 }
 
 .yfp-modal-body::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: #18181b;
   border-radius: 10px;
 }
 
 .yfp-modal-body::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg,
-    rgba(139, 92, 246, 0.5),
-    rgba(99, 102, 241, 0.5));
+  background: #3f3f46;
   border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid #18181b;
 }
 
 .yfp-modal-body::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg,
-    rgba(139, 92, 246, 0.7),
-    rgba(99, 102, 241, 0.7));
+  background: #52525b;
 }
 
-/* Summary Content - Enhanced Typography */
+/* Summary Content - Enhanced Dark Typography */
 .yfp-summary-content {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 15px;
-  line-height: 1.7;
-  color: #1f2937;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #d4d4d8;
+  background-color: transparent !important;
 }
 
 .yfp-summary-content h3 {
-  color: #6366f1;
-  font-size: 17px;
+  color: #ffffff;
+  font-size: 18px;
   font-weight: 700;
-  margin: 20px 0 10px 0;
-  text-shadow: 0 1px 2px rgba(99, 102, 241, 0.1);
-  letter-spacing: -0.3px;
+  margin: 24px 0 12px 0;
+  letter-spacing: -0.2px;
 }
 
 .yfp-summary-content p {
-  margin: 10px 0;
-  color: #374151;
+  margin: 12px 0;
+  color: #d4d4d8;
+  background-color: transparent !important;
 }
 
 .yfp-summary-content ul {
@@ -352,11 +343,11 @@
 
 .yfp-summary-content li {
   margin: 6px 0;
-  color: #4b5563;
+  color: #a1a1aa;
 }
 
 .yfp-summary-content li::marker {
-  color: #6366f1;
+  color: #52525b;
 }
 
 /* Loading State - Elegant Spinner */
@@ -374,7 +365,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #3f3f46, #52525b); /* Gray tones instead of purple */
   animation: yfp-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -390,11 +381,7 @@
   left: 3px;
   right: 3px;
   bottom: 3px;
-  background: linear-gradient(135deg,
-    rgba(255, 255, 255, 0.7),
-    rgba(255, 255, 255, 0.6));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: #000000; /* Solid black to match new modal body */
 }
 
 .yfp-spinner::after {
@@ -403,7 +390,7 @@
   right: 6px;
   bottom: 6px;
   border: 3px solid transparent;
-  border-top-color: #6366f1;
+  border-top-color: #ffffff; /* Crisp white spinner */
   animation: yfp-spin 0.8s linear infinite;
 }
 
@@ -419,11 +406,21 @@
 }
 
 .yfp-loading-text {
-  color: #6b7280;
+  color: #a1a1aa; /* Light gray */
   font-size: 15px;
   font-weight: 500;
   margin-top: 20px;
   animation: yfp-fadeInOut 2s ease-in-out infinite;
+}
+
+/* Micro Animation classes */
+.yfp-pulse-icon {
+  animation: yfp-iconPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes yfp-iconPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
 }
 
 @keyframes yfp-fadeInOut {

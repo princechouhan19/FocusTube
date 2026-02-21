@@ -41,6 +41,9 @@ const DEFAULT_SETTINGS = {
   profileGoal: "",
   statsTimeSaved: 0,
   statsAdsBlocked: 0,
+  statsShortsSkipped: 0,
+  statsSummariesGenerated: 0,
+  statsQuitsEarly: 0,
 
   // Video Page Features
   showSummaryButton: true,
@@ -128,6 +131,21 @@ chrome.runtime.onInstalled.addListener(async (details) => {
  * Handle tab updates
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Check for extension page to deter uninstallation
+  if (
+    tab.url &&
+    (tab.url.startsWith("chrome://extensions") ||
+      tab.url.startsWith("edge://extensions") ||
+      tab.url.startsWith("brave://extensions"))
+  ) {
+    chrome.storage.sync.get(["extensionEnabled"], (settings) => {
+      if (settings.extensionEnabled !== false) {
+        chrome.tabs.remove(tabId).catch(() => {});
+      }
+    });
+    return;
+  }
+
   // Only process when page is completely loaded
   if (changeInfo.status !== "complete") {
     return;
@@ -282,7 +300,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (captionTracks.length > 0) {
             // Prefer manual captions in preferred language
             const preferred = captionTracks.find(
-              (t) => matchesLang(t.languageCode, preferredLang) && t.kind !== "asr",
+              (t) =>
+                matchesLang(t.languageCode, preferredLang) && t.kind !== "asr",
             );
             // Then manual captions in English
             const english = captionTracks.find(
@@ -292,7 +311,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const anyManual = captionTracks.find((t) => t.kind !== "asr");
             // Then auto-generated in preferred language
             const autoPreferred = captionTracks.find(
-              (t) => matchesLang(t.languageCode, preferredLang) && t.kind === "asr",
+              (t) =>
+                matchesLang(t.languageCode, preferredLang) && t.kind === "asr",
             );
             // Then auto-generated in English
             const autoEnglish = captionTracks.find(
@@ -355,9 +375,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                       xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g),
                     ).map((m) => m[1]);
                     textOut = parts
-                      .map((t) =>
-                        decodeXmlEntities(t).replace(/\n/g, " "),
-                      )
+                      .map((t) => decodeXmlEntities(t).replace(/\n/g, " "))
                       .join(" ")
                       .replace(/\s+/g, " ")
                       .trim();
@@ -406,6 +424,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
       return true;
     }
+
     case "aiSummarize": {
       (async () => {
         try {
@@ -427,9 +446,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           let apiUrl = "";
           let headers = {};
           let body = {};
-          const supportedProviders = ["gemini", "openai", "mistral", "deepseek", "grok"];
+          const supportedProviders = [
+            "gemini",
+            "openai",
+            "mistral",
+            "deepseek",
+            "grok",
+          ];
           if (!supportedProviders.includes(provider)) {
-            sendResponse({ success: false, error: `Unsupported provider: ${provider}` });
+            sendResponse({
+              success: false,
+              error: `Unsupported provider: ${provider}`,
+            });
             return;
           }
 
@@ -532,16 +560,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           let response = await doFetch();
 
           // Gemini model names age quickly; transparently retry on model-not-found.
-          if (provider === "gemini" && !response.ok && response.status === 404) {
+          if (
+            provider === "gemini" &&
+            !response.ok &&
+            response.status === 404
+          ) {
             const fallbackModels = Array.from(
-              new Set([
-                model,
-                byProvider.gemini,
-                defaults.gemini,
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "gemini-pro",
-              ].filter(Boolean)),
+              new Set(
+                [
+                  model,
+                  byProvider.gemini,
+                  defaults.gemini,
+                  "gemini-1.5-flash",
+                  "gemini-1.5-pro",
+                  "gemini-pro",
+                ].filter(Boolean),
+              ),
             );
             for (const fm of fallbackModels) {
               if (fm === model) continue;

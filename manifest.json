@@ -3,11 +3,7 @@
   "name": "FocusTube - Productivity & Distraction Control",
   "version": "1.0.0",
   "description": "Take control of YouTube: block distractions, hide ads, and boost your productivity with advanced UI controls.",
-  "permissions": [
-    "storage",
-    "tabs",
-    "scripting"
-  ],
+  "permissions": ["storage", "tabs", "scripting"],
   "host_permissions": [
     "https://*.youtube.com/*",
     "https://generativelanguage.googleapis.com/*",
@@ -58,6 +54,7 @@
         "src/content/css-filter.js",
         "src/content/comment-hider.js",
         "src/content/cards-hider.js",
+        "src/content/keyboard-shortcuts.js",
         "src/content/content.js"
       ],
       "css": ["src/content/content.css"],

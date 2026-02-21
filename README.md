@@ -1,309 +1,99 @@
 ![FocusTube Banner](src/icons/banner.png)
 
-# FocusTube - Productivity & Distraction Control
+# FocusTube - Ultimate Productivity & Distraction Control
 
-A comprehensive Chrome extension that takes control of your YouTube experience, reduces distractions, and boosts productivity.
+FocusTube is a comprehensive, privacy-first Chrome extension engineered to let you take back control of your YouTube experience. By deeply modifying YouTube's web interface, it eliminates algorithms, hides addictive content like Shorts, and protects your attention using dynamic intervention screens.
 
-## 🎯 Core Objective
+## ✨ New Premium Features (v2.0 Update)
 
-Reduce distractions, improve focus, and give users full control over YouTube's interface, ads, and playback behavior without breaking core functionality.
+### 📊 Full-Screen "Stats & Shame" Dashboard
 
-## ✨ Features
+Track your productivity in real-time with a beautiful, newly designed **True Black** aesthetic dashboard.
 
-### 🎥 Video Page Features
+- **Positive Metrics:** View live counters for Shorts Skipped, Ads Blocked, and AI Summaries Generated.
+- **The Wall of Shame:** Tracks exactly how many times you surrendered and quit a Focus Quiz early, complete with dynamic taunts to keep you accountable.
+- _Access it via the premium gradient button in the main extension popup!_
 
-- **AI Summary Button** - Get AI-powered summaries of video content (mock API included, easy to integrate real LLM)
-- **Hide All Shorts** - Remove Shorts shelves, tabs, and videos from all pages
-- **Hide Banner Ads** - Remove top banners, sidebar ads, and promoted videos
-- **Skip Video Ads** - Automatically click "Skip Ad" when available, with mute/speed fallback
-- **Disable Autoplay** - Force autoplay OFF even if YouTube tries to enable it
-- **Force Video Quality** - Default to highest available quality automatically
-- **Native HTML5 Player** - Option to use browser controls instead of YouTube's custom UI
+### ⌨️ Power-User Keyboard Shortcuts
 
-### 📸 Feature Screenshots
+Never take your hands off the keyboard while studying or learning:
 
-Blocklist (beta) and focused browsing:
+- Press **`S`** while watching any video to instantly generate and open an AI Summary.
+- Press **`C`** to silently capture a high-quality, timestamped screenshot of the current video frame straight to your downloads folder.
 
-![Blocked Topics – Beta](src/Images/BlockListBeta.png)
-![Hide Suggestions and Navigation](src/Images/HidesuggestionandNavigation.png)
+### 🖼️ Dynamic Unsplash Topic Blockers
 
-Time blocking UI and overlay:
+When you try to visit a video inside one of your blocked keyword categories, the screen will be replaced by a stunning, randomly selected motivational Unsplash background featuring a frosted glass overlay.
 
-![Time Blocker UI](src/Images/TimeblockerUi.png)
-![Time Blocker Overlay](src/Images/TimeblockOverlay.png)
+### 🤖 DOM-Scraped AI Summaries (No API Keys Required)
 
-New Time Blocker Screens:
+The AI Summary feature has been completely rewritten. It no longer relies on the strict YouTube Data API limits. The extension now intelligently scrapes the DOM (and auto-generated captions if available) to feed directly into the Gemini AI pipeline—saving you from complex Google Cloud console setups.
 
-![Time Blocker New 1](src/Images/TimeBlockerNew1.png)
-![Time Blocker New 2](src/Images/TimeBlockerNew2.png)
+---
 
-### 🏠 Home Page Features
+## 🎯 Core Features
 
-- **Hide Suggestions** - Remove recommended videos and "People also watched"
-- **Hide Trending** - Remove trending sections from homepage
-- **Home Page Redirect** - Set default landing page to:
-  - Default Home
-  - Subscriptions
-  - Search
-  - Minimal/Focus Page
+### 🎥 Video Page Enhancements
 
-### 🧭 Navigation Controls
+- **True Black AI Summary Modal** - Get beautifully formatted, readable bullet points of any video (Powered by Gemini).
+- **Hide All Shorts** - Eradicates the Shorts shelf, sidebar tabs, and forces redirects if you try to visit a `/shorts` URL.
+- **Aggressive Ad Blocking** - Automatically skips video ads and completely wipes out UI banner ads using DOM manipulation.
+- **Autoplay Terminator** - Stops YouTube from auto-playing the next video, guaranteeing you only watch what you click.
+- **Force Highest Quality** - Never manually change the gear icon again; FocusTube requests the highest available bitrate instantly.
 
-Toggle visibility of navigation items:
-- Shorts
-- Explore
-- Gaming
-- Trending
+### 🧭 Distraction Removers
 
-### 🔔 Header Controls
+- **Homepage Cleaner** - Delete the recommended feed, "People also watched", and Trending tags.
+- **Custom Launchpad** - Force YouTube to open to your Subscriptions, the Search bar, or a completely blank Minimal page.
+- **Focus Timer & Quizzes** - Lock down YouTube for set intervals (e.g. 15 mins). If you try to disable it, you are forced to complete a strict 5-question typing quiz in under 30 seconds.
 
-Hide header elements:
-- Notifications
-- Create button
-- Voice search
+---
 
-## 📁 Folder Structure
+## 📁 Project Architecture
 
 ```
 youtube-focus-pro/
-├── manifest.json                          # Extension manifest (Manifest V3)
-├── README.md                             # This file
+├── manifest.json                        # Manifest V3 Configuration
+├── README.md                            # Documentation
 │
 ├── src/
-│   ├── content/                          # Content scripts
-│   │   ├── content.js                    # Main coordinator
-│   │   ├── content.css                   # Styles for injected UI
-│   │   ├── storage.js                    # Storage utilities
-│   │   ├── dom-helpers.js               # DOM manipulation helpers
-│   │   ├── ad-blocker.js                # Banner ad & video ad blocking
-│   │   ├── shorts-blocker.js            # Shorts removal
-│   │   ├── autoplay-controller.js         # Autoplay control
-│   │   ├── quality-controller.js         # Video quality control
-│   │   ├── home-controller.js            # Home page & redirect
-│   │   ├── navigation-controller.js      # Navigation bar controls
-│   │   ├── header-controller.js          # Header element controls
-│   │   ├── summary-button.js            # AI Summary button
-│   │   └── video-player-controller.js   # Native player toggle
-│   │
-│   ├── background/                       # Background service worker
-│   │   └── background.js               # Main background script
-│   │
-│   ├── popup/                           # Settings popup
-│   │   ├── popup.html                  # Settings UI
-│   │   ├── popup.css                   # Settings styles
-│   │   └── popup.js                    # Settings logic
-│   │
-│   └── icons/                           # Extension icons
-│       ├── icon16.svg
-│       ├── icon48.svg
-│       └── icon128.svg
+│   ├── background/                      # Background SW (Stats handling, LLM api calls)
+│   ├── popup/                           # React-like modular Vanilla JS popup UI
+│   ├── dashboard/                       # Full-screen stats dashboard UI
+│   └── content/                         # DOM-manipulation Content Scripts
+│       ├── ad-blocker.js                # Ad termination
+│       ├── shorts-blocker.js            # URL monitoring & redirects
+│       ├── summary-button.js            # Transcript scraping & Gemini integration
+│       ├── keyword-blocker.js           # Regex-based title & tag topic blocking
+│       ├── keyboard-shortcuts.js        # Global listeners for 'S' and 'C' commands
+│       └── content.css                  # True Black & Frosted Glass aesthetic variables
 ```
 
 ## 🚀 Installation
 
-### Option 1: Load Unpacked (Development)
+### Development Mode (Load Unpacked)
 
-1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable **Developer Mode** (top-right toggle)
-4. Click **"Load unpacked"**
-5. Select the project folder containing `manifest.json`
-6. Extension is now active!
+1. Clone or download this repository.
+2. Open Google Chrome and navigate to `chrome://extensions/`.
+3. Enable **Developer Mode** (toggle in the top right corner).
+4. Click **"Load unpacked"**.
+5. Select the `youtube-focus-pro` root folder containing the `manifest.json`.
+6. Pin FocusTube to your toolbar!
 
-### Option 2: Package & Install
+## 🔐 Privacy & Security Built-In
 
-1. Navigate to `chrome://extensions/`
-2. Enable **Developer Mode**
-3. Click **"Pack extension"**
-4. Select the project folder
-5. Chrome will generate a `.crx` file that can be distributed
-
-## ⚙️ Usage
-
-### Accessing Settings
-
-1. Click the extension icon in Chrome's toolbar
-2. The settings panel will appear with organized sections
-3. Toggle features on/off as needed
-4. Changes are saved automatically and synced across devices
-
-### Feature Sections
-
-#### Video Page
-- Controls features on video watch pages
-- Toggle summary button, ad skipping, autoplay, quality, etc.
-
-#### Shorts & Ads
-- Global settings for Shorts and ad blocking
-- Applies to all pages
-
-#### Home Page
-- Customize homepage appearance
-- Set default landing page
-
-#### Navigation
-- Control left sidebar items
-- Hide distractions from navigation
-
-#### Header
-- Control top header elements
-- Reduce notification distractions
-
-## 🧠 Implementing Real AI Summary
-
-The current implementation includes a mock summary generator. To implement real AI summaries:
-
-1. Open `src/content/summary-button.js`
-2. Find the `generateSummary()` function
-3. Replace the mock code with your LLM API call:
-
-```javascript
-async function generateSummary(videoData) {
-  try {
-    const response = await fetch('YOUR_API_ENDPOINT', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_API_KEY'
-      },
-      body: JSON.stringify({
-        title: videoData.title,
-        description: videoData.description,
-        videoId: videoData.videoId
-      })
-    });
-
-    const data = await response.json();
-    return data.summary;
-  } catch (error) {
-    console.error('[YFP] Error calling AI API:', error);
-    // Fallback to mock summary
-    return generateMockSummary(videoData);
-  }
-}
-```
-
-4. Update the response format in `showSummaryModal()` as needed
-
-## 🔧 Technical Details
-
-### Key Technologies
-
-- **Manifest V3** - Latest Chrome extension API
-- **Content Scripts** - Direct DOM manipulation on YouTube pages
-- **MutationObserver** - Watch for dynamic DOM changes
-- **Chrome Storage API** - Persistent settings synced across devices
-- **Service Worker** - Background tasks and message handling
-
-### Safe DOM Manipulation
-
-All modules use:
-- Safe selector functions with error handling
-- Graceful fallbacks when elements don't exist
-- Debouncing for performance optimization
-- No deprecated Chrome APIs
-
-### MutationObserver Pattern
-
-```javascript
-const observer = new MutationObserver(debounce(() => {
-  // Apply features
-  if (settings.hideShorts) {
-    removeShorts();
-  }
-}, 200));
-
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
-```
-
-This pattern ensures features are re-applied when YouTube updates the DOM dynamically.
-
-### Module Communication
-
-- **Popup → Content Script**: Via `chrome.tabs.sendMessage()`
-- **Background → Content Script**: Automatic on storage changes
-- **Content Script → Background**: Via `chrome.runtime.sendMessage()`
-
-## ⚠️ Important Notes
-
-### Ad Blocking Warning
-
-The video ad skipper with mute/speed fallback may trigger YouTube's ad-block detection. Use at your own risk.
-
-### Native HTML5 Player
-
-This feature disables YouTube's custom UI and uses browser controls:
-- Some YouTube features won't work (annotations, cards, etc.)
-- YouTube may update and block this feature in the future
-
-### Performance
-
-The extension is designed for minimal performance impact:
-- Debounced operations to prevent excessive processing
-- Efficient MutationObserver usage
-- Selective DOM queries
-
-## 🔄 Updates & Maintenance
-
-YouTube frequently updates its DOM structure. The extension includes:
-
-- Multiple selector patterns for each feature
-- Graceful fallbacks for missing elements
-- Automatic re-application on DOM changes
-- Periodic maintenance checks
-
-If features stop working:
-1. Refresh the page
-2. Check Chrome console for `[YFP]` logs
-3. Report issues with URL and error details
-
-## 📝 Development
-
-### Modifying Features
-
-Each feature is in its own module in `src/content/`:
-1. Edit the relevant module file
-2. Reload the extension in `chrome://extensions/`
-3. Refresh YouTube to test changes
-
-### Adding New Features
-
-1. Create a new module in `src/content/`
-2. Initialize it in `src/content/content.js`
-3. Add settings to `DEFAULT_SETTINGS` in relevant files
-4. Add UI controls in `src/popup/popup.html`
-5. Handle settings in `src/popup/popup.js`
-
-### Debugging
-
-Open Chrome DevTools on YouTube (F12) and look for:
-- `[YFP]` prefixed console logs
-- Any red error messages
-- MutationObserver activity
-
-## 📄 License
-
-This is an educational project. YouTube's terms of service should be respected when using extensions.
+- **100% Local Processing:** Operations like ad-blocking, keyword checking, and Shorts redirection happen entirely in your browser using local DOM parsing.
+- **No Tracking Pipeline:** Your viewing habits are not sent to any telemetry server.
+- **Clean Auth:** Because it scrapes public DOM elements instead of using the YouTube Data API `v3`, you never grant the extension read access to your private Google Account data.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Areas for improvement:
-- Better AI summary integration
-- Additional content filtering options
-- Scheduled blocking implementation
-- Password protection for settings
-- Enhanced performance optimizations
+Contributions are always welcome. Currently looking for active help with:
 
-## 🙏 Acknowledgments
-
-Built with:
-- Manifest V3 Chrome Extension API
-- Modern JavaScript (ES6+)
-- YouTube's DOM patterns (subject to change)
+- Expanding the `keyboard-shortcuts.js` module with Vim-style navigation.
+- Porting the popup UI to a lightweight framework like Preact.
+- Integrating Claude 3.5 Sonnet support for the AI Summarizer.
 
 ---
 
-**Note**: This extension modifies YouTube's UI and behavior. Use responsibly and in compliance with YouTube's terms of service.
+**Note**: This extension heavily modifies YouTube's UI. Changes to YouTube's web architecture may require occasional updates to the query selectors in the `src/content/` modules.

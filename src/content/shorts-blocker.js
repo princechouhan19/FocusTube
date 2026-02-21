@@ -3,8 +3,8 @@
  * Removes Shorts from home page, search results, recommendations, and navigation
  */
 
-(function() {
-  'use strict';
+(function () {
+  "use strict";
 
   // Module state
   let settings = {};
@@ -12,37 +12,37 @@
   // CSS Selectors for reliable Shorts hiding
   const SHORTS_SELECTORS = [
     // Shelves and Sections
-    'ytd-rich-shelf-renderer[is-shorts]', 
-    'ytd-reel-shelf-renderer', 
-    'ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts])',
-    'ytd-rich-section-renderer:has(ytd-reel-shelf-renderer)',
-    
+    "ytd-rich-shelf-renderer[is-shorts]",
+    "ytd-reel-shelf-renderer",
+    "ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts])",
+    "ytd-rich-section-renderer:has(ytd-reel-shelf-renderer)",
+
     // Individual Items
-    'ytd-reel-item-renderer',
+    "ytd-reel-item-renderer",
     'ytd-video-renderer:has(a[href*="/shorts/"])',
     'ytd-grid-video-renderer:has(a[href*="/shorts/"])',
     'ytd-rich-item-renderer:has(a[href*="/shorts/"])',
     'ytd-compact-video-renderer:has(a[href*="/shorts/"])',
-    
+
     // Navigation
     'ytd-guide-entry-renderer:has(a[href*="/shorts"])',
     'ytd-mini-guide-entry-renderer:has(a[href*="/shorts"])',
     'ytd-mini-guide-entry-renderer[aria-label="Shorts"]',
     '[title="Shorts"]',
-    
+
     // Mobile/Responsive
-    'ytm-rich-section-renderer:has(ytm-reel-shelf-renderer)',
-    'ytm-pivot-bar-item-renderer:has(div.pivot-shorts)',
-    
+    "ytm-rich-section-renderer:has(ytm-reel-shelf-renderer)",
+    "ytm-pivot-bar-item-renderer:has(div.pivot-shorts)",
+
     // Tabs
-    'tp-yt-paper-tab:has(.tab-content[aria-label="Shorts"])'
-  ].join(',\n');
+    'tp-yt-paper-tab:has(.tab-content[aria-label="Shorts"])',
+  ].join(",\n");
 
   /**
    * Initialize Shorts blocker
    */
   async function init() {
-    if (typeof loadSettings === 'function') {
+    if (typeof loadSettings === "function") {
       settings = await loadSettings();
     }
 
@@ -58,23 +58,26 @@
    * Enable Shorts blocking using CSS injection
    */
   function enableShortsBlocking() {
-    console.log('[YFP] Enabling Shorts blocking');
-    
+    console.log("[YFP] Enabling Shorts blocking");
+
     // Inject CSS for reliable hiding
-    if (typeof injectStyles === 'function') {
-      injectStyles('yfp-hide-shorts', `${SHORTS_SELECTORS} { display: none !important; }`);
+    if (typeof injectStyles === "function") {
+      injectStyles(
+        "yfp-hide-shorts",
+        `${SHORTS_SELECTORS} { display: none !important; }`,
+      );
     } else {
       // Fallback
-      const style = document.createElement('style');
-      style.id = 'yfp-hide-shorts';
+      const style = document.createElement("style");
+      style.id = "yfp-hide-shorts";
       style.textContent = `${SHORTS_SELECTORS} { display: none !important; }`;
       (document.head || document.documentElement).appendChild(style);
     }
-    
+
     // Add listener for URL changes (SPA navigation) to redirect
-    window.addEventListener('yt-navigate-finish', redirectIfShortsPage);
-    window.addEventListener('popstate', redirectIfShortsPage);
-    
+    window.addEventListener("yt-navigate-finish", redirectIfShortsPage);
+    window.addEventListener("popstate", redirectIfShortsPage);
+
     // Observe for dynamic redirects
     setupRedirectObserver();
   }
@@ -83,27 +86,38 @@
    * Disable Shorts blocking
    */
   function disableShortsBlocking() {
-    console.log('[YFP] Disabling Shorts blocking');
-    
-    if (typeof removeStyles === 'function') {
-      removeStyles('yfp-hide-shorts');
+    console.log("[YFP] Disabling Shorts blocking");
+
+    if (typeof removeStyles === "function") {
+      removeStyles("yfp-hide-shorts");
     } else {
-      const style = document.getElementById('yfp-hide-shorts');
+      const style = document.getElementById("yfp-hide-shorts");
       if (style) style.remove();
     }
-    
-    window.removeEventListener('yt-navigate-finish', redirectIfShortsPage);
-    window.removeEventListener('popstate', redirectIfShortsPage);
+
+    window.removeEventListener("yt-navigate-finish", redirectIfShortsPage);
+    window.removeEventListener("popstate", redirectIfShortsPage);
   }
 
   /**
    * Redirect if on a Shorts page
    */
   function redirectIfShortsPage() {
-    if (settings.hideShorts && window.location.pathname.startsWith('/shorts')) {
-      console.log('[YFP] Redirecting from Shorts page');
+    if (settings.hideShorts && window.location.pathname.startsWith("/shorts")) {
+      console.log("[YFP] Redirecting from Shorts page");
       window.stop(); // Stop loading
-      window.location.replace('https://www.youtube.com'); // Replace history entry
+
+      // Increment stats
+      try {
+        chrome.storage.sync.get(["statsShortsSkipped"], (result) => {
+          const current = result.statsShortsSkipped || 0;
+          chrome.storage.sync.set({ statsShortsSkipped: current + 1 });
+        });
+      } catch (e) {
+        console.error("[YFP] Error incrementing shorts stats", e);
+      }
+
+      window.location.replace("https://www.youtube.com"); // Replace history entry
     }
   }
 
@@ -127,7 +141,7 @@
   function updateSettings(newSettings) {
     const oldHideShorts = settings.hideShorts;
     settings = { ...settings, ...newSettings };
-    
+
     if (settings.hideShorts !== oldHideShorts) {
       if (settings.hideShorts) {
         enableShortsBlocking();
@@ -139,7 +153,7 @@
   }
 
   // Listen for settings changes
-  if (typeof onSettingsChanged === 'function') {
+  if (typeof onSettingsChanged === "function") {
     onSettingsChanged((changes) => {
       if (changes.hideShorts && changes.hideShorts.newValue !== undefined) {
         updateSettings({ hideShorts: changes.hideShorts.newValue });
@@ -148,8 +162,8 @@
   }
 
   // Initialize on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
@@ -158,7 +172,6 @@
   window.YFPShortsBlocker = {
     init,
     updateSettings,
-    redirectIfShortsPage
+    redirectIfShortsPage,
   };
-
 })();

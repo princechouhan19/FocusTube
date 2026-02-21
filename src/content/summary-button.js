@@ -75,41 +75,14 @@
   /**
    * Inject the summary button below video title
    */
-  async function injectSummaryButton() {
-    // Avoid duplicates
+  function injectSummaryButton() {
     if (document.querySelector(".yfp-summary-button")) return;
-
-    // Try multiple locations common on YouTube watch pages
-    const selectors = [
-      "#title h1 yt-formatted-string",
-      "#above-the-fold #title",
-      "#title",
-      "#title-wrapper",
-      "#actions", // action bar below title
-      "ytd-video-primary-info-renderer #title",
-    ];
-
-    let anchor = null;
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el) {
-        anchor = el;
-        break;
-      }
-    }
-
-    // Wait briefly if not ready
-    if (!anchor) {
-      anchor = await waitForElement(selectors.join(", "), 6000);
-      if (!anchor) {
-        console.log("[YFP] Title/actions container not found");
-        return;
-      }
-    }
-
-    // Prefer insertion after title; if actions bar exists, append into it
-    const actionsBar = document.querySelector("#actions");
-
+    let anchor =
+      document.querySelector("ytd-watch-metadata #title") ||
+      document.querySelector("#title h1 yt-formatted-string") ||
+      document.querySelector("#title h1") ||
+      document.querySelector("#title");
+    if (!anchor) return;
     summaryButton = createElement("button", {
       className: "yfp-summary-button",
       innerHTML: `
@@ -119,14 +92,7 @@
         <span>AI Summary</span>
       `,
     });
-
-    if (actionsBar) {
-      actionsBar.appendChild(summaryButton);
-    } else {
-      // Insert just after the anchor container
-      insertAfter(summaryButton, anchor);
-    }
-
+    insertAfter(summaryButton, anchor);
     summaryButton.addEventListener("click", handleSummaryButtonClick);
     console.log("[YFP] Summary button injected");
   }
@@ -169,6 +135,15 @@
 
       // Display summary in modal
       showSummaryModal(videoData, summary);
+
+      // Increment stats
+      try {
+        chrome.storage.sync.get(["statsSummariesGenerated"], (result) => {
+          chrome.storage.sync.set({
+            statsSummariesGenerated: (result.statsSummariesGenerated || 0) + 1,
+          });
+        });
+      } catch (e) {}
     } catch (error) {
       console.error("[YFP] Error generating summary:", error);
       showSummaryModal(
@@ -210,6 +185,7 @@
     if (!vid) {
       throw new Error("Could not detect current YouTube video ID.");
     }
+
     let transcript = "";
     if (settings.useTranscript) {
       const trResp = await new Promise((resolve) => {
@@ -363,19 +339,24 @@
     const existing = document.getElementById("yfp-summary-modal");
     if (existing) existing.remove();
 
+    // Animated SVG for Header
+    const aiIcon = `<svg class="yfp-pulse-icon" style="width:24px;height:24px;margin-right:10px;vertical-align:middle;color:#f8fafc;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>`;
+
     const modal = createElement("div", {
       id: "yfp-summary-modal",
       className: "yfp-modal-overlay",
       innerHTML: `
-        <div class="yfp-modal-content glass-panel">
-          <div class="yfp-modal-header">
-            <h3>${summary.error ? "Error" : "✨ AI Summary"}</h3>
-            <button class="yfp-modal-close">×</button>
+        <div class="yfp-modal-content glass-panel" style="background: #111111; color: #f8fafc; border: 1px solid #333;">
+          <div class="yfp-modal-header" style="background: #000; border-bottom: 1px solid #222;">
+            <h3 style="display: flex; align-items: center; justify-content: flex-start;">
+              ${summary.error ? "Error" : aiIcon + " AI Summary"}
+            </h3>
+            <button class="yfp-modal-close" style="color: #fff; border-color: #333; background: #222;">×</button>
           </div>
-          <div class="yfp-modal-body">
+          <div class="yfp-modal-body" style="background: #000;">
             ${
               summary.error
-                ? `<p class="yfp-error-msg">${summary.error}</p>`
+                ? `<p class="yfp-error-msg" style="color:#ef4444;">${summary.error}</p>`
                 : renderSummaryContent(summary)
             }
           </div>
@@ -395,20 +376,23 @@
   }
 
   function renderSummaryContent(summary) {
+    const listIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:#a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>`;
+    const bulbIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:#a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`;
+
     return `
-      <h4 class="yfp-summary-title">${summary.title}</h4>
+      <h4 class="yfp-summary-title" style="color: #fff;">${summary.title}</h4>
       
       <div class="yfp-summary-section">
-        <h5>🎯 Main Points</h5>
-        <ul>
-          ${summary.mainPoints.map((p) => `<li>${p}</li>`).join("")}
+        <h5 style="display:flex;align-items:center;color:#a1a1aa;">${listIcon} Main Points</h5>
+        <ul style="color: #d4d4d8;">
+          ${summary.mainPoints.map((p) => `<li style="margin-bottom:8px;">${p}</li>`).join("")}
         </ul>
       </div>
 
       <div class="yfp-summary-section">
-        <h5>💡 Key Takeaways</h5>
-        <ul>
-          ${summary.keyTakeaways.map((t) => `<li>${t}</li>`).join("")}
+        <h5 style="display:flex;align-items:center;color:#a1a1aa;margin-top:24px;">${bulbIcon} Key Takeaways</h5>
+        <ul style="color: #d4d4d8;">
+          ${summary.keyTakeaways.map((t) => `<li style="margin-bottom:8px;">${t}</li>`).join("")}
         </ul>
       </div>
 
@@ -422,14 +406,24 @@
    * Setup observer for dynamic page changes
    */
   function setupSummaryButtonObserver() {
-    // Re-inject on navigation
+    let debounceTimeout = null;
+    const observer = new MutationObserver(() => {
+      if (!settings.showSummaryButton) return;
+      if (!window.location.pathname.startsWith("/watch")) return;
+      if (document.querySelector(".yfp-summary-button")) return;
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        injectSummaryButton();
+      }, 500);
+    });
+    const root = document.body || document.documentElement;
+    if (root) observer.observe(root, { childList: true, subtree: true });
     window.addEventListener("yt-navigate-finish", () => {
       setTimeout(() => {
         if (settings.showSummaryButton) injectSummaryButton();
       }, 1000);
     });
   }
-
   function setupVideoChangeListener() {
     // Logic to detect video change handled by yt-navigate-finish above
   }

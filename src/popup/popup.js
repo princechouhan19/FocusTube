@@ -145,6 +145,155 @@ const TOGGLES_LIST = [
   "modernGlassTheme",
 ];
 
+let quizState = {
+  active: false,
+  questionsLeft: 5,
+  currentTopic: "",
+  timer: null,
+  timeLeft: 30,
+  currentQuestion: null,
+  pendingAction: null,
+};
+
+async function handleDisableAttempt(callback) {
+  // Always trigger the quiz to deter users from unblocking!
+  startQuiz(callback);
+  return false;
+}
+
+function startQuiz(callback) {
+  quizState.active = true;
+  quizState.questionsLeft = 5;
+  quizState.pendingAction = callback;
+
+  if (typeof QUIZ_QUESTIONS === "undefined") {
+    // fallback if missing
+    callback();
+    return;
+  }
+
+  const topics = Object.keys(QUIZ_QUESTIONS);
+  quizState.currentTopic = topics[Math.floor(Math.random() * topics.length)];
+
+  document.getElementById("quiz-topic-label").textContent =
+    quizState.currentTopic.charAt(0).toUpperCase() +
+    quizState.currentTopic.slice(1);
+  document.getElementById("quiz-overlay").classList.remove("yfp-hidden");
+  document.getElementById("quiz-overlay").style.display = "flex";
+
+  const ansEl = document.getElementById("quiz-answer");
+  if (ansEl) {
+    ansEl.addEventListener("paste", (e) => e.preventDefault());
+  }
+
+  nextQuestion();
+}
+
+function nextQuestion() {
+  if (quizState.questionsLeft <= 0) {
+    document.getElementById("quiz-overlay").classList.add("yfp-hidden");
+    document.getElementById("quiz-overlay").style.display = "none";
+    clearInterval(quizState.timer);
+    if (quizState.pendingAction) quizState.pendingAction();
+    return;
+  }
+
+  document.getElementById("quiz-progress").textContent =
+    `${5 - quizState.questionsLeft}/5`;
+  const ansInput = document.getElementById("quiz-answer");
+  ansInput.value = "";
+  setTimeout(() => ansInput.focus(), 100);
+
+  const pool = QUIZ_QUESTIONS[quizState.currentTopic];
+  quizState.currentQuestion = pool[Math.floor(Math.random() * pool.length)];
+
+  document.getElementById("quiz-question").textContent =
+    quizState.currentQuestion.q;
+
+  quizState.timeLeft = 30;
+  document.getElementById("quiz-timer").textContent = quizState.timeLeft;
+  clearInterval(quizState.timer);
+  quizState.timer = setInterval(() => {
+    quizState.timeLeft--;
+    document.getElementById("quiz-timer").textContent = quizState.timeLeft;
+    if (quizState.timeLeft <= 0) failQuiz();
+  }, 1000);
+}
+
+function checkQuizAnswer() {
+  const answer = document
+    .getElementById("quiz-answer")
+    .value.trim()
+    .toLowerCase();
+  if (answer === quizState.currentQuestion.a.toLowerCase()) {
+    quizState.questionsLeft--;
+    const container = document.getElementById("quiz-question-container");
+    container.style.background = "rgba(46, 204, 113, 0.2)";
+    setTimeout(() => {
+      container.style.background = "rgba(255,255,255,0.05)";
+      nextQuestion();
+    }, 400);
+  } else {
+    const container = document.getElementById("quiz-question-container");
+    container.style.background = "rgba(231, 76, 60, 0.2)";
+    setTimeout(() => {
+      container.style.background = "rgba(255,255,255,0.05)";
+    }, 400);
+  }
+}
+
+function failQuiz() {
+  clearInterval(quizState.timer);
+
+  // Increment stats
+  try {
+    chrome.storage.sync.get(["statsQuitsEarly"], (result) => {
+      chrome.storage.sync.set({
+        statsQuitsEarly: (result.statsQuitsEarly || 0) + 1,
+      });
+    });
+  } catch (e) {}
+
+  alert("Time's up! You failed to unblock. Stay focused!");
+  document.getElementById("quiz-overlay").classList.add("yfp-hidden");
+  document.getElementById("quiz-overlay").style.display = "none";
+  const ms = document.getElementById("extensionEnabled");
+  ms.checked = true;
+  updateStatusText(true);
+}
+
+function initQuizListeners() {
+  const subBtn = document.getElementById("quiz-submit-btn");
+  if (subBtn) subBtn.addEventListener("click", checkQuizAnswer);
+
+  const ansInp = document.getElementById("quiz-answer");
+  if (ansInp)
+    ansInp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") checkQuizAnswer();
+    });
+
+  const cclBtn = document.getElementById("quiz-cancel-btn");
+  if (cclBtn)
+    cclBtn.addEventListener("click", () => {
+      clearInterval(quizState.timer);
+
+      // Increment stats
+      try {
+        chrome.storage.sync.get(["statsQuitsEarly"], (result) => {
+          chrome.storage.sync.set({
+            statsQuitsEarly: (result.statsQuitsEarly || 0) + 1,
+          });
+        });
+      } catch (e) {}
+
+      document.getElementById("quiz-overlay").classList.add("yfp-hidden");
+      document.getElementById("quiz-overlay").style.display = "none";
+      const ms = document.getElementById("extensionEnabled");
+      ms.checked = true;
+      updateStatusText(true);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("Initializing popup...");
 
@@ -164,6 +313,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   addBlockingListeners();
   addProfileListeners();
   addKeywordBlocklistListeners();
+  initQuizListeners();
+
+  // Dashboard Button
+  const dashBtn = document.getElementById("open-dashboard-btn");
+  if (dashBtn) {
+    dashBtn.addEventListener("click", () => {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL("src/dashboard/dashboard.html"),
+      });
+    });
+  }
 });
 
 /**
@@ -245,12 +405,21 @@ function populateUI(settings) {
 
 function updateStatusText(enabled) {
   const text = document.getElementById("status-text");
+  const powerBtn = document.getElementById("nav-power");
   if (enabled) {
     text.textContent = "Active and protecting";
     text.style.color = "var(--success-color)";
+    if (powerBtn) {
+      powerBtn.style.color = "var(--success-color)";
+      powerBtn.style.opacity = "1";
+    }
   } else {
     text.textContent = "Extension disabled";
     text.style.color = "var(--danger-color)";
+    if (powerBtn) {
+      powerBtn.style.color = "var(--danger-color)";
+      powerBtn.style.opacity = "0.7";
+    }
   }
 }
 
@@ -290,10 +459,42 @@ function addEventListeners() {
     .getElementById("extensionEnabled")
     .addEventListener("change", async (e) => {
       const enabled = e.target.checked;
-      await saveSettings({ extensionEnabled: enabled });
-      updateStatusText(enabled);
-      notifyContentScript();
+      if (!enabled) {
+        e.target.checked = true; // visually keep it on until test resolves
+        handleDisableAttempt(async () => {
+          e.target.checked = false;
+          await saveSettings({ extensionEnabled: false, tempBlockUntil: 0 });
+          updateStatusText(false);
+          notifyContentScript();
+        });
+      } else {
+        await saveSettings({ extensionEnabled: true });
+        updateStatusText(true);
+        notifyContentScript();
+      }
     });
+
+  const navPower = document.getElementById("nav-power");
+  if (navPower) {
+    navPower.addEventListener("click", async () => {
+      const ms = document.getElementById("extensionEnabled");
+      const currentState = ms.checked;
+
+      if (currentState) {
+        handleDisableAttempt(async () => {
+          ms.checked = false;
+          await saveSettings({ extensionEnabled: false, tempBlockUntil: 0 });
+          updateStatusText(false);
+          notifyContentScript();
+        });
+      } else {
+        ms.checked = true;
+        await saveSettings({ extensionEnabled: true });
+        updateStatusText(true);
+        notifyContentScript();
+      }
+    });
+  }
 
   // Schedule Inputs
   const scheduleInputs = [
