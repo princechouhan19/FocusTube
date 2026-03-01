@@ -12,14 +12,14 @@ const DEFAULT_SETTINGS = {
   aiModelByProvider: {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   },
   aiProviderDefaultModels: {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   },
@@ -38,6 +38,8 @@ const DEFAULT_SETTINGS = {
   deepseekApiKey: "",
   grokApiKey: "",
   profileName: "Guest User",
+  profileEmail: "",
+  profileImage: "",
   profileGoal: "",
   statsTimeSaved: 0,
   statsAdsBlocked: 0,
@@ -53,7 +55,7 @@ const DEFAULT_SETTINGS = {
   disableAutoplay: true,
   forceHighestQuality: true,
   useNativePlayer: false,
-  useTranscript: false,
+  useTranscript: true,
   transcriptLang: "en",
 
   // Home Page Features
@@ -96,6 +98,8 @@ const DEFAULT_SETTINGS = {
   hideVideoDuration: false,
   hideMerch: false,
   customCSSRules: [],
+  shortcutsEnabled: true,
+  floatingToolbarEnabled: false,
 };
 
 /**
@@ -104,11 +108,20 @@ const DEFAULT_SETTINGS = {
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log("[YFP Background] Extension installed/updated:", details.reason);
 
-  // Set default settings if none exist
+  // Try to restore from cookie if storage is empty
   const settings = await chrome.storage.sync.get(null);
   if (Object.keys(settings).length === 0) {
-    console.log("[YFP Background] Setting default values");
-    await chrome.storage.sync.set(DEFAULT_SETTINGS);
+    console.log(
+      "[YFP Background] Storage empty, checking for cookie-synced settings",
+    );
+    const restored = await loadSettingsFromCookie();
+    if (!restored) {
+      console.log("[YFP Background] No cookie found, setting default values");
+      await chrome.storage.sync.set(DEFAULT_SETTINGS);
+    }
+  } else {
+    // If we have settings, ensure they are synced to cookie for other browsers/reinstalls
+    syncSettingsToCookie();
   }
 
   // Show welcome message on first install
@@ -125,6 +138,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         console.error("[YFP Background] Error opening YouTube:", error);
       });
   }
+
+  // Initial user fetch
+  fetchYouTubeUser();
 });
 
 /**
@@ -197,6 +213,125 @@ function notifyContentScript(tabId) {
     });
 }
 
+/**
+ * Fetch YouTube user profile data (name, avatar, and email)
+ */
+async function fetchYouTubeUser() {
+  try {
+    const response = await fetch("https://www.youtube.com/?gl=US&hl=en", {
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    const html = await response.text();
+
+    // 1. Try to find the account name in raw HTML (extremely robust)
+    let accountName = null;
+    let imageUrl = null;
+
+    const nameMatches = [
+      /"accountName":\s*{\s*"simpleText":\s*"([^"]+)"/,
+      /"accountName":\s*\{\s*"runs":\s*\[\s*\{\s*"text":\s*"([^"]+)"/,
+      /,"name":\s*{\s*"simpleText":\s*"([^"]+)"\s*}/,
+      /"label":\s*"Avatar image for ([^"]+)"/,
+    ];
+
+    for (const pattern of nameMatches) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        accountName = match[1];
+        break;
+      }
+    }
+
+    // 1.5. Try to find the email in ytcfg or raw HTML
+    let accountEmail = null;
+    const emailMatches = [
+      /"VALID_USER_EMAIL":\s*"([^"]+)"/,
+      /"email":\s*"([^"]+)"/,
+      /,"email":\s*"([^"]+)"\s*/,
+    ];
+
+    for (const pattern of emailMatches) {
+      const match = html.match(pattern);
+      if (match && match[1] && match[1].includes("@")) {
+        accountEmail = match[1];
+        break;
+      }
+    }
+    const dataMatch = html.match(/ytInitialData\s*=\s*({.+?});/);
+    if (dataMatch) {
+      try {
+        const data = JSON.parse(dataMatch[1]);
+
+        // Find avatar if not found yet
+        if (!imageUrl) {
+          const topbar = data.topbar?.desktopTopbarRenderer;
+          const profileBtn = topbar?.topbarButtons?.find(
+            (b) => b.topbarMenuButtonRenderer?.avatar,
+          );
+          const avatar = profileBtn?.topbarMenuButtonRenderer?.avatar;
+          if (avatar && avatar.thumbnails) {
+            imageUrl = avatar.thumbnails[avatar.thumbnails.length - 1]?.url;
+
+            // Third fallback for name: check the avatar label if regex failed
+            if (!accountName) {
+              const label =
+                avatar.accessibility?.accessibilityData?.label || "";
+              accountName = label
+                .replace(
+                  "Account profile photo that opens list of alternate accounts",
+                  "",
+                )
+                .replace(/Avatar image for/i, "")
+                .replace(/Avatar image/i, "")
+                .trim();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(
+          "[FocusTube] ytInitialData parse failed during fallback search",
+        );
+      }
+    }
+
+    // Still no name? Try one last generic regex for any name entry near an account link
+    if (!accountName || accountName.toLowerCase().includes("avatar image")) {
+      const fallbackMatch = html.match(/"name":\s*"([^"]+)"/);
+      if (fallbackMatch) accountName = fallbackMatch[1];
+    }
+
+    if (accountName || imageUrl || accountEmail) {
+      const profile = {
+        profileName: accountName || "User",
+        profileImage: imageUrl || "",
+        profileEmail: accountEmail || "",
+      };
+
+      console.log(
+        "[FocusTube] Successfully Synced Profile:",
+        profile.profileName,
+        profile.profileEmail,
+      );
+      await chrome.storage.sync.set(profile);
+      return profile;
+    }
+
+    console.log(
+      "[FocusTube] All extraction attempts failed (likely logged out)",
+    );
+    return null;
+  } catch (error) {
+    console.error("[FocusTube] Critical error in user fetch:", error);
+    return null;
+  }
+}
+
 function decodeXmlEntities(text) {
   return String(text || "")
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
@@ -213,20 +348,45 @@ function decodeXmlEntities(text) {
 function parseCaptionTracks(pageHtml) {
   if (!pageHtml) return [];
 
-  // Preferred: parse the full player response object.
+  // Method 1: ytInitialPlayerResponse
+  let playerResponse = null;
   const playerRespMatch = pageHtml.match(
     /ytInitialPlayerResponse\s*=\s*(\{.+?\});\s*(?:var\s|<\/script>)/s,
   );
   if (playerRespMatch && playerRespMatch[1]) {
     try {
-      const playerData = JSON.parse(playerRespMatch[1]);
-      const tracks =
-        playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      if (Array.isArray(tracks) && tracks.length > 0) return tracks;
-    } catch {}
+      playerResponse = JSON.parse(playerRespMatch[1]);
+    } catch (e) {
+      // If direct parse fails, try to extract it more carefully
+      try {
+        const startIdx = pageHtml.indexOf("ytInitialPlayerResponse = ");
+        if (startIdx !== -1) {
+          let bracketCount = 0;
+          let jsonStr = "";
+          for (
+            let i = startIdx + "ytInitialPlayerResponse = ".length;
+            i < pageHtml.length;
+            i++
+          ) {
+            const char = pageHtml[i];
+            if (char === "{") bracketCount++;
+            if (char === "}") bracketCount--;
+            jsonStr += char;
+            if (bracketCount === 0) break;
+          }
+          playerResponse = JSON.parse(jsonStr);
+        }
+      } catch (e2) {}
+    }
   }
 
-  // Fallback: parse captionTracks array directly when full object parse fails.
+  if (playerResponse) {
+    const tracks =
+      playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (Array.isArray(tracks)) return tracks;
+  }
+
+  // Method 2: Direct captionTracks match
   const directTracksMatch = pageHtml.match(/"captionTracks":\s*(\[[\s\S]*?\])/);
   if (directTracksMatch && directTracksMatch[1]) {
     try {
@@ -246,15 +406,233 @@ function matchesLang(trackLang, preferredLang) {
 }
 
 /**
+ * Handle Screenshot Capture (from command or message)
+ */
+async function handleScreenshotCapture(message, sendResponse) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `FocusTube-Screen-${timestamp}.png`;
+
+  console.log(
+    "[FocusTube] Background capture triggered:",
+    !!message.dataUrl ? "Data Provided" : "Requesting Capture",
+  );
+
+  const downloadDataUrl = (dataUrl) => {
+    if (!dataUrl) {
+      console.warn("[FocusTube] downloadDataUrl called with no data");
+      if (sendResponse)
+        sendResponse({ success: false, error: "No image data" });
+      return;
+    }
+    chrome.downloads.download(
+      {
+        url: dataUrl,
+        filename: filename,
+        saveAs: false,
+      },
+      (downloadId) => {
+        if (chrome.runtime.lastError) {
+          const errMsg = chrome.runtime.lastError.message;
+          console.error("[FocusTube] Download failed:", errMsg);
+          if (sendResponse) sendResponse({ success: false, error: errMsg });
+        } else {
+          console.log(
+            "[FocusTube] Screenshot downloaded successfully ID:",
+            downloadId,
+          );
+          if (sendResponse)
+            sendResponse({ success: true, downloadId: downloadId });
+        }
+      },
+    );
+  };
+
+  // 1. Easy path: Content script already did the work
+  if (message.dataUrl) {
+    downloadDataUrl(message.dataUrl);
+    return;
+  }
+
+  // 2. Full path: Background needs to initiate capture
+  try {
+    const tabs = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+    let targetTab = tabs[0];
+
+    if (!targetTab) {
+      const allTabs = await chrome.tabs.query({ active: true });
+      targetTab = allTabs[0];
+    }
+
+    if (!targetTab) {
+      console.error("[FocusTube] No active tab found for capture");
+      if (sendResponse)
+        sendResponse({ success: false, error: "Tab not found" });
+      return;
+    }
+
+    // Try content script messaging first
+    chrome.tabs.sendMessage(
+      targetTab.id,
+      { action: "captureVideoFrame" },
+      async (response) => {
+        // If content script succeeds
+        if (
+          !chrome.runtime.lastError &&
+          response?.success &&
+          response.dataUrl
+        ) {
+          console.log("[FocusTube] Content script returned frame successfully");
+          downloadDataUrl(response.dataUrl);
+          return;
+        }
+
+        console.log(
+          "[FocusTube] Content script capture failed, trying fallback...",
+        );
+
+        // Fallback 1: Manual Viewport Capture (High reliability)
+        chrome.tabs.captureVisibleTab(
+          targetTab.windowId,
+          { format: "png" },
+          (dataUrl) => {
+            if (chrome.runtime.lastError || !dataUrl) {
+              console.error(
+                "[FocusTube] Viewport capture failed:",
+                chrome.runtime.lastError?.message,
+              );
+              if (sendResponse)
+                sendResponse({ success: false, error: "Capture failed" });
+            } else {
+              console.log("[FocusTube] Viewport capture successful");
+              downloadDataUrl(dataUrl);
+            }
+          },
+        );
+      },
+    );
+  } catch (err) {
+    console.error("[FocusTube] handleScreenshotCapture fatal error:", err);
+    if (sendResponse) sendResponse({ success: false, error: err.message });
+  }
+}
+
+/**
+ * Handle global commands
+ */
+chrome.commands.onCommand.addListener(async (command) => {
+  console.log("[FocusTube] Command received:", command);
+  const settings = await chrome.storage.sync.get(["shortcutsEnabled"]);
+  if (settings.shortcutsEnabled === false) return;
+
+  if (command === "take-screenshot") {
+    handleScreenshotCapture({ action: "captureScreenshot" });
+  } else if (command === "toggle-recording") {
+    handleToggleRecording();
+  }
+});
+
+let isRecording = false;
+
+async function handleToggleRecording(sendResponse) {
+  try {
+    if (isRecording) {
+      isRecording = false;
+      chrome.runtime.sendMessage({ action: "stopRecording" });
+      broadcastRecordingStatus(false);
+      if (sendResponse) sendResponse({ success: true, isRecording: false });
+    } else {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (!tab) {
+        if (sendResponse)
+          sendResponse({ success: false, error: "No active tab" });
+        return;
+      }
+
+      // Check if we need to create the offscreen document
+      if (!(await chrome.offscreen.hasDocument())) {
+        await chrome.offscreen.createDocument({
+          url: "src/offscreen/offscreen.html",
+          reasons: ["USER_MEDIA"],
+          justification: "Capturing tab content for recording.",
+        });
+      }
+
+      const streamId = await chrome.tabCapture.getMediaStreamId({
+        targetTabId: tab.id,
+      });
+      chrome.runtime.sendMessage({
+        action: "startRecording",
+        streamId: streamId,
+        tabTitle: tab.title,
+      });
+
+      isRecording = true;
+      broadcastRecordingStatus(true);
+      if (sendResponse) sendResponse({ success: true, isRecording: true });
+    }
+  } catch (err) {
+    console.error("[FocusTube] Recording toggle error:", err);
+    if (sendResponse) sendResponse({ success: false, error: err.message });
+  }
+}
+
+function broadcastRecordingStatus(recording) {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      chrome.tabs
+        .sendMessage(tab.id, {
+          action: recording ? "startRecording" : "recordingStopped",
+        })
+        .catch(() => {});
+    });
+  });
+}
+
+/**
  * Handle incoming messages
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("[YFP Background] Message received:", message);
+  console.log("[FocusTube] Message received:", message.action);
 
-  switch (message.action) {
-    case "getTranscript": {
-      (async () => {
-        try {
+  // Use a dedicated handler for screenshot to keep this clean
+  if (message.action === "captureScreenshot") {
+    handleScreenshotCapture(message, sendResponse);
+    return true; // Asynchronous response
+  }
+
+  if (message.action === "toggleRecording") {
+    handleToggleRecording(sendResponse);
+    return true;
+  }
+
+  if (message.action === "getRecordingStatus") {
+    sendResponse({ success: true, isRecording: isRecording });
+    return;
+  }
+
+  if (message.action === "recordingStopped") {
+    isRecording = false;
+    return;
+  }
+
+  if (message.action === "getUserProfile") {
+    fetchYouTubeUser().then((profile) => {
+      sendResponse({ success: true, profile });
+    });
+    return true;
+  }
+
+  // Handle other actions
+  (async () => {
+    try {
+      switch (message.action) {
+        case "getTranscript": {
           const videoId = message.videoId || "";
           const preferredLang = message.preferredLang || "en";
           if (!videoId) {
@@ -262,7 +640,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return;
           }
 
-          // Check cache first
+          // Check cache
           const cacheKey = `transcripts:${videoId}`;
           try {
             const cached = await chrome.storage.local.get(cacheKey);
@@ -280,262 +658,144 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.warn("[YFP] Cache read error:", e);
           }
 
-          // Step 1: Fetch the YouTube watch page to get captionTracks
           const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
           let pageHtml = "";
           try {
             const pageResp = await fetch(watchUrl);
-            if (pageResp.ok) {
-              pageHtml = await pageResp.text();
-            }
+            if (pageResp.ok) pageHtml = await pageResp.text();
           } catch (e) {
             console.warn("[YFP] Failed to fetch watch page:", e);
           }
 
-          // Step 2: Extract captionTracks from ytInitialPlayerResponse
           const captionTracks = parseCaptionTracks(pageHtml);
-
-          // Step 3: Pick the best caption track
           let transcriptUrl = "";
           if (captionTracks.length > 0) {
-            // Prefer manual captions in preferred language
-            const preferred = captionTracks.find(
-              (t) =>
-                matchesLang(t.languageCode, preferredLang) && t.kind !== "asr",
-            );
-            // Then manual captions in English
-            const english = captionTracks.find(
-              (t) => t.languageCode === "en" && t.kind !== "asr",
-            );
-            // Then any manual caption
-            const anyManual = captionTracks.find((t) => t.kind !== "asr");
-            // Then auto-generated in preferred language
-            const autoPreferred = captionTracks.find(
-              (t) =>
-                matchesLang(t.languageCode, preferredLang) && t.kind === "asr",
-            );
-            // Then auto-generated in English
-            const autoEnglish = captionTracks.find(
-              (t) => t.languageCode === "en" && t.kind === "asr",
-            );
-            // Then any auto-generated
-            const anyAuto = captionTracks.find((t) => t.kind === "asr");
-            // Then just the first track
             const track =
-              preferred ||
-              english ||
-              anyManual ||
-              autoPreferred ||
-              autoEnglish ||
-              anyAuto ||
+              captionTracks.find(
+                (t) =>
+                  matchesLang(t.languageCode, preferredLang) &&
+                  t.kind !== "asr",
+              ) ||
+              captionTracks.find(
+                (t) => t.languageCode === "en" && t.kind !== "asr",
+              ) ||
+              captionTracks.find((t) => t.kind !== "asr") ||
+              captionTracks.find(
+                (t) =>
+                  matchesLang(t.languageCode, preferredLang) &&
+                  t.kind === "asr",
+              ) ||
+              captionTracks.find(
+                (t) => t.languageCode === "en" && t.kind === "asr",
+              ) ||
               captionTracks[0];
-            if (track && track.baseUrl) {
-              transcriptUrl = track.baseUrl;
-            }
+            if (track?.baseUrl) transcriptUrl = track.baseUrl;
           }
 
-          // Step 4: Fetch the transcript XML
           let textOut = "";
           if (transcriptUrl) {
             try {
-              // Fetch as JSON3 first (more structured)
               const json3Url =
                 transcriptUrl +
                 (transcriptUrl.includes("?") ? "&" : "?") +
                 "fmt=json3";
               const r = await fetch(json3Url);
               if (r.ok) {
-                const ct = r.headers.get("content-type") || "";
-                if (ct.includes("json")) {
-                  const data = await r.json();
-                  const events = Array.isArray(data.events) ? data.events : [];
-                  textOut = events
-                    .map((ev) => {
-                      const segs = Array.isArray(ev.segs) ? ev.segs : [];
-                      return segs.map((s) => s.utf8 || "").join("");
-                    })
-                    .filter((s) => s.trim())
-                    .join(" ")
-                    .replace(/\s+/g, " ")
-                    .trim();
-                }
+                const data = await r.json();
+                textOut = (data.events || [])
+                  .map((ev) =>
+                    (ev.segs || []).map((s) => s.utf8 || "").join(""),
+                  )
+                  .filter((s) => s.trim())
+                  .join(" ")
+                  .replace(/\s+/g, " ")
+                  .trim();
               }
             } catch (e) {
-              console.warn("[YFP] JSON3 transcript fetch failed:", e);
+              console.warn("[YFP] JSON3 fetch failed:", e);
             }
 
-            // Fallback to XML format
             if (!textOut || textOut.length < 50) {
               try {
                 const r = await fetch(transcriptUrl);
                 if (r.ok) {
                   const xml = await r.text();
-                  if (xml && xml.includes("<text")) {
-                    const parts = Array.from(
+                  if (xml?.includes("<text")) {
+                    textOut = Array.from(
                       xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g),
-                    ).map((m) => m[1]);
-                    textOut = parts
-                      .map((t) => decodeXmlEntities(t).replace(/\n/g, " "))
+                    )
+                      .map((m) => decodeXmlEntities(m[1]).replace(/\n/g, " "))
                       .join(" ")
                       .replace(/\s+/g, " ")
                       .trim();
                   }
                 }
               } catch (e) {
-                console.warn("[YFP] XML transcript fetch failed:", e);
+                console.warn("[YFP] XML fetch failed:", e);
               }
             }
           }
 
           if (!textOut || textOut.length < 20) {
-            console.log("[YFP] No transcript found for", videoId);
-            sendResponse({
-              success: false,
-              error: "Transcript not available for this video",
-            });
+            sendResponse({ success: false, error: "Transcript not available" });
             return;
           }
 
           const limited = textOut.slice(0, 15000);
-          console.log(
-            "[YFP] Transcript fetched:",
-            limited.length,
-            "chars for",
-            videoId,
-          );
-
-          // Cache it
-          try {
-            await chrome.storage.local.set({
-              [cacheKey]: { text: limited, ts: Date.now() },
-            });
-          } catch (e) {
-            console.warn("[YFP] Cache write failed:", e);
-          }
-
-          sendResponse({ success: true, text: limited });
-        } catch (e) {
-          console.error("[YFP] Transcript fetch error:", e);
-          sendResponse({
-            success: false,
-            error: e.message || "Transcript fetch failed",
+          await chrome.storage.local.set({
+            [cacheKey]: { text: limited, ts: Date.now() },
           });
+          sendResponse({ success: true, text: limited });
+          break;
         }
-      })();
-      return true;
-    }
 
-    case "aiSummarize": {
-      (async () => {
-        try {
+        case "aiSummarize": {
           const stored = await chrome.storage.sync.get(null);
           const provider = message.provider || stored.aiProvider || "gemini";
-          const defaults = stored.aiProviderDefaultModels || {
-            gemini: "gemini-1.5-flash",
-            openai: "gpt-4o-mini",
-            mistral: "mistral-small",
-            deepseek: "deepseek-chat",
-            grok: "grok-2-mini",
-          };
+          const defaults =
+            stored.aiProviderDefaultModels ||
+            DEFAULT_SETTINGS.aiModelByProvider;
           const byProvider = stored.aiModelByProvider || {};
-          // Explicitly prefer the model passed in message, then per-provider setting, then global setting, then default
-          const modelCandidate =
-            message.model || byProvider[provider] || stored.aiModel;
-          const model = modelCandidate || defaults[provider] || defaults.gemini;
+          const model =
+            message.model ||
+            byProvider[provider] ||
+            stored.aiModel ||
+            defaults[provider] ||
+            defaults.gemini;
           const prompt = message.prompt || "";
-          let apiUrl = "";
-          let headers = {};
-          let body = {};
-          const supportedProviders = [
-            "gemini",
-            "openai",
-            "mistral",
-            "deepseek",
-            "grok",
-          ];
-          if (!supportedProviders.includes(provider)) {
-            sendResponse({
-              success: false,
-              error: `Unsupported provider: ${provider}`,
-            });
-            return;
-          }
 
           const keyMap = {
-            gemini: stored.geminiApiKey || "",
-            openai: stored.openaiApiKey || "",
-            mistral: stored.mistralApiKey || "",
-            deepseek: stored.deepseekApiKey || "",
-            grok: stored.grokApiKey || "",
+            gemini: stored.geminiApiKey,
+            openai: stored.openaiApiKey,
+            mistral: stored.mistralApiKey,
+            deepseek: stored.deepseekApiKey,
+            grok: stored.grokApiKey,
           };
           if (!keyMap[provider]) {
             sendResponse({
               success: false,
-              error: `Provider ${provider}: missing API key`,
+              error: `Missing API key for ${provider}`,
             });
             return;
           }
 
+          let apiUrl, headers, body;
           if (provider === "gemini") {
-            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${keyMap.gemini}`;
+            const apiVersion = model.includes("-exp") ? "v1beta" : "v1";
+            apiUrl = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${keyMap.gemini}`;
             headers = { "Content-Type": "application/json" };
             body = { contents: [{ parts: [{ text: prompt }] }] };
-          } else if (provider === "openai") {
-            apiUrl = "https://api.openai.com/v1/chat/completions";
+          } else {
+            const apiEndpoints = {
+              openai: "https://api.openai.com/v1/chat/completions",
+              mistral: "https://api.mistral.ai/v1/chat/completions",
+              deepseek: "https://api.deepseek.com/v1/chat/completions",
+              grok: "https://api.x.ai/v1/chat/completions",
+            };
+            apiUrl = apiEndpoints[provider];
             headers = {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${keyMap.openai}`,
-            };
-            body = {
-              model,
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are an assistant that summarizes YouTube videos.",
-                },
-                { role: "user", content: prompt },
-              ],
-            };
-          } else if (provider === "mistral") {
-            apiUrl = "https://api.mistral.ai/v1/chat/completions";
-            headers = {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${keyMap.mistral}`,
-            };
-            body = {
-              model,
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are an assistant that summarizes YouTube videos.",
-                },
-                { role: "user", content: prompt },
-              ],
-            };
-          } else if (provider === "deepseek") {
-            apiUrl = "https://api.deepseek.com/v1/chat/completions";
-            headers = {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${keyMap.deepseek}`,
-            };
-            body = {
-              model,
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    "You are an assistant that summarizes YouTube videos.",
-                },
-                { role: "user", content: prompt },
-              ],
-            };
-          } else if (provider === "grok") {
-            apiUrl = "https://api.x.ai/v1/chat/completions";
-            headers = {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${keyMap.grok}`,
+              Authorization: `Bearer ${keyMap[provider]}`,
             };
             body = {
               model,
@@ -550,249 +810,209 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             };
           }
 
-          async function doFetch() {
-            return fetch(apiUrl, {
+          const doFetch = async (url, opts) =>
+            fetch(url, {
               method: "POST",
               headers,
               body: JSON.stringify(body),
+              ...opts,
             });
-          }
-          let response = await doFetch();
+          let res = await doFetch(apiUrl);
 
-          // Gemini model names age quickly; transparently retry on model-not-found.
-          if (
-            provider === "gemini" &&
-            !response.ok &&
-            response.status === 404
-          ) {
-            const fallbackModels = Array.from(
-              new Set(
-                [
-                  model,
-                  byProvider.gemini,
-                  defaults.gemini,
-                  "gemini-1.5-flash",
-                  "gemini-1.5-pro",
-                  "gemini-pro",
-                ].filter(Boolean),
-              ),
-            );
-            for (const fm of fallbackModels) {
+          if (provider === "gemini" && !res.ok && res.status === 404) {
+            const fallbacks = [
+              model,
+              byProvider.gemini,
+              defaults.gemini,
+              "gemini-1.5-flash",
+              "gemini-1.5-pro",
+            ].filter(Boolean);
+            for (const fm of fallbacks) {
               if (fm === model) continue;
-              apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${fm}:generateContent?key=${keyMap.gemini}`;
-              response = await doFetch();
-              if (response.ok) break;
+              apiUrl = `https://generativelanguage.googleapis.com/${fm.includes("-exp") ? "v1beta" : "v1"}/models/${fm}:generateContent?key=${keyMap.gemini}`;
+              res = await doFetch(apiUrl);
+              if (res.ok) break;
             }
           }
-          if (
-            !response.ok &&
-            (response.status === 429 || response.status >= 500)
-          ) {
-            await new Promise((r) => setTimeout(r, 800));
-            response = await doFetch();
-          }
 
-          if (!response.ok) {
-            let errMsg = `Provider ${provider}: HTTP ${response.status}`;
-            try {
-              const err = await response.json();
-              const msg = err.error?.message || JSON.stringify(err);
-              if (response.status === 401 || response.status === 403)
-                errMsg += " (invalid or missing key)";
-              if (response.status === 404) errMsg += " (model not found)";
-              if (response.status === 429) errMsg += " (rate limit)";
-              errMsg += ` - ${msg}`;
-            } catch {}
-            sendResponse({ success: false, error: errMsg });
+          if (!res.ok) {
+            const errorText = await res.text();
+            sendResponse({
+              success: false,
+              error: `API Error (${res.status}): ${errorText}`,
+            });
             return;
           }
 
-          let text = "";
-          try {
-            const data = await response.json();
-            if (provider === "gemini") {
-              const candidate = (data.candidates && data.candidates[0]) || {};
-              const parts =
-                (candidate.content && candidate.content.parts) || [];
-              text = parts[0] && parts[0].text ? parts[0].text : "";
-            } else {
-              const choice = (data.choices && data.choices[0]) || {};
-              const msg = choice.message || choice.delta || {};
-              text = msg.content || "";
-            }
-          } catch {
-            text = "";
-          }
-
-          sendResponse({ success: true, text });
-        } catch (e) {
-          sendResponse({ success: false, error: e.message || "Unknown error" });
+          const data = await res.json();
+          const text =
+            provider === "gemini"
+              ? data.candidates?.[0]?.content?.parts?.[0]?.text
+              : data.choices?.[0]?.message?.content;
+          sendResponse({ success: true, text: text || "" });
+          break;
         }
-      })();
-      return true;
-    }
-    case "getSettings":
-      // Return current settings
-      chrome.storage.sync
-        .get(null)
-        .then((settings) => {
+
+        case "getSettings":
           sendResponse({
             success: true,
-            settings: { ...DEFAULT_SETTINGS, ...settings },
+            settings: {
+              ...DEFAULT_SETTINGS,
+              ...(await chrome.storage.sync.get(null)),
+            },
           });
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message });
-        });
-      return true; // Keep message channel open for async response
+          break;
 
-    case "saveSettings":
-      // Save settings
-      chrome.storage.sync
-        .set(message.settings)
-        .then(() => {
-          sendResponse({ success: true });
-
-          // Notify all YouTube tabs
-          notifyAllTabs();
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message });
-        });
-      return true;
-
-    case "resetSettings":
-      // Reset to defaults
-      chrome.storage.sync
-        .clear()
-        .then(() => {
-          return chrome.storage.sync.set(DEFAULT_SETTINGS);
-        })
-        .then(() => {
+        case "saveSettings":
+          await chrome.storage.sync.set(message.settings);
           sendResponse({ success: true });
           notifyAllTabs();
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message });
-        });
-      return true;
+          break;
 
-    case "exportSettings":
-      // Export settings as JSON
-      chrome.storage.sync
-        .get(null)
-        .then((settings) => {
+        case "resetSettings":
+          await chrome.storage.sync.clear();
+          await chrome.storage.sync.set(DEFAULT_SETTINGS);
+          sendResponse({ success: true });
+          notifyAllTabs();
+          break;
+
+        case "exportSettings":
           sendResponse({
             success: true,
-            data: JSON.stringify({ ...DEFAULT_SETTINGS, ...settings }, null, 2),
+            data: JSON.stringify(
+              { ...DEFAULT_SETTINGS, ...(await chrome.storage.sync.get(null)) },
+              null,
+              2,
+            ),
           });
-        })
-        .catch((error) => {
-          sendResponse({ success: false, error: error.message });
-        });
-      return true;
+          break;
 
-    case "importSettings":
-      // Import settings from JSON
-      try {
-        const settings = JSON.parse(message.data);
-        chrome.storage.sync
-          .clear()
-          .then(() => {
-            return chrome.storage.sync.set(settings);
-          })
-          .then(() => {
+        case "importSettings":
+          try {
+            const settings = JSON.parse(message.data);
+            await chrome.storage.sync.clear();
+            await chrome.storage.sync.set(settings);
             sendResponse({ success: true });
             notifyAllTabs();
-          })
-          .catch((error) => {
-            sendResponse({ success: false, error: error.message });
-          });
-      } catch (error) {
-        sendResponse({ success: false, error: "Invalid JSON format" });
+          } catch (e) {
+            sendResponse({ success: false, error: "Invalid JSON" });
+          }
+          break;
+
+        default:
+          sendResponse({ success: false, error: "Unknown action" });
       }
-      return true;
-
-    default:
-      console.log("[YFP Background] Unknown action:", message.action);
-      sendResponse({ success: false, error: "Unknown action" });
-  }
-
-  return false; // No async response needed for default case
+    } catch (e) {
+      console.error("[FocusTube] Background Error:", e);
+      sendResponse({ success: false, error: e.message });
+    }
+  })();
+  return true;
 });
 
 /**
- * Notify all YouTube tabs
+ * Notifies all open YouTube tabs about a settings update
  */
 async function notifyAllTabs() {
   try {
-    const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/*" });
-
-    tabs.forEach((tab) => {
-      chrome.tabs
-        .sendMessage(tab.id, {
-          action: "reloadSettings",
-        })
-        .catch((error) => {
-          console.log(
-            "[YFP Background] Could not notify tab:",
-            tab.id,
-            error.message,
-          );
-        });
-    });
-
-    console.log(`[YFP Background] Notified ${tabs.length} YouTube tabs`);
-  } catch (error) {
-    console.error("[YFP Background] Error notifying tabs:", error);
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url && !tab.url.startsWith("chrome://")) {
+        chrome.tabs
+          .sendMessage(tab.id, { action: "reloadSettings" })
+          .catch(() => {});
+      }
+    }
+    console.log(`[FocusTube] Notified ${tabs.length} tabs`);
+  } catch (e) {
+    console.warn("[FocusTube] Error notifying tabs:", e);
   }
 }
 
 /**
- * Handle storage changes
+ * Setup storage change listener
  */
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace !== "sync") {
-    return;
+  if (namespace === "sync") {
+    notifyAllTabs();
+    syncSettingsToCookie();
   }
-
-  console.log("[YFP Background] Storage changed:", changes);
-
-  // Notify all YouTube tabs about settings changes
-  notifyAllTabs();
 });
 
 /**
- * Handle extension startup
+ * Sync all settings to a persistent cookie on YouTube domain.
  */
-chrome.runtime.onStartup.addListener(() => {
-  console.log("[YFP Background] Extension started");
+async function syncSettingsToCookie() {
+  try {
+    const settings = await chrome.storage.sync.get(null);
+    if (!settings || Object.keys(settings).length === 0) return;
 
-  // Ensure default settings are set
-  chrome.storage.sync.get(null).then((settings) => {
-    if (Object.keys(settings).length === 0) {
-      chrome.storage.sync.set(DEFAULT_SETTINGS);
+    // Convert to string and base64 for safe cookie storage
+    // Use a compact representation to stay under cookie size limits (4KB)
+    const dataString = JSON.stringify(settings);
+    const encoded = btoa(unescape(encodeURIComponent(dataString)));
+
+    if (encoded.length > 4000) {
+      console.warn("[FocusTube] Settings too large for cookie sync, skipping");
+      return;
     }
-  });
-});
 
-/**
- * Keep service worker alive (workaround for frequent termination)
- */
-let heartbeatInterval;
-
-function startHeartbeat() {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
+    await chrome.cookies.set({
+      url: "https://www.youtube.com/",
+      name: "focustube_settings",
+      value: encoded,
+      domain: ".youtube.com",
+      path: "/",
+      secure: true,
+      sameSite: "no_restriction",
+      expirationDate: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 5, // 5 years
+    });
+    console.log("[FocusTube] Settings synced to YouTube cookie");
+  } catch (e) {
+    console.error("[FocusTube] Cookie sync failed:", e);
   }
-
-  // Ping every minute to keep alive
-  heartbeatInterval = setInterval(() => {
-    // Just log something to show activity
-    console.log("[YFP Background] Heartbeat");
-  }, 60000);
 }
 
-startHeartbeat();
+/**
+ * Load settings from YouTube cookie if local storage is empty.
+ */
+async function loadSettingsFromCookie() {
+  try {
+    const cookie = await chrome.cookies.get({
+      url: "https://www.youtube.com/",
+      name: "focustube_settings",
+    });
 
-console.log("[YFP Background] Service worker initialized");
+    if (cookie && cookie.value) {
+      const decodedData = decodeURIComponent(escape(atob(cookie.value)));
+      const settings = JSON.parse(decodedData);
+
+      if (settings && typeof settings === "object") {
+        console.log("[FocusTube] Restoring settings from YouTube cookie");
+        await chrome.storage.sync.set(settings);
+        return true;
+      }
+    }
+  } catch (e) {
+    console.warn("[FocusTube] Could not restore from cookie:", e);
+  }
+  return false;
+}
+
+/**
+ * Extension Startup/Installation logic
+ */
+chrome.runtime.onStartup.addListener(() => {
+  console.log("[FocusTube] Startup heartbeat started");
+});
+
+console.log("[FocusTube] Service worker loaded");
+
+// Sync recording status to reloaded tabs
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && isRecording) {
+    chrome.tabs
+      .sendMessage(tabId, { action: "startRecording" })
+      .catch(() => {});
+  }
+});

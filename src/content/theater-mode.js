@@ -30,19 +30,28 @@
    * Enable theater mode on current page
    */
   function enableTheaterMode() {
-    // Method 1: Click theater mode button
-    const theaterButton = findTheaterButton();
-    if (theaterButton) {
-      const isTheaterMode = theaterButton.getAttribute('aria-pressed') === 'true';
+    const player = document.querySelector('#movie_player');
+    if (!player) {
+      console.log('[YFP] Player not found yet');
+      return;
+    }
 
-      if (!isTheaterMode) {
+    // Check if already in theater mode using player classes
+    const isTheaterMode = player.classList.contains('ytp-autohide') || 
+                         player.classList.contains('theater') ||
+                         player.classList.contains('ytp-player-minimized') === false && 
+                         document.querySelector('ytd-watch-flexy[theater]');
+
+    if (!isTheaterMode) {
+      const theaterButton = findTheaterButton();
+      if (theaterButton) {
         console.log('[YFP] Enabling theater mode');
         theaterButton.click();
       } else {
-        console.log('[YFP] Theater mode already enabled');
+        console.log('[YFP] Theater button not found');
       }
     } else {
-      console.log('[YFP] Theater button not found yet');
+      console.log('[YFP] Theater mode already enabled');
     }
   }
 
@@ -51,10 +60,13 @@
    * Multiple selector strategies for different YouTube layouts
    */
   function findTheaterButton() {
-    // Method 1: ytd-player-size
+    // Method 1: ytp-size-button (Standard YouTube player size toggle)
+    const sizeButton = document.querySelector('.ytp-size-button');
+    if (sizeButton) return sizeButton;
+
+    // Method 2: ytd-player-size
     const playerSizeButton = document.querySelector('ytd-player-size button');
     if (playerSizeButton) {
-      // Find the theater button (typically the second one after default)
       const buttons = document.querySelectorAll('ytd-player-size button');
       for (const button of buttons) {
         const tooltip = button.getAttribute('aria-label') ||
@@ -69,32 +81,12 @@
       }
     }
 
-    // Method 2: Direct aria-label search
+    // Method 3: Direct aria-label search
     const allButtons = document.querySelectorAll('button');
     for (const button of allButtons) {
       const label = button.getAttribute('aria-label');
       if (label && label.toLowerCase().includes('theater')) {
         return button;
-      }
-    }
-
-    // Method 3: Find button by icon or SVG path
-    const theaterIconButtons = document.querySelectorAll('button[title*="Theater"], button[aria-label*="theater"]');
-    if (theaterIconButtons.length > 0) {
-      return theaterIconButtons[0];
-    }
-
-    // Method 4: Check for player container
-    const player = document.querySelector('#movie_player');
-    if (player) {
-      // YouTube stores theater mode in player state
-      const isTheater = player.classList.contains('ytp-autohide') ||
-                      player.classList.contains('theater');
-
-      // Try clicking the size button
-      const sizeButton = player.querySelector('.ytp-size-button');
-      if (sizeButton) {
-        return sizeButton;
       }
     }
 
@@ -105,11 +97,15 @@
    * Disable theater mode
    */
   function disableTheaterMode() {
-    const theaterButton = findTheaterButton();
-    if (theaterButton) {
-      const isTheaterMode = theaterButton.getAttribute('aria-pressed') === 'true';
+    const player = document.querySelector('#movie_player');
+    if (!player) return;
 
-      if (isTheaterMode) {
+    const isTheaterMode = player.classList.contains('theater') || 
+                         document.querySelector('ytd-watch-flexy[theater]');
+
+    if (isTheaterMode) {
+      const theaterButton = findTheaterButton();
+      if (theaterButton) {
         console.log('[YFP] Disabling theater mode');
         theaterButton.click();
       }
@@ -126,22 +122,26 @@
 
     theaterObserver = new MutationObserver(debounce(() => {
       if (settings.autoTheaterMode) {
-        // Check if theater mode is still enabled
-        const theaterButton = findTheaterButton();
-        if (theaterButton) {
-          const isTheaterMode = theaterButton.getAttribute('aria-pressed') === 'true';
+        const player = document.querySelector('#movie_player');
+        if (!player) return;
 
-          if (!isTheaterMode) {
-            console.log('[YFP] Re-enabling theater mode');
-            setTimeout(enableTheaterMode, 500);
+        const isTheaterMode = player.classList.contains('theater') || 
+                             document.querySelector('ytd-watch-flexy[theater]');
+
+        if (!isTheaterMode) {
+          // Use a smaller delay and only if we are actually on a video page
+          if (window.location.pathname === '/watch') {
+            enableTheaterMode();
           }
         }
       }
-    }, 500));
+    }, 1000)); // Increased debounce to prevent rapid switching
 
-    const root = document.body || document.documentElement;
+    const root = document.querySelector('ytd-app') || document.body;
     if (!root) return;
     theaterObserver.observe(root, {
+      attributes: true,
+      attributeFilter: ['theater'],
       childList: true,
       subtree: true
     });

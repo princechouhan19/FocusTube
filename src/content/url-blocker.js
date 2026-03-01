@@ -117,7 +117,7 @@
           </p>
           <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <button id="yfp-go-home" style="
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
               color: white;
               border: none;
               border-radius: 8px;

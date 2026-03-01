@@ -420,6 +420,15 @@ input:checked + .toggle-slider:before {
   justify-content: center;
   font-size: 32px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .profile-stats {

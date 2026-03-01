@@ -121,10 +121,18 @@
         grok: settings.grokApiKey,
       };
       const activeKey = keyMap[provider];
+      
+      // If missing key, provide guidance instead of just throwing error
       if (!activeKey) {
-        throw new Error(
-          `Missing ${provider} API Key. Please add it in extension settings.`,
+        const errorMsg = provider === 'gemini' 
+          ? 'Gemini API Key missing. You can get one for FREE at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#38bdf8;text-decoration:underline;">Google AI Studio</a>.'
+          : `Missing ${provider} API Key. Please add it in extension settings.`;
+        
+        showSummaryModal(
+          { title: "Setup Required" },
+          { error: errorMsg, isSetup: true }
         );
+        return;
       }
 
       // Extract video data
@@ -147,7 +155,7 @@
     } catch (error) {
       console.error("[YFP] Error generating summary:", error);
       showSummaryModal(
-        { title: "Error", description: "" },
+        { title: "Error" },
         {
           error:
             error.message ||
@@ -168,15 +176,12 @@
     const title =
       document.querySelector("#title h1 yt-formatted-string")?.textContent ||
       document.querySelector("h1.title")?.textContent ||
+      document.querySelector("h1.ytd-watch-metadata")?.textContent ||
       document.title?.replace(" - YouTube", "") ||
       "";
 
-    // Try to get description (often hidden behind "Show more")
-    // We can't easily click "Show more" without disrupting user, so we take what's visible
-    // or try to find the full description script data if available (advanced)
     const description =
-      document.querySelector("#description-inner yt-formatted-string")
-        ?.textContent ||
+      document.querySelector("#description-inner yt-formatted-string")?.textContent ||
       document.querySelector("#description")?.textContent ||
       document.querySelector("ytd-text-inline-expander")?.textContent ||
       "";
@@ -187,30 +192,30 @@
     }
 
     let transcript = "";
-    if (settings.useTranscript) {
-      const trResp = await new Promise((resolve) => {
-        chrome.runtime.sendMessage(
-          {
-            action: "getTranscript",
-            videoId: vid,
-            preferredLang: settings.transcriptLang || "en",
-            useAutoCaptions: true,
-          },
-          (r) => resolve(r || { success: false }),
-        );
-      });
-      if (trResp && trResp.success && trResp.text) {
-        transcript = trResp.text;
-      } else {
-        console.log(
-          "[YFP] Transcript not found or disabled, proceeding without it.",
-        );
+    if (settings.useTranscript !== false) { // Default to true if not explicitly false
+      try {
+        const trResp = await new Promise((resolve) => {
+          chrome.runtime.sendMessage(
+            {
+              action: "getTranscript",
+              videoId: vid,
+              preferredLang: settings.transcriptLang || "en",
+              useAutoCaptions: true,
+            },
+            (r) => resolve(r || { success: false }),
+          );
+        });
+        if (trResp && trResp.success && trResp.text) {
+          transcript = trResp.text;
+        }
+      } catch (e) {
+        console.warn("[YFP] Transcript extraction failed:", e);
       }
     }
 
     return {
       title,
-      description: description.slice(0, 5000), // Limit length for API
+      description: description.slice(0, 5000),
       videoId: vid,
       url: window.location.href,
       transcript,
@@ -349,14 +354,24 @@
         <div class="yfp-modal-content glass-panel" style="background: #111111; color: #f8fafc; border: 1px solid #333;">
           <div class="yfp-modal-header" style="background: #000; border-bottom: 1px solid #222;">
             <h3 style="display: flex; align-items: center; justify-content: flex-start;">
-              ${summary.error ? "Error" : aiIcon + " AI Summary"}
+              ${summary.error ? (summary.isSetup ? "✨ Getting Started" : "Error") : aiIcon + " AI Summary"}
             </h3>
             <button class="yfp-modal-close" style="color: #fff; border-color: #333; background: #222;">×</button>
           </div>
           <div class="yfp-modal-body" style="background: #000;">
             ${
               summary.error
-                ? `<p class="yfp-error-msg" style="color:#ef4444;">${summary.error}</p>`
+                ? `
+                <div class="yfp-error-container" style="text-align:center; padding: 20px;">
+                  <p class="yfp-error-msg" style="color:#d1d5db; font-size: 18px; line-height: 1.5;">${summary.error}</p>
+                  ${summary.isSetup ? `
+                    <div style="margin-top: 24px; text-align: left; background: #1a1a1a; padding: 20px; border-radius: 12px; border: 1px solid #333;">
+                      <h4 style="margin: 0 0 10px 0; color: #38bdf8;">Why do I need a key?</h4>
+                      <p style="margin: 0; color: #a1a1aa; font-size: 14px;">FocusTube uses direct AI connections to provide summaries. Using your own key keeps the extension free and ensures your data stays private between you and the AI provider.</p>
+                      <p style="margin: 15px 0 0 0; color: #a1a1aa; font-size: 14px;">1. Click the link above to get your free key.<br>2. Open FocusTube settings (click the extension icon).<br>3. Paste your key and click Save.</p>
+                    </div>
+                  ` : ""}
+                </div>`
                 : renderSummaryContent(summary)
             }
           </div>

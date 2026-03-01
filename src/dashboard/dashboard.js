@@ -1,4 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Trigger user profile fetch fresh from YouTube
+  chrome.runtime.sendMessage({ action: "getUserProfile" }, (response) => {
+    if (response?.success && response.profile) {
+      updateUserProfileUI(
+        response.profile.profileName,
+        response.profile.profileImage,
+        response.profile.profileEmail,
+      );
+    }
+  });
+
+  function updateUserProfileUI(name, image, email) {
+    if (name || image || email) {
+      const userProfile = document.getElementById("user-profile");
+      const userAvatar = document.getElementById("user-avatar");
+      const userName = document.getElementById("user-name");
+      const userEmail = document.getElementById("user-email");
+
+      if (name) userName.textContent = name;
+      if (image) userAvatar.src = image;
+      if (email) userEmail.textContent = email;
+      userProfile.style.display = "flex";
+    }
+  }
+
   // Load stats from chrome storage
   chrome.storage.sync.get(
     [
@@ -6,8 +31,12 @@ document.addEventListener("DOMContentLoaded", () => {
       "statsAdsBlocked",
       "statsSummariesGenerated",
       "statsQuitsEarly",
+      "profileName",
+      "profileImage",
     ],
     (result) => {
+      // Redundant logic removed, handled by initial message fetch
+
       // Helper function to animate numbers counting up
       function animateValue(obj, start, end, duration) {
         let startTimestamp = null;

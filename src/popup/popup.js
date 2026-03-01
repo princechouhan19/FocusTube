@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = {
   grokApiKey: "",
   geminiModel: "gemini-1.5-flash",
   profileName: "Guest User",
+  profileImage: "",
   profileGoal: "",
   statsTimeSaved: 0,
   statsAdsBlocked: 0,
@@ -45,6 +46,8 @@ const DEFAULT_SETTINGS = {
   useNativePlayer: false,
   useTranscript: false,
   transcriptLang: "en",
+  shortcutsEnabled: true,
+  floatingToolbarEnabled: false,
 
   // Enhanced UI Controls
   hideComments: false,
@@ -55,25 +58,25 @@ const DEFAULT_SETTINGS = {
 
 const PROVIDER_MODELS = {
   gemini: [
-    { value: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash (Exp)" },
-    { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
-    { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-    { value: "gemini-pro", label: "Gemini 1.0 Pro" },
+    { value: "gemini-2.0-flash-exp", label: "(Free) Gemini 2.0 Flash (Exp)" },
+    { value: "gemini-1.5-flash", label: "(Free) Gemini 1.5 Flash" },
+    { value: "gemini-1.5-pro", label: "(Free) Gemini 1.5 Pro" },
+    { value: "gemini-1.0-pro", label: "(Free) Gemini 1.0 Pro" },
   ],
   openai: [
     { value: "gpt-4o-mini", label: "GPT-4o Mini" },
     { value: "gpt-4o", label: "GPT-4o" },
-    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+    { value: "o1-mini", label: "o1 Mini" },
   ],
   mistral: [
-    { value: "mistral-tiny", label: "Mistral Tiny" },
-    { value: "mistral-small", label: "Mistral Small" },
-    { value: "mistral-medium", label: "Mistral Medium" },
+    { value: "mistral-small-latest", label: "Mistral Small" },
+    { value: "mistral-medium-latest", label: "Mistral Medium" },
     { value: "mistral-large-latest", label: "Mistral Large" },
+    { value: "pixtral-large-latest", label: "Pixtral Large" },
   ],
   deepseek: [
-    { value: "deepseek-chat", label: "DeepSeek Chat" },
-    { value: "deepseek-coder", label: "DeepSeek Coder" },
+    { value: "deepseek-chat", label: "DeepSeek Chat (V3)" },
+    { value: "deepseek-reasoner", label: "DeepSeek Reasoner (R1)" },
   ],
   grok: [
     { value: "grok-2-mini", label: "Grok 2 Mini" },
@@ -143,6 +146,8 @@ const TOGGLES_LIST = [
   "hideShareButtons",
   "useTranscript",
   "modernGlassTheme",
+  "shortcutsEnabled",
+  "floatingToolbarEnabled",
 ];
 
 let quizState = {
@@ -324,6 +329,64 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
   }
+
+  // Screenshot Button
+  const screenshotBtn = document.getElementById("capture-screenshot-btn");
+  if (screenshotBtn) {
+    screenshotBtn.addEventListener("click", () => {
+      chrome.runtime.sendMessage(
+        { action: "captureScreenshot" },
+        (response) => {
+          if (response && response.success) {
+            showFeedback("capture-screenshot-btn", "SS Taken!");
+          } else {
+            showFeedback("capture-screenshot-btn", "Failed");
+            console.error(
+              "[FocusTube] Screenshot failed:",
+              response ? response.error : "Unknown error",
+            );
+          }
+        },
+      );
+    });
+  }
+
+  // Recording Button
+  const recordBtn = document.getElementById("toggle-recording-btn");
+  if (recordBtn) {
+    let isRecording = false;
+    recordBtn.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ action: "toggleRecording" }, (response) => {
+        if (response && response.success) {
+          isRecording = response.isRecording;
+          recordBtn.textContent = isRecording ? "⏹ Stop" : "🔴 Rec";
+          recordBtn.style.background = isRecording
+            ? "linear-gradient(to right, #4b5563, #374151)"
+            : "linear-gradient(to right, #ef4444, #dc2626)";
+          showFeedback(
+            "toggle-recording-btn",
+            isRecording ? "Started!" : "Saved!",
+          );
+        } else {
+          showFeedback("toggle-recording-btn", "Error");
+          console.error(
+            "[FocusTube] Recording failed:",
+            response ? response.error : "Unknown error",
+          );
+        }
+      });
+    });
+
+    // Check initial recording state
+    chrome.runtime.sendMessage({ action: "getRecordingStatus" }, (response) => {
+      if (response && response.isRecording) {
+        isRecording = true;
+        recordBtn.textContent = "⏹ Stop";
+        recordBtn.style.background =
+          "linear-gradient(to right, #4b5563, #374151)";
+      }
+    });
+  }
 });
 
 /**
@@ -349,7 +412,15 @@ function initNavigation() {
   }
 
   navBtns.settings.addEventListener("click", () => switchView("settings"));
-  navBtns.profile.addEventListener("click", () => switchView("profile"));
+  navBtns.profile.addEventListener("click", () => {
+    switchView("profile");
+    // Fetch fresh profile data when entering profile view
+    chrome.runtime.sendMessage({ action: "getUserProfile" }, (response) => {
+      if (response && response.success && response.profile) {
+        populateProfile(response.profile);
+      }
+    });
+  });
 
   backBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -429,8 +500,15 @@ function updateStatusText(enabled) {
 function populateProfile(settings) {
   document.getElementById("profile-name-display").textContent =
     settings.profileName || "Guest User";
+  document.getElementById("profile-email-display").textContent =
+    settings.profileEmail || "Not logged in";
   document.getElementById("profile-goal-display").textContent =
     settings.profileGoal || "No goal set";
+
+  const avatarContainer = document.querySelector(".profile-avatar");
+  if (settings.profileImage && avatarContainer) {
+    avatarContainer.innerHTML = `<img src="${settings.profileImage}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+  }
 
   document.getElementById("profileName").value = settings.profileName || "";
   document.getElementById("profileGoal").value = settings.profileGoal || "";
@@ -749,11 +827,17 @@ function addProfileListeners() {
  * Helper: Notify Content Script
  */
 async function notifyContentScript() {
-  const tabs = await chrome.tabs.query({ url: "*://*.youtube.com/*" });
-  for (const tab of tabs) {
-    chrome.tabs
-      .sendMessage(tab.id, { action: "reloadSettings" })
-      .catch(() => {});
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url && !tab.url.startsWith("chrome://")) {
+        chrome.tabs
+          .sendMessage(tab.id, { action: "reloadSettings" })
+          .catch(() => {});
+      }
+    }
+  } catch (e) {
+    console.warn("[FocusTube] Error notifying tabs:", e);
   }
 }
 

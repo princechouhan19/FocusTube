@@ -3,8 +3,9 @@
   "name": "FocusTube - Productivity & Distraction Control",
   "version": "1.0.0",
   "description": "Take control of YouTube: block distractions, hide ads, and boost your productivity with advanced UI controls.",
-  "permissions": ["storage", "tabs", "scripting"],
+  "permissions": ["storage", "tabs", "scripting", "downloads", "activeTab", "tabCapture", "offscreen", "cookies"],
   "host_permissions": [
+    "<all_urls>",
     "https://*.youtube.com/*",
     "https://generativelanguage.googleapis.com/*",
     "https://api.openai.com/*",
@@ -30,6 +31,11 @@
   },
   "content_scripts": [
     {
+      "matches": ["<all_urls>", "https://classroom.sheryians.com/*"],
+      "js": ["src/content/universal-screenshot.js"],
+      "run_at": "document_start"
+    },
+    {
       "matches": ["https://*.youtube.com/*"],
       "js": [
         "src/content/storage.js",
@@ -54,7 +60,6 @@
         "src/content/css-filter.js",
         "src/content/comment-hider.js",
         "src/content/cards-hider.js",
-        "src/content/keyboard-shortcuts.js",
         "src/content/content.js"
       ],
       "css": ["src/content/content.css"],
@@ -70,5 +75,21 @@
       "resources": ["src/icons/*"],
       "matches": ["https://*.youtube.com/*"]
     }
-  ]
+  ],
+  "commands": {
+    "take-screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+S",
+        "mac": "Command+S"
+      },
+      "description": "Capture a screenshot of the current video frame"
+    },
+    "toggle-recording": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Command+Shift+R"
+      },
+      "description": "Start or stop screen recording"
+    }
+  }
 }

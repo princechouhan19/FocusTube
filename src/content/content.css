@@ -25,7 +25,7 @@
   padding: 14px 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 8px 32px rgba(31, 38, 135, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
     inset 0 -1px 0 rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -58,7 +58,7 @@
     rgba(255, 255, 255, 0.35) 100%);
   transform: translateY(-2px) scale(1.02);
   box-shadow: 
-    0 12px 40px rgba(31, 38, 135, 0.25),
+    0 12px 40px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
     inset 0 -1px 0 rgba(0, 0, 0, 0.05);
   border-color: rgba(255, 255, 255, 0.6);
@@ -67,7 +67,7 @@
 .yfp-summary-button:active {
   transform: translateY(0) scale(0.98);
   box-shadow: 
-    0 4px 16px rgba(31, 38, 135, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
@@ -365,7 +365,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3f3f46, #52525b); /* Gray tones instead of purple */
+  background: linear-gradient(135deg, #1e293b, #334155); /* Slate tones */
   animation: yfp-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -517,7 +517,7 @@
   }
 
   .yfp-summary-content h3 {
-    color: #a78bfa;
+    color: #38bdf8; /* Sky blue instead of violet */
   }
 
   .yfp-summary-content p {
@@ -535,7 +535,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); /* Deep slate instead of indigo/purple */
   color: white;
   padding: 8px 16px;
   text-align: center;

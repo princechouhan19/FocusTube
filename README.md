@@ -4,30 +4,39 @@
 
 FocusTube is a comprehensive, privacy-first Chrome extension engineered to let you take back control of your YouTube experience. By deeply modifying YouTube's web interface, it eliminates algorithms, hides addictive content like Shorts, and protects your attention using dynamic intervention screens.
 
-## ✨ New Premium Features (v2.0 Update)
+## ✨ New Premium v2.1 Update
+
+### 👤 Profile Synchronization & Cross-Browser Sync
+
+Now FocusTube is more powerful than ever. It automatically fetches your **YouTube Profile Name, Avatar, and Email** to personalize your dashboard.
+
+- **Cookie-Based Settings Sync:** Your extension settings are now backed up to a specialized cookie on the `youtube.com` domain. This means if you log into the same YouTube account on another browser, FocusTube will automatically restore your custom settings!
 
 ### 📊 Full-Screen "Stats & Shame" Dashboard
 
 Track your productivity in real-time with a beautiful, newly designed **True Black** aesthetic dashboard.
 
 - **Positive Metrics:** View live counters for Shorts Skipped, Ads Blocked, and AI Summaries Generated.
-- **The Wall of Shame:** Tracks exactly how many times you surrendered and quit a Focus Quiz early, complete with dynamic taunts to keep you accountable.
-- _Access it via the premium gradient button in the main extension popup!_
+- **The Wall of Shame:** Tracks exactly how many times you surrendered and quit a Focus Quiz early.
 
 ### ⌨️ Power-User Keyboard Shortcuts
 
-Never take your hands off the keyboard while studying or learning:
+- Press **`S`** while watching any video to attempt an AI Summary.
+- Press **`C`** to capture a high-quality, timestamped screenshot.
 
-- Press **`S`** while watching any video to instantly generate and open an AI Summary.
-- Press **`C`** to silently capture a high-quality, timestamped screenshot of the current video frame straight to your downloads folder.
+### 🤖 AI Summaries (Beta Status) ⚠️
 
-### 🖼️ Dynamic Unsplash Topic Blockers
+> [!IMPORTANT]
+> **Beta Notice:** The AI Summary feature is currently in **Beta** and may not work as expected due to recent changes in YouTube's DOM structure. We are actively working on a more robust scraping engine.
 
-When you try to visit a video inside one of your blocked keyword categories, the screen will be replaced by a stunning, randomly selected motivational Unsplash background featuring a frosted glass overlay.
+---
 
-### 🤖 DOM-Scraped AI Summaries (No API Keys Required)
+## 🚀 Upcoming Features (Roadmap)
 
-The AI Summary feature has been completely rewritten. It no longer relies on the strict YouTube Data API limits. The extension now intelligently scrapes the DOM (and auto-generated captions if available) to feed directly into the Gemini AI pipeline—saving you from complex Google Cloud console setups.
+- **Vim-Style Navigation:** Browse YouTube entirely using `j`, `k`, `h`, `l` keys.
+- **Advanced Analytics:** Detailed graphs of your focus trends over weeks and months.
+- **More AI Providers:** Support for Claude 3.5, Gemini 2.0, and local LLMs via Ollama.
+- **Custom Themes:** Beyond True Black, including Nord, Solarized, and custom CSS injection.
 
 ---
 

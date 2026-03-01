@@ -10,8 +10,17 @@
   <div class="dashboard-container">
     <header class="header">
       <div class="header-content">
-        <img src="../icons/icon48.png" alt="FocusTube Logo" class="logo">
-        <h1>Focus Dashboard</h1>
+        <div class="header-main">
+          <img src="../icons/icon48.png" alt="FocusTube Logo" class="logo">
+          <h1>Focus Dashboard</h1>
+        </div>
+        <div id="user-profile" class="user-profile" style="display: none; align-items: center; gap: 12px;">
+          <img id="user-avatar" src="" alt="User Avatar" class="user-avatar">
+          <div style="display: flex; flex-direction: column;">
+            <span id="user-name" class="user-name" style="font-weight: bold; color: white;">Guest User</span>
+            <span id="user-email" class="user-email" style="font-size: 11px; opacity: 0.6; color: white;"></span>
+          </div>
+        </div>
       </div>
       <p class="subtitle">Track your productivity, ads skipped, and how many times you quit early...</p>
     </header>

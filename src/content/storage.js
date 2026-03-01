@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
   geminiModel: "gemini-1.5-flash",
   useTranscript: true,
   transcriptLang: "en",
+  profileEmail: "",
   // Video Page Features
   showSummaryButton: true,
   hideShorts: true,

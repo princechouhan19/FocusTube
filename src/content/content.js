@@ -85,8 +85,8 @@
    * Show that extension is active (console log only)
    */
   function showExtensionActive() {
-    console.log('%c🎯 FocusTube', 'color: #667eea; font-size: 20px; font-weight: bold;');
-    console.log('%cDistraction-free YouTube is now active!', 'color: #764ba2; font-size: 14px;');
+    console.log('%c🎯 FocusTube', 'color: #38bdf8; font-size: 20px; font-weight: bold;');
+    console.log('%cDistraction-free YouTube is now active!', 'color: #0ea5e9; font-size: 14px;');
     console.log('%cClick extension icon to configure settings.', 'color: #666; font-size: 12px;');
   }
 
