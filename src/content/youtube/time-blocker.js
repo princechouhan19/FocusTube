@@ -10,6 +10,7 @@
   let settings = {};
   let checkInterval = null;
   let blockOverlay = null;
+  let overlayObserver = null;
 
   /**
    * Initialize Time Blocker
@@ -21,16 +22,65 @@
     } else {
       // Fallback if storage helper not loaded yet
       settings = await new Promise((resolve) => {
-        chrome.storage.sync.get(null, resolve);
+        chrome.storage.local.get(null, resolve);
       });
     }
 
     // Start checking
     checkBlockingRules();
+    ensureOverlayObserver();
 
     // Set up regular check (every 1 second)
     if (checkInterval) clearInterval(checkInterval);
     checkInterval = setInterval(checkBlockingRules, 1000);
+  }
+
+  function ensureOverlayObserver() {
+    if (overlayObserver) return;
+
+    overlayObserver = new MutationObserver(() => {
+      const isTempBlocked =
+        settings.tempBlockUntil && Date.now() < settings.tempBlockUntil;
+      const isScheduledBlocked =
+        settings.scheduleBlockEnabled &&
+        settings.scheduleBlockStart &&
+        settings.scheduleBlockEnd &&
+        isCurrentTimeInRange(
+          settings.scheduleBlockStart,
+          settings.scheduleBlockEnd,
+        );
+
+      if (isTempBlocked) {
+        showBlockOverlay("Focus Timer Active", settings.tempBlockUntil);
+      } else if (isScheduledBlocked) {
+        showBlockOverlay("Scheduled Block", getScheduledEndTimestamp());
+      }
+    });
+
+    overlayObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  function getScheduledEndTimestamp() {
+    const nowDate = new Date();
+    const [endH, endM] = settings.scheduleBlockEnd.split(":").map(Number);
+    const endDate = new Date(
+      nowDate.getFullYear(),
+      nowDate.getMonth(),
+      nowDate.getDate(),
+      endH,
+      endM,
+      0,
+      0,
+    );
+
+    if (endDate < nowDate) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    return endDate.getTime();
   }
 
   /**
@@ -93,7 +143,6 @@
           endDate.setDate(endDate.getDate() + 1);
         }
 
-        const remainingMs = endDate.getTime() - nowDate.getTime();
         showBlockOverlay("Scheduled Block", endDate.getTime());
         return;
       }
@@ -131,6 +180,10 @@
    * Show Blocking Overlay
    */
   function showBlockOverlay(message, endTs) {
+    if (!document.documentElement) {
+      return;
+    }
+
     if (document.getElementById("yfp-time-block-overlay")) {
       // Update message if exists
       const msgEl = document.getElementById("yfp-block-message");
@@ -180,7 +233,10 @@
         <img class="yfp-banner" src="${bannerURL}" alt="FocusTube" style="height:100px; width:120px; object-fit:cover; margin-bottom:16px;" />
         <div style="font-size: 64px; margin-bottom: 24px;">🚫</div>
         <h1 style="font-size: 32px; margin-bottom: 16px; color: #ff7675;">YouTube is Blocked</h1>
-        <p id="yfp-block-message" style="font-size: 18px; opacity: 0.8; margin-bottom: 32px;"></p>
+        <p id="yfp-block-message" style="font-size: 18px; opacity: 0.8; margin-bottom: 20px;"></p>
+        <p style="font-size: 14px; max-width: 460px; line-height: 1.6; color: #cbd5e1; margin: 0 auto 18px;">
+          Protect this session. A few focused minutes now will feel much better than another accidental binge.
+        </p>
         <div style="font-size: 14px; color: #666;">
           FocusTube Extension
         </div>
@@ -216,7 +272,10 @@
     }
 
     // Prevent scrolling and hide main content
-    document.body.style.overflow = "hidden";
+    if (document.body) {
+      document.body.style.overflow = "hidden";
+    }
+    document.documentElement.style.overflow = "hidden";
 
     // Add aggressive blocking style
     const blockStyle = document.createElement("style");
@@ -229,6 +288,10 @@
         pointer-events: none !important;
       }
       body {
+        overflow: hidden !important;
+        background-color: #0f0f0f !important;
+      }
+      html {
         overflow: hidden !important;
         background-color: #0f0f0f !important;
       }
@@ -255,14 +318,20 @@
       const tamperInterval = setInterval(() => {
         const overlay = document.getElementById("yfp-time-block-overlay");
         if (!overlay) {
-          showBlockOverlay(message, endTs);
+          // Do NOT recursively call showBlockOverlay here — that creates a
+          // re-entrancy loop if the user is actively disabling the block.
+          // The next checkBlockingRules tick will re-create the overlay if
+          // still needed.
           return;
         }
         if (document.documentElement.lastElementChild !== overlay) {
           document.documentElement.appendChild(overlay);
         }
-        if (document.body.style.overflow !== "hidden") {
+        if (document.body && document.body.style.overflow !== "hidden") {
           document.body.style.overflow = "hidden";
+        }
+        if (document.documentElement.style.overflow !== "hidden") {
+          document.documentElement.style.overflow = "hidden";
         }
         const end = overlay.dataset.endTs ? parseInt(overlay.dataset.endTs) : 0;
         const prefix = overlay.dataset.prefix || message || "";
@@ -279,7 +348,7 @@
           if (msgEl) msgEl.textContent = `${prefix}: ${mm}:${ss} remaining`;
         }
       }, 1000);
-      blockOverlay.dataset.tamperInterval = tamperInterval;
+      blockOverlay.dataset.tamperInterval = String(tamperInterval);
     }
   }
 
@@ -299,7 +368,10 @@
         clearInterval(parseInt(overlay.dataset.tamperInterval));
       }
       overlay.remove();
-      document.body.style.overflow = "";
+      if (document.body) {
+        document.body.style.overflow = "";
+      }
+      document.documentElement.style.overflow = "";
       blockOverlay = null;
     }
   }

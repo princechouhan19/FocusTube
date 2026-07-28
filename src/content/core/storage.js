@@ -8,19 +8,23 @@ let hasLoggedContextInvalidation = false;
 
 const DEFAULT_SETTINGS = {
   extensionEnabled: true,
+  tempBlockUntil: 0,
+  scheduleBlockEnabled: false,
+  scheduleBlockStart: "09:00",
+  scheduleBlockEnd: "17:00",
   aiProvider: "gemini",
   aiModel: "gemini-1.5-flash",
   aiModelByProvider: {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   },
   aiProviderDefaultModels: {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   },
@@ -33,7 +37,10 @@ const DEFAULT_SETTINGS = {
   geminiModel: "gemini-1.5-flash",
   useTranscript: true,
   transcriptLang: "en",
+  profileName: "Guest User",
   profileEmail: "",
+  profileImage: "",
+  profileGoal: "",
   // Video Page Features
   showSummaryButton: true,
   hideShorts: true,
@@ -83,7 +90,12 @@ const DEFAULT_SETTINGS = {
   hideVideoDuration: false,
   hideMerch: false,
   customCSSRules: [],
-  blockedKeywords: [],
+  shortcutsEnabled: true,
+  floatingToolbarEnabled: false,
+
+  // Universal Site Blocking
+  blockedSites: [], // Array of {domain, blockUntil (timestamp), reason}
+
   // Stats
   statsTimeSaved: 0,
   statsAdsBlocked: 0,
@@ -148,7 +160,7 @@ function applyExtensionEnabledOverride(settings) {
  */
 async function loadSettings() {
   try {
-    const stored = await chrome.storage.sync.get(null);
+    const stored = await chrome.storage.local.get(null);
     return applyExtensionEnabledOverride({ ...DEFAULT_SETTINGS, ...stored });
   } catch (error) {
     const msg = String(error && error.message ? error.message : error || "");
@@ -171,7 +183,7 @@ async function loadSettings() {
  */
 async function saveSetting(key, value) {
   try {
-    await chrome.storage.sync.set({ [key]: value });
+    await chrome.storage.local.set({ [key]: value });
     return true;
   } catch (error) {
     const msg = String(error && error.message ? error.message : error || "");
@@ -187,7 +199,7 @@ async function saveSetting(key, value) {
  */
 async function saveSettingsAll(settings) {
   try {
-    await chrome.storage.sync.set(settings);
+    await chrome.storage.local.set(settings);
     return true;
   } catch (error) {
     const msg = String(error && error.message ? error.message : error || "");
@@ -203,8 +215,8 @@ async function saveSettingsAll(settings) {
  */
 async function resetSettings() {
   try {
-    await chrome.storage.sync.clear();
-    await chrome.storage.sync.set(DEFAULT_SETTINGS);
+    await chrome.storage.local.clear();
+    await chrome.storage.local.set(DEFAULT_SETTINGS);
     return true;
   } catch (error) {
     const msg = String(error && error.message ? error.message : error || "");
@@ -237,8 +249,8 @@ async function exportSettings() {
 async function importSettings(jsonString) {
   try {
     const settings = JSON.parse(jsonString);
-    await chrome.storage.sync.clear();
-    await chrome.storage.sync.set(settings);
+    await chrome.storage.local.clear();
+    await chrome.storage.local.set(settings);
     return true;
   } catch (error) {
     const msg = String(error && error.message ? error.message : error || "");
@@ -255,8 +267,8 @@ async function importSettings(jsonString) {
 function onSettingsChanged(callback) {
   if (chrome && chrome.storage && chrome.storage.onChanged) {
     chrome.storage.onChanged.addListener(async (changes, namespace) => {
-      if (namespace === "sync") {
-        const currentRaw = await chrome.storage.sync.get(null);
+      if (namespace === "local") {
+        const currentRaw = await chrome.storage.local.get(null);
 
         const oldRaw = { ...currentRaw };
         for (const key in changes) {

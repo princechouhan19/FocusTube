@@ -102,6 +102,61 @@
             </label>
           </div>
         </div>
+
+        <!-- Block Any Site Panel -->
+        <div class="glass-panel focus-control-panel">
+          <h3 class="panel-title">🌐 Block Any Website</h3>
+          
+          <div style="margin-bottom: 12px;">
+            <input
+              type="text"
+              id="site-to-block"
+              class="time-input"
+              placeholder="e.g., instagram.com, reddit.com"
+              autocomplete="off"
+              spellcheck="false"
+              style="width: 100%; box-sizing: border-box; margin-bottom: 8px;"
+            />
+            <input
+              type="text"
+              id="block-reason"
+              class="time-input"
+              placeholder="Reason (e.g., Exam time, Study time)"
+              autocomplete="off"
+              spellcheck="false"
+              style="width: 100%; box-sizing: border-box; margin-bottom: 8px;"
+            />
+          </div>
+
+          <div class="timer-grid">
+            <button class="timer-btn" id="site-block-30min">30 Min</button>
+            <button class="timer-btn" id="site-block-1hr">1 Hour</button>
+            <button class="timer-btn" id="site-block-3hr">3 Hours</button>
+            <button class="timer-btn" id="site-block-custom">Custom</button>
+          </div>
+
+          <div class="custom-time-input" id="site-custom-block" style="display: none;">
+            <input
+              type="text"
+              id="site-custom-duration"
+              class="time-input"
+              placeholder="Minutes"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="timer-btn" id="site-block-btn">Block</button>
+          </div>
+
+          <!-- Active Site Blocks List -->
+          <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+            <p style="color: #fff; font-size: 12px; font-weight: 600; margin: 0 0 8px 0;">ACTIVE BLOCKS</p>
+            <div id="active-blocks-list" style="max-height: 200px; overflow-y: auto;">
+              <p style="color: #888; font-size: 12px; text-align: center; padding: 8px;">No blocks active</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- SETTINGS VIEW -->
@@ -112,74 +167,35 @@
 
         <div class="glass-panel" style="padding: 16px">
           <h3 class="panel-title">AI Settings</h3>
+          <div class="ai-settings-grid">
+            <div class="input-group">
+              <label for="aiProvider">Provider</label>
+              <select id="aiProvider" class="glass-input compact-select">
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="mistral">Mistral</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="grok">Grok (xAI)</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="aiModel">Model</label>
+              <select id="aiModel" class="glass-input compact-select">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+          </div>
           <div class="input-group">
-            <label for="geminiApiKey">Gemini API Key</label>
+            <label for="activeApiKey">API Key</label>
             <input
               type="password"
-              id="geminiApiKey"
+              id="activeApiKey"
               class="glass-input"
-              placeholder="Enter your API Key"
+              placeholder="Enter API key for selected provider"
             />
-          </div>
-          <div class="input-group">
-            <label for="openaiApiKey">OpenAI API Key</label>
-            <input
-              type="password"
-              id="openaiApiKey"
-              class="glass-input"
-              placeholder="sk-..."
-            />
-          </div>
-          <div class="input-group">
-            <label for="mistralApiKey">Mistral API Key</label>
-            <input
-              type="password"
-              id="mistralApiKey"
-              class="glass-input"
-              placeholder="mistral-..."
-            />
-          </div>
-          <div class="input-group">
-            <label for="deepseekApiKey">DeepSeek API Key</label>
-            <input
-              type="password"
-              id="deepseekApiKey"
-              class="glass-input"
-              placeholder="ds-..."
-            />
-          </div>
-          <div class="input-group">
-            <label for="grokApiKey">Grok API Key</label>
-            <input
-              type="password"
-              id="grokApiKey"
-              class="glass-input"
-              placeholder="xai-..."
-            />
-          </div>
-          <div class="input-group">
-            <label for="aiProvider">Base Model Provider</label>
-            <select
-              id="aiProvider"
-              class="glass-input"
-              style="width: auto; padding: 4px 8px"
-            >
-              <option value="gemini">Gemini</option>
-              <option value="openai">OpenAI</option>
-              <option value="mistral">Mistral</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="grok">Grok (xAI)</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label for="aiModel">Sub Model</label>
-            <select
-              id="aiModel"
-              class="glass-input"
-              style="width: auto; padding: 4px 8px"
-            >
-              <!-- Populated by JS -->
-            </select>
+            <p id="activeApiKeyHint" class="setting-description ai-hint">
+              Stored locally on this device.
+            </p>
           </div>
           <div class="input-group">
             <label for="useTranscript">Use transcript in AI summary</label>
@@ -190,23 +206,11 @@
           </div>
           <div class="input-group">
             <label for="transcriptLang">Transcript language</label>
-            <select
-              id="transcriptLang"
-              class="glass-input"
-              style="width: auto; padding: 4px 8px"
-            >
+            <select id="transcriptLang" class="glass-input compact-select">
               <option value="en">en</option>
               <option value="en-US">en-US</option>
               <option value="hi">hi</option>
             </select>
-          </div>
-          <div class="input-group">
-            <label for="geminiModel" style="display: none">Model</label>
-            <select
-              id="geminiModel"
-              class="glass-input"
-              style="display: none; width: auto; padding: 4px 8px"
-            ></select>
           </div>
           <div class="setting-item" style="border: none; padding-top: 8px">
             <div class="setting-info">
@@ -218,7 +222,7 @@
             </label>
           </div>
           <button id="saveApiKey" class="action-btn" style="margin-top: 0">
-            Save Key
+            Save AI Settings
           </button>
         </div>
 
@@ -638,7 +642,6 @@
           <button id="saveProfile" class="action-btn">Save Profile</button>
         </div>
       </div>
-    </div>
     </div>
 
     <!-- Quiz Overlay -->

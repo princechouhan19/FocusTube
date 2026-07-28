@@ -235,9 +235,13 @@
     const label = createElement("div", { className: "label" });
     label.style.position = "relative";
     label.style.zIndex = "1";
+    // SECURITY: matchedKeyword comes from user settings; escape it.
+    const esc =
+      (window.FocusTubeSanitize && window.FocusTubeSanitize.escapeHtml) ||
+      String;
     label.innerHTML = `
       <div class="kicker">Focus Filter</div>
-      <div class="topic">${matchedKeyword}</div>
+      <div class="topic">${esc(matchedKeyword)}</div>
       <div class="title">Topic Blocked</div>
       <div class="sub">Keep momentum and protect your focus.</div>
     `;
@@ -401,12 +405,16 @@
     overlay.style.backgroundSize = "cover";
     overlay.style.backgroundPosition = "center";
 
+    // SECURITY: escape matchedKeyword before inserting into HTML.
+    const esc =
+      (window.FocusTubeSanitize && window.FocusTubeSanitize.escapeHtml) ||
+      String;
     overlay.innerHTML = `
       <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: -1;"></div>
       <div class="box">
         <div class="kicker">FocusTube Protection</div>
         <h2>Stay Focused</h2>
-        <div class="topic">Blocked Topic: ${matchedKeyword}</div>
+        <div class="topic">Blocked Topic: ${esc(matchedKeyword)}</div>
         <p>This video matches your blocked topic list.</p>
         <div class="quote">Every focused minute compounds into real progress. You are building discipline right now.</div>
         <button id="yfp-keyword-go-home">Go To Home</button>

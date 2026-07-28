@@ -13,7 +13,7 @@
   const PROVIDER_DEFAULT_MODELS = {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   };
@@ -146,10 +146,10 @@
 
       // Increment stats
       try {
-        chrome.storage.sync.get(["statsSummariesGenerated"], (result) => {
-          chrome.storage.sync.set({
-            statsSummariesGenerated: (result.statsSummariesGenerated || 0) + 1,
-          });
+        chrome.runtime.sendMessage({
+          action: "recordMetric",
+          metric: "summariesGenerated",
+          amount: 1,
         });
       } catch (e) {}
     } catch (error) {
@@ -363,7 +363,7 @@
               summary.error
                 ? `
                 <div class="yfp-error-container" style="text-align:center; padding: 20px;">
-                  <p class="yfp-error-msg" style="color:#d1d5db; font-size: 18px; line-height: 1.5;">${summary.error}</p>
+                  <p class="yfp-error-msg" style="color:#d1d5db; font-size: 18px; line-height: 1.5;">${escapeErrorHtml(summary.error)}</p>
                   ${summary.isSetup ? `
                     <div style="margin-top: 24px; text-align: left; background: #1a1a1a; padding: 20px; border-radius: 12px; border: 1px solid #333;">
                       <h4 style="margin: 0 0 10px 0; color: #38bdf8;">Why do I need a key?</h4>
@@ -390,29 +390,65 @@
     });
   }
 
+  /**
+   * Escape an error message for safe HTML insertion, while preserving
+   * a known-safe <a href> link that we constructed ourselves.
+   * If the message contains anything resembling an untrusted tag, we strip
+   * all HTML and return plain text.
+   */
+  function escapeErrorHtml(message) {
+    const esc =
+      (window.FocusTubeSanitize && window.FocusTubeSanitize.escapeHtml) ||
+      ((v) => String(v == null ? "" : v));
+    const raw = String(message == null ? "" : message);
+    // Only allow our own <a href="https://...">...</a> pattern; escape the rest.
+    const safeLink =
+      /^<a href="https:\/\/[^"]+" target="_blank"[^>]*>[^<]+<\/a>$/i.test(raw);
+    if (safeLink) return raw;
+    return esc(raw);
+  }
+
   function renderSummaryContent(summary) {
+    const esc =
+      (window.FocusTubeSanitize && window.FocusTubeSanitize.escapeHtml) ||
+      ((v) => String(v == null ? "" : v));
+    const renderList =
+      (window.FocusTubeSanitize && window.FocusTubeSanitize.renderList) ||
+      ((items) =>
+        (Array.isArray(items) ? items : [])
+          .map((p) => `<li style="margin-bottom:8px;">${esc(p)}</li>`)
+          .join(""));
+    const renderTags =
+      (window.FocusTubeSanitize && window.FocusTubeSanitize.renderTags) ||
+      ((items) =>
+        (Array.isArray(items) ? items : [])
+          .map((t) => `<span class="yfp-tag">${esc(t)}</span>`)
+          .join(""));
+
     const listIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:#a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>`;
     const bulbIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:#a1a1aa;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`;
 
+    // SECURITY: all AI-supplied fields (title, points, takeaways, topics) are
+    // HTML-escaped before insertion to prevent prompt-injection-driven XSS.
     return `
-      <h4 class="yfp-summary-title" style="color: #fff;">${summary.title}</h4>
+      <h4 class="yfp-summary-title" style="color: #fff;">${esc(summary.title)}</h4>
       
       <div class="yfp-summary-section">
         <h5 style="display:flex;align-items:center;color:#a1a1aa;">${listIcon} Main Points</h5>
         <ul style="color: #d4d4d8;">
-          ${summary.mainPoints.map((p) => `<li style="margin-bottom:8px;">${p}</li>`).join("")}
+          ${renderList(summary.mainPoints)}
         </ul>
       </div>
 
       <div class="yfp-summary-section">
         <h5 style="display:flex;align-items:center;color:#a1a1aa;margin-top:24px;">${bulbIcon} Key Takeaways</h5>
         <ul style="color: #d4d4d8;">
-          ${summary.keyTakeaways.map((t) => `<li style="margin-bottom:8px;">${t}</li>`).join("")}
+          ${renderList(summary.keyTakeaways)}
         </ul>
       </div>
 
       <div class="yfp-tags">
-        ${summary.topics.map((t) => `<span class="yfp-tag">${t}</span>`).join("")}
+        ${renderTags(summary.topics)}
       </div>
     `;
   }

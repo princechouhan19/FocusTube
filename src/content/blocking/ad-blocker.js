@@ -113,14 +113,16 @@
   let isCurrentlyInAd = false;
 
   /**
-   * Skip video ads with fallback to mute and speed up
+   * Skip video ads with fallback to mute and speed up.
+   * Polls every 250ms (down from 100ms) — still smooth enough to catch
+   * skippable ads the moment they appear, without burning ~10% CPU on
+   * pages that never show ads.
    */
   function skipVideoAds() {
     if (skipInterval) {
       clearInterval(skipInterval);
     }
 
-    // Check every 100ms for ads
     skipInterval = setInterval(() => {
       const video = document.querySelector("video");
       if (!video) return;
@@ -132,17 +134,17 @@
         video.classList.contains("ad-interrupting") ||
         video.classList.contains("ad-showing");
 
-      if (isAd) {
-        if (!isCurrentlyInAd) {
-          isCurrentlyInAd = true;
-          try {
-            chrome.storage.sync.get(["statsAdsBlocked"], (result) => {
-              chrome.storage.sync.set({
-                statsAdsBlocked: (result.statsAdsBlocked || 0) + 1,
+        if (isAd) {
+          if (!isCurrentlyInAd) {
+            isCurrentlyInAd = true;
+            try {
+              chrome.runtime.sendMessage({
+                action: "recordMetric",
+                metric: "adsBlocked",
+                amount: 1,
               });
-            });
-          } catch (e) {}
-        }
+            } catch (e) {}
+          }
 
         // Try to click skip button
         const skipButton =
@@ -188,7 +190,7 @@
           video.playbackRate = 1;
         }
       }
-    }, 100);
+    }, 250);
   }
 
   /**

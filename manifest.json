@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "FocusTube - Productivity & Distraction Control",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Take control of YouTube: block distractions, hide ads, and boost your productivity with advanced UI controls.",
-  "permissions": ["storage", "tabs", "scripting", "downloads", "activeTab", "tabCapture", "offscreen", "cookies"],
+  "permissions": ["storage", "tabs", "scripting", "downloads", "activeTab", "tabCapture", "offscreen"],
   "host_permissions": [
     "<all_urls>",
     "https://*.youtube.com/*",
@@ -16,63 +16,71 @@
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_icon": {
-      "16": "src/icons/icon16.png",
-      "48": "src/icons/icon48.png",
-      "128": "src/icons/icon128.png"
+      "16": "public/icons/icon16.png",
+      "48": "public/icons/icon48.png",
+      "128": "public/icons/icon128.png"
     }
   },
   "icons": {
-    "16": "src/icons/icon16.png",
-    "48": "src/icons/icon48.png",
-    "128": "src/icons/icon128.png"
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
   },
   "background": {
     "service_worker": "src/background/background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>", "https://classroom.sheryians.com/*"],
-      "js": ["src/content/universal-screenshot.js"],
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/content/core/logger.js",
+        "src/content/core/event-listener-utils.js",
+        "src/content/core/sanitize-html.js",
+        "src/content/utils/universal-screenshot.js",
+        "src/content/blocking/site-blocker.js"
+      ],
       "run_at": "document_start"
     },
     {
       "matches": ["https://*.youtube.com/*"],
       "js": [
-        "src/content/storage.js",
-        "src/content/dom-helpers.js",
-        "src/content/time-blocker.js",
-        "src/content/ad-blocker.js",
-        "src/content/shorts-blocker.js",
-        "src/content/autoplay-controller.js",
-        "src/content/quality-controller.js",
-        "src/content/home-controller.js",
-        "src/content/navigation-controller.js",
-        "src/content/header-controller.js",
-        "src/content/summary-button.js",
-        "src/content/video-player-controller.js",
-        "src/content/keyword-blocker.js",
-        "src/content/channel-blocker.js",
-        "src/content/url-blocker.js",
-        "src/content/auto-pause.js",
-        "src/content/theater-mode.js",
-        "src/content/metrics-hider.js",
-        "src/content/glass-theme.js",
-        "src/content/css-filter.js",
-        "src/content/comment-hider.js",
-        "src/content/cards-hider.js",
-        "src/content/content.js"
+        "src/content/core/logger.js",
+        "src/content/core/event-listener-utils.js",
+        "src/content/core/sanitize-html.js",
+        "src/content/core/storage.js",
+        "src/content/core/dom-helpers.js",
+        "src/content/youtube/time-blocker.js",
+        "src/content/blocking/ad-blocker.js",
+        "src/content/blocking/shorts-blocker.js",
+        "src/content/youtube/autoplay-controller.js",
+        "src/content/youtube/quality-controller.js",
+        "src/content/controllers/home-controller.js",
+        "src/content/controllers/navigation-controller.js",
+        "src/content/controllers/header-controller.js",
+        "src/content/youtube/summary-button.js",
+        "src/content/youtube/video-player-controller.js",
+        "src/content/blocking/keyword-blocker.js",
+        "src/content/blocking/channel-blocker.js",
+        "src/content/blocking/url-blocker.js",
+        "src/content/utils/auto-pause.js",
+        "src/content/utils/theater-mode.js",
+        "src/content/utils/metrics-hider.js",
+        "src/content/utils/glass-theme.js",
+        "src/content/blocking/css-filter.js",
+        "src/content/utils/comment-hider.js",
+        "src/content/utils/cards-hider.js",
+        "src/content/ui/content.js"
       ],
-      "css": ["src/content/content.css"],
+      "css": ["src/content/ui/content.css"],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/content/*"],
-      "matches": ["https://*.youtube.com/*"]
-    },
-    {
-      "resources": ["src/icons/*"],
+      "resources": [
+        "public/icons/*",
+        "src/icons/banner.png"
+      ],
       "matches": ["https://*.youtube.com/*"]
     }
   ],

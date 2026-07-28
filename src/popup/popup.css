@@ -317,6 +317,20 @@ input:checked + .toggle-slider:before {
   margin-bottom: 16px;
 }
 
+.ai-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.compact-select {
+  padding: 10px 12px;
+}
+
+.ai-hint {
+  margin-top: 6px;
+}
+
 .input-group label {
   display: block;
   font-size: 12px;

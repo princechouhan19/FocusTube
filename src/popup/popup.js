@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = {
   aiModelByProvider: {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   },
@@ -48,6 +48,9 @@ const DEFAULT_SETTINGS = {
   transcriptLang: "en",
   shortcutsEnabled: true,
   floatingToolbarEnabled: false,
+
+  // Universal Site Blocking
+  blockedSites: [], // Array of {domain, blockUntil (timestamp), reason}
 
   // Enhanced UI Controls
   hideComments: false,
@@ -84,12 +87,28 @@ const PROVIDER_MODELS = {
   ],
 };
 
+const PROVIDER_KEY_FIELDS = {
+  gemini: "geminiApiKey",
+  openai: "openaiApiKey",
+  mistral: "mistralApiKey",
+  deepseek: "deepseekApiKey",
+  grok: "grokApiKey",
+};
+
+const PROVIDER_KEY_PLACEHOLDERS = {
+  gemini: "AIza...",
+  openai: "sk-...",
+  mistral: "mistral-...",
+  deepseek: "sk-...",
+  grok: "xai-...",
+};
+
 /**
  * Load settings from Chrome storage
  */
 async function loadSettings() {
   try {
-    const stored = await chrome.storage.sync.get(null);
+    const stored = await chrome.storage.local.get(null);
     return { ...DEFAULT_SETTINGS, ...stored };
   } catch (error) {
     console.error("Error loading settings:", error);
@@ -102,12 +121,43 @@ async function loadSettings() {
  */
 async function saveSettings(settings) {
   try {
-    await chrome.storage.sync.set(settings);
+    await chrome.storage.local.set(settings);
     console.log("Settings saved:", settings);
     return true;
   } catch (error) {
     console.error("Error saving settings:", error);
     return false;
+  }
+}
+
+function getProviderApiKey(settings, provider) {
+  return settings[PROVIDER_KEY_FIELDS[provider]] || "";
+}
+
+function getActiveApiKeyInput() {
+  return document.getElementById("activeApiKey");
+}
+
+function refreshAiKeyField(settings) {
+  const provider = document.getElementById("aiProvider")?.value || "gemini";
+  const keyInput = getActiveApiKeyInput();
+  const hint = document.getElementById("activeApiKeyHint");
+  if (!keyInput) return;
+
+  keyInput.value = getProviderApiKey(settings, provider);
+  keyInput.placeholder =
+    PROVIDER_KEY_PLACEHOLDERS[provider] || "Enter API key";
+
+  if (hint) {
+    hint.textContent = `${provider.charAt(0).toUpperCase() + provider.slice(1)} key is stored only on this device.`;
+  }
+}
+
+async function recordMetric(metric, amount) {
+  try {
+    await chrome.runtime.sendMessage({ action: "recordMetric", metric, amount });
+  } catch (error) {
+    console.warn("Metric record failed:", error);
   }
 }
 
@@ -250,14 +300,7 @@ function checkQuizAnswer() {
 function failQuiz() {
   clearInterval(quizState.timer);
 
-  // Increment stats
-  try {
-    chrome.storage.sync.get(["statsQuitsEarly"], (result) => {
-      chrome.storage.sync.set({
-        statsQuitsEarly: (result.statsQuitsEarly || 0) + 1,
-      });
-    });
-  } catch (e) {}
+  recordMetric("quitsEarly", 1);
 
   alert("Time's up! You failed to unblock. Stay focused!");
   document.getElementById("quiz-overlay").classList.add("yfp-hidden");
@@ -282,14 +325,7 @@ function initQuizListeners() {
     cclBtn.addEventListener("click", () => {
       clearInterval(quizState.timer);
 
-      // Increment stats
-      try {
-        chrome.storage.sync.get(["statsQuitsEarly"], (result) => {
-          chrome.storage.sync.set({
-            statsQuitsEarly: (result.statsQuitsEarly || 0) + 1,
-          });
-        });
-      } catch (e) {}
+      recordMetric("quitsEarly", 1);
 
       document.getElementById("quiz-overlay").classList.add("yfp-hidden");
       document.getElementById("quiz-overlay").style.display = "none";
@@ -303,7 +339,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("Initializing popup...");
 
   // Load settings
-  const settings = await loadSettings();
+  let settings = await loadSettings();
+  try {
+    const profileResponse = await chrome.runtime.sendMessage({
+      action: "getUserProfile",
+    });
+    if (profileResponse?.success && profileResponse.profile) {
+      settings = { ...settings, ...profileResponse.profile };
+    }
+  } catch (err) {
+    console.warn("[FocusTube] getUserProfile failed on init:", err);
+  }
 
   // Initialize Views
   initNavigation();
@@ -312,12 +358,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateUI(settings);
   populateProfile(settings);
   renderBlockedKeywords(settings.blockedKeywords || []);
+  
+  // Render active blocks on load
+  await renderActiveBlocks();
+  
+  // Update active blocks every 5 seconds
+  setInterval(() => renderActiveBlocks(), 5000);
 
   // Add event listeners
   addEventListeners();
   addBlockingListeners();
   addProfileListeners();
   addKeywordBlocklistListeners();
+  addSiteBlockingListeners();
   initQuizListeners();
 
   // Dashboard Button
@@ -337,6 +390,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       chrome.runtime.sendMessage(
         { action: "captureScreenshot" },
         (response) => {
+          if (chrome.runtime.lastError) {
+            showFeedback("capture-screenshot-btn", "Error");
+            console.warn(
+              "[FocusTube] Screenshot send error:",
+              chrome.runtime.lastError.message,
+            );
+            return;
+          }
           if (response && response.success) {
             showFeedback("capture-screenshot-btn", "SS Taken!");
           } else {
@@ -354,21 +415,48 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Recording Button
   const recordBtn = document.getElementById("toggle-recording-btn");
   if (recordBtn) {
-    let isRecording = false;
+    // Update button state from background
+    function updateRecordingUI(isRecording) {
+      recordBtn.textContent = isRecording ? "⏹ Stop" : "🔴 Rec";
+      recordBtn.style.background = isRecording
+        ? "linear-gradient(to right, #4b5563, #374151)"
+        : "linear-gradient(to right, #ef4444, #dc2626)";
+      recordBtn.title = isRecording ? "Stop Recording (Ctrl+Shift+R)" : "Start Recording (Ctrl+Shift+R)";
+    }
+
+    // Check initial recording state
+    function checkRecordingState() {
+      chrome.runtime.sendMessage({ action: "getRecordingStatus" }, (response) => {
+        if (chrome.runtime.lastError) {
+          // Background may be asleep; safe to assume not recording.
+          updateRecordingUI(false);
+          return;
+        }
+        if (response && response.isRecording) {
+          updateRecordingUI(true);
+        } else {
+          updateRecordingUI(false);
+        }
+      });
+    }
+
     recordBtn.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "toggleRecording" }, (response) => {
-        if (response && response.success) {
-          isRecording = response.isRecording;
-          recordBtn.textContent = isRecording ? "⏹ Stop" : "🔴 Rec";
-          recordBtn.style.background = isRecording
-            ? "linear-gradient(to right, #4b5563, #374151)"
-            : "linear-gradient(to right, #ef4444, #dc2626)";
+        if (chrome.runtime.lastError) {
           showFeedback(
             "toggle-recording-btn",
-            isRecording ? "Started!" : "Saved!",
+            "Error: " + chrome.runtime.lastError.message,
+          );
+          return;
+        }
+        if (response && response.success) {
+          updateRecordingUI(response.isRecording);
+          showFeedback(
+            "toggle-recording-btn",
+            response.isRecording ? "Recording Started..." : "Recording Saved!",
           );
         } else {
-          showFeedback("toggle-recording-btn", "Error");
+          showFeedback("toggle-recording-btn", "Error: " + (response?.error || "Unknown error"));
           console.error(
             "[FocusTube] Recording failed:",
             response ? response.error : "Unknown error",
@@ -377,13 +465,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     });
 
-    // Check initial recording state
-    chrome.runtime.sendMessage({ action: "getRecordingStatus" }, (response) => {
-      if (response && response.isRecording) {
-        isRecording = true;
-        recordBtn.textContent = "⏹ Stop";
-        recordBtn.style.background =
-          "linear-gradient(to right, #4b5563, #374151)";
+    // Check state when popup opens
+    checkRecordingState();
+
+    // Also listen for recording status messages from background
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === "recordingStatusChanged") {
+        updateRecordingUI(message.isRecording);
       }
     });
   }
@@ -407,20 +495,44 @@ function initNavigation() {
   const backBtns = document.querySelectorAll(".back-btn");
 
   function switchView(viewName) {
-    Object.values(views).forEach((el) => el.classList.remove("active"));
-    views[viewName].classList.add("active");
+    Object.values(views).forEach((el) => {
+      if (el) el.classList.remove("active");
+    });
+    if (views[viewName]) {
+      views[viewName].classList.add("active");
+    } else {
+      console.error(`[FocusTube] View not found: ${viewName}`);
+    }
   }
 
-  navBtns.settings.addEventListener("click", () => switchView("settings"));
-  navBtns.profile.addEventListener("click", () => {
-    switchView("profile");
-    // Fetch fresh profile data when entering profile view
-    chrome.runtime.sendMessage({ action: "getUserProfile" }, (response) => {
-      if (response && response.success && response.profile) {
-        populateProfile(response.profile);
-      }
+  // Add settings navigation listener
+  if (navBtns.settings) {
+    navBtns.settings.addEventListener("click", () => switchView("settings"));
+  } else {
+    console.error("[FocusTube] Settings nav button not found");
+  }
+
+  // Add profile navigation listener
+  if (navBtns.profile) {
+    navBtns.profile.addEventListener("click", () => {
+      switchView("profile");
+      // Fetch fresh profile data when entering profile view
+      chrome.runtime.sendMessage({ action: "getUserProfile" }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn(
+            "[FocusTube] getUserProfile (nav):",
+            chrome.runtime.lastError.message,
+          );
+          return;
+        }
+        if (response && response.success && response.profile) {
+          populateProfile(response.profile);
+        }
+      });
     });
-  });
+  } else {
+    console.error("[FocusTube] Profile nav button not found");
+  }
 
   backBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -441,29 +553,35 @@ function initNavigation() {
 function populateUI(settings) {
   // Master Switch
   const extEnabled = document.getElementById("extensionEnabled");
-  extEnabled.checked = settings.extensionEnabled;
+  if (extEnabled) {
+    extEnabled.checked = settings.extensionEnabled;
+  }
   updateStatusText(settings.extensionEnabled);
 
   // Blocking Schedule
-  document.getElementById("schedule-start").value = settings.scheduleBlockStart;
-  document.getElementById("schedule-end").value = settings.scheduleBlockEnd;
-  document.getElementById("scheduleBlockEnabled").checked =
-    settings.scheduleBlockEnabled;
+  const scheduleStart = document.getElementById("schedule-start");
+  const scheduleEnd = document.getElementById("schedule-end");
+  const scheduleEnabled = document.getElementById("scheduleBlockEnabled");
+  
+  if (scheduleStart) scheduleStart.value = settings.scheduleBlockStart;
+  if (scheduleEnd) scheduleEnd.value = settings.scheduleBlockEnd;
+  if (scheduleEnabled) scheduleEnabled.checked = settings.scheduleBlockEnabled;
 
   // Settings View Inputs
-  document.getElementById("geminiApiKey").value = settings.geminiApiKey || "";
-  document.getElementById("openaiApiKey").value = settings.openaiApiKey || "";
-  document.getElementById("mistralApiKey").value = settings.mistralApiKey || "";
-  document.getElementById("deepseekApiKey").value =
-    settings.deepseekApiKey || "";
-  document.getElementById("grokApiKey").value = settings.grokApiKey || "";
   const providerSel = document.getElementById("aiProvider");
-  if (providerSel) providerSel.value = settings.aiProvider || "gemini";
-
-  // Populate models based on provider
-  updateModelDropdown(providerSel.value, settings);
-  document.getElementById("homePageRedirect").value =
-    settings.homePageRedirect || "none";
+  if (providerSel) {
+    providerSel.value = settings.aiProvider || "gemini";
+    // Populate models based on provider
+    updateModelDropdown(providerSel.value, settings);
+  }
+  
+  refreshAiKeyField(settings);
+  
+  const homePageRedirect = document.getElementById("homePageRedirect");
+  if (homePageRedirect) {
+    homePageRedirect.value = settings.homePageRedirect || "none";
+  }
+  
   const tl = document.getElementById("transcriptLang");
   if (tl) tl.value = settings.transcriptLang || "en";
 
@@ -498,26 +616,62 @@ function updateStatusText(enabled) {
  * Populate Profile Data
  */
 function populateProfile(settings) {
-  document.getElementById("profile-name-display").textContent =
-    settings.profileName || "Guest User";
-  document.getElementById("profile-email-display").textContent =
-    settings.profileEmail || "Not logged in";
-  document.getElementById("profile-goal-display").textContent =
-    settings.profileGoal || "No goal set";
-
-  const avatarContainer = document.querySelector(".profile-avatar");
-  if (settings.profileImage && avatarContainer) {
-    avatarContainer.innerHTML = `<img src="${settings.profileImage}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+  const profileNameDisplay = document.getElementById("profile-name-display");
+  if (profileNameDisplay) {
+    profileNameDisplay.textContent = settings.profileName || "Guest User";
+  }
+  
+  const profileEmailDisplay = document.getElementById("profile-email-display");
+  if (profileEmailDisplay) {
+    profileEmailDisplay.textContent = settings.profileEmail || "Not logged in";
+  }
+  
+  const profileGoalDisplay = document.getElementById("profile-goal-display");
+  if (profileGoalDisplay) {
+    profileGoalDisplay.textContent = settings.profileGoal || "No goal set";
   }
 
-  document.getElementById("profileName").value = settings.profileName || "";
-  document.getElementById("profileGoal").value = settings.profileGoal || "";
+  const avatarContainer = document.querySelector(".profile-avatar");
+  if (avatarContainer) {
+    if (settings.profileImage) {
+      // SECURITY: build the avatar with DOM APIs so a malicious profileImage
+      // value (e.g. javascript: URL) cannot execute script in the popup.
+      avatarContainer.textContent = "";
+      const img = document.createElement("img");
+      img.style.cssText =
+        "width: 100%; height: 100%; border-radius: 50%; object-fit: cover;";
+      // Only allow http(s) URLs.
+      const src = String(settings.profileImage);
+      if (/^https?:\/\//i.test(src)) {
+        img.src = src;
+        avatarContainer.appendChild(img);
+      } else {
+        avatarContainer.textContent = "👤";
+      }
+    } else {
+      avatarContainer.textContent = "👤";
+    }
+  }
 
-  document.getElementById("stats-time-saved").textContent = formatTime(
-    settings.statsTimeSaved,
-  );
-  document.getElementById("stats-ads-blocked").textContent =
-    settings.statsAdsBlocked;
+  const profileNameInput = document.getElementById("profileName");
+  if (profileNameInput) {
+    profileNameInput.value = settings.profileName || "";
+  }
+  
+  const profileGoalInput = document.getElementById("profileGoal");
+  if (profileGoalInput) {
+    profileGoalInput.value = settings.profileGoal || "";
+  }
+
+  const statsTimeSaved = document.getElementById("stats-time-saved");
+  if (statsTimeSaved) {
+    statsTimeSaved.textContent = formatTime(settings.statsTimeSaved);
+  }
+  
+  const statsAdsBlocked = document.getElementById("stats-ads-blocked");
+  if (statsAdsBlocked) {
+    statsAdsBlocked.textContent = settings.statsAdsBlocked || "0";
+  }
 }
 
 function formatTime(minutes) {
@@ -533,9 +687,9 @@ function formatTime(minutes) {
  */
 function addEventListeners() {
   // Master Switch
-  document
-    .getElementById("extensionEnabled")
-    .addEventListener("change", async (e) => {
+  const extEnabled = document.getElementById("extensionEnabled");
+  if (extEnabled) {
+    extEnabled.addEventListener("change", async (e) => {
       const enabled = e.target.checked;
       if (!enabled) {
         e.target.checked = true; // visually keep it on until test resolves
@@ -551,11 +705,15 @@ function addEventListeners() {
         notifyContentScript();
       }
     });
+  } else {
+    console.error("[FocusTube] extensionEnabled element not found");
+  }
 
   const navPower = document.getElementById("nav-power");
   if (navPower) {
     navPower.addEventListener("click", async () => {
       const ms = document.getElementById("extensionEnabled");
+      if (!ms) return;
       const currentState = ms.checked;
 
       if (currentState) {
@@ -581,16 +739,26 @@ function addEventListeners() {
     "scheduleBlockEnabled",
   ];
   scheduleInputs.forEach((id) => {
-    document.getElementById(id).addEventListener("change", async () => {
-      const settings = {
-        scheduleBlockStart: document.getElementById("schedule-start").value,
-        scheduleBlockEnd: document.getElementById("schedule-end").value,
-        scheduleBlockEnabled: document.getElementById("scheduleBlockEnabled")
-          .checked,
-      };
-      await saveSettings(settings);
-      notifyContentScript();
-    });
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("change", async () => {
+        const startEl = document.getElementById("schedule-start");
+        const endEl = document.getElementById("schedule-end");
+        const enabledEl = document.getElementById("scheduleBlockEnabled");
+        if (!startEl || !endEl || !enabledEl) return;
+        
+        const settings = {
+          scheduleBlockStart: startEl.value,
+          scheduleBlockEnd: endEl.value,
+          scheduleBlockEnabled: enabledEl.checked,
+        };
+        await chrome.runtime.sendMessage({
+          action: "updateScheduleBlock",
+          ...settings,
+        });
+        notifyContentScript();
+      });
+    }
   });
 
   // Settings Toggles
@@ -605,35 +773,38 @@ function addEventListeners() {
   });
 
   // Home Page Redirect
-  document
-    .getElementById("homePageRedirect")
-    .addEventListener("change", async (e) => {
+  const homePageRedirect = document.getElementById("homePageRedirect");
+  if (homePageRedirect) {
+    homePageRedirect.addEventListener("change", async (e) => {
       await saveSettings({ homePageRedirect: e.target.value });
       notifyContentScript();
     });
+  }
 
   // API Key
-  document.getElementById("saveApiKey").addEventListener("click", async () => {
-    const key = document.getElementById("geminiApiKey").value;
-    const providerNow = document.getElementById("aiProvider").value;
-    const modelNow = document.getElementById("aiModel").value;
-    const current = await loadSettings();
-    const byProvider = Object.assign({}, current.aiModelByProvider || {});
-    byProvider[providerNow] = modelNow;
-    const settingsToSave = {
-      geminiApiKey: key,
-      openaiApiKey: document.getElementById("openaiApiKey").value,
-      mistralApiKey: document.getElementById("mistralApiKey").value,
-      deepseekApiKey: document.getElementById("deepseekApiKey").value,
-      grokApiKey: document.getElementById("grokApiKey").value,
-      aiProvider: providerNow,
-      aiModel: modelNow,
-      aiModelByProvider: byProvider,
-    };
-    await saveSettings(settingsToSave);
-    showFeedback("saveApiKey", "Key Saved!");
-    notifyContentScript();
-  });
+  const saveApiKeyBtn = document.getElementById("saveApiKey");
+  if (saveApiKeyBtn) {
+    saveApiKeyBtn.addEventListener("click", async () => {
+      const providerNow = document.getElementById("aiProvider")?.value;
+      const modelNow = document.getElementById("aiModel")?.value;
+      if (!providerNow || !modelNow) return;
+      
+      const current = await loadSettings();
+      const byProvider = Object.assign({}, current.aiModelByProvider || {});
+      byProvider[providerNow] = modelNow;
+      const keyField = PROVIDER_KEY_FIELDS[providerNow];
+      const keyInput = getActiveApiKeyInput();
+      const settingsToSave = {
+        aiProvider: providerNow,
+        aiModel: modelNow,
+        aiModelByProvider: byProvider,
+        [keyField]: keyInput?.value?.trim() || "",
+      };
+      await saveSettings(settingsToSave);
+      showFeedback("saveApiKey", "AI Saved!");
+      notifyContentScript();
+    });
+  }
 
   const providerSel2 = document.getElementById("aiProvider");
   if (providerSel2) {
@@ -641,12 +812,15 @@ function addEventListeners() {
       const p = e.target.value;
       const s = await loadSettings();
       updateModelDropdown(p, s);
+      refreshAiKeyField(s);
 
       // Save new provider and current model for that provider
       const aiModelInput = document.getElementById("aiModel");
-      const newModel = aiModelInput.value;
-      await saveSettings({ aiProvider: p, aiModel: newModel });
-      notifyContentScript();
+      const newModel = aiModelInput?.value;
+      if (newModel) {
+        await saveSettings({ aiProvider: p, aiModel: newModel });
+        notifyContentScript();
+      }
     });
   }
 
@@ -654,7 +828,10 @@ function addEventListeners() {
   if (aiModelInput) {
     aiModelInput.addEventListener("change", async (e) => {
       const modelVal = e.target.value;
-      const provider = document.getElementById("aiProvider").value;
+      const providerEl = document.getElementById("aiProvider");
+      const provider = providerEl?.value;
+      if (!provider) return;
+      
       const s = await loadSettings();
       const byProvider = s.aiModelByProvider || {};
       byProvider[provider] = modelVal;
@@ -666,6 +843,7 @@ function addEventListeners() {
       notifyContentScript();
     });
   }
+  
   const tlSel = document.getElementById("transcriptLang");
   if (tlSel) {
     tlSel.addEventListener("change", async (e) => {
@@ -687,9 +865,10 @@ function addBlockingListeners() {
   };
 
   Object.entries(buttons).forEach(([id, minutes]) => {
-    document
-      .getElementById(id)
-      .addEventListener("click", () => setTempBlock(minutes));
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener("click", () => setTempBlock(minutes));
+    }
   });
 
   const customDurationInput = document.getElementById("custom-block-duration");
@@ -702,18 +881,22 @@ function addBlockingListeners() {
     customDurationInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        document.getElementById("block-custom").click();
+        const blockCustomBtn = document.getElementById("block-custom");
+        if (blockCustomBtn) blockCustomBtn.click();
       }
     });
   }
 
-  document.getElementById("block-custom").addEventListener("click", () => {
-    const mins = parseCustomDurationMinutes(customDurationInput?.value || "");
-    if (mins > 0) {
-      if (customDurationInput) customDurationInput.value = String(mins);
-      setTempBlock(mins);
-    }
-  });
+  const blockCustomBtn = document.getElementById("block-custom");
+  if (blockCustomBtn) {
+    blockCustomBtn.addEventListener("click", () => {
+      const mins = parseCustomDurationMinutes(customDurationInput?.value || "");
+      if (mins > 0) {
+        if (customDurationInput) customDurationInput.value = String(mins);
+        setTempBlock(mins);
+      }
+    });
+  }
 }
 
 function sanitizeMinutesInput(value) {
@@ -792,7 +975,11 @@ async function addKeywordBlocklistListeners() {
 
 async function setTempBlock(minutes) {
   const until = Date.now() + minutes * 60 * 1000;
-  await saveSettings({ tempBlockUntil: until });
+  await chrome.runtime.sendMessage({
+    action: "setTempBlock",
+    until,
+    minutes,
+  });
   notifyContentScript();
 
   // Visual feedback
@@ -809,18 +996,303 @@ async function setTempBlock(minutes) {
 }
 
 /**
+ * Universal Site Blocking Listeners
+ */
+async function renderActiveBlocks() {
+  try {
+    const settings = await loadSettings();
+    const blockedSites = settings.blockedSites || [];
+    const container = document.getElementById("active-blocks-list");
+    if (!container) return;
+
+    const now = Date.now();
+    const activeBlocks = blockedSites.filter(b => b && b.domain && b.blockUntil > now);
+
+    if (activeBlocks.length === 0) {
+      container.innerHTML = '<p style="color: #888; font-size: 12px; text-align: center; padding: 8px;">No active blocks</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+    activeBlocks.forEach((block, index) => {
+      try {
+        const remaining = Math.max(0, block.blockUntil - now);
+        const hours = Math.floor(remaining / (1000 * 60 * 60));
+        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+        const item = document.createElement('div');
+        item.style.cssText = `
+          background: rgba(255,255,255,0.05);
+          padding: 8px 12px;
+          border-radius: 6px;
+          margin-bottom: 6px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          border-left: 3px solid #667eea;
+          transition: all 0.2s ease;
+        `;
+        
+        const info = document.createElement('div');
+        info.style.cssText = 'color: #fff; flex: 1;';
+        const domainName = String(block.domain || '').replace(/^(https?:\/\/)?(www\.)?/, '');
+        // SECURITY: use DOM APIs to avoid XSS via a stored domain payload.
+        const strong = document.createElement('strong');
+        strong.style.cssText = 'color: #fff; display: block;';
+        strong.textContent = domainName;
+        const span = document.createElement('span');
+        span.style.cssText = 'color: #aaa; font-size: 11px;';
+        span.textContent = `${timeStr} remaining`;
+        info.appendChild(strong);
+        info.appendChild(span);
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.style.cssText = `
+          background: rgba(255,67,67,0.2);
+          border: 1px solid rgba(255,67,67,0.4);
+          color: #ff6b6b;
+          border-radius: 4px;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-size: 12px;
+          font-weight: bold;
+          transition: all 0.2s ease;
+          margin-left: 8px;
+        `;
+        removeBtn.onmouseover = () => {
+          removeBtn.style.background = 'rgba(255,67,67,0.4)';
+        };
+        removeBtn.onmouseout = () => {
+          removeBtn.style.background = 'rgba(255,67,67,0.2)';
+        };
+        
+        removeBtn.addEventListener('click', async () => {
+          // Use domain-based removal via background for consistency with
+          // the rest of the message-based API.
+          await chrome.runtime.sendMessage({
+            action: 'removeBlockedSite',
+            site: block.domain,
+          });
+          await renderActiveBlocks();
+          notifyContentScript();
+        });
+        
+        item.appendChild(info);
+        item.appendChild(removeBtn);
+        container.appendChild(item);
+      } catch (err) {
+        console.error('[FocusTube] Error rendering block item:', err);
+      }
+    });
+  } catch (error) {
+    console.error('[FocusTube] Error rendering active blocks:', error);
+  }
+}
+
+async function blockSiteForDuration(domain, minutes, reason) {
+  try {
+    if (!domain || domain.trim().length === 0) {
+      alert('❌ Please enter a website domain (e.g., instagram.com, reddit.com)');
+      return false;
+    }
+
+    if (minutes <= 0 || minutes > 9999999) {
+      alert('❌ Please enter valid minutes (1 to 9999999)');
+      return false;
+    }
+
+    const cleanDomain = domain
+      .trim()
+      .toLowerCase()
+      .replace(/^(https?:\/\/)?(www\.)?/, '')
+      .split('/')[0];
+
+    if (!cleanDomain || cleanDomain.length === 0) {
+      alert('❌ Invalid domain format');
+      return false;
+    }
+
+    const blockUntil = Date.now() + (minutes * 60 * 1000);
+    const blockReason = reason && reason.trim().length > 0 ? reason.trim() : cleanDomain;
+
+    const settings = await loadSettings();
+    const blockedSites = settings.blockedSites || [];
+    
+    // Remove existing block for this domain
+    const filtered = blockedSites.filter(b => 
+      !b || !b.domain ? false : 
+      b.domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] !== cleanDomain
+    );
+    
+    // Add new block
+    filtered.push({
+      domain: cleanDomain,
+      blockUntil: blockUntil,
+      reason: blockReason
+    });
+
+    await saveSettings({ blockedSites: filtered });
+    
+    // Visual feedback
+    const input = document.getElementById('site-to-block');
+    const reasonInput = document.getElementById('block-reason');
+    if (input) input.value = '';
+    if (reasonInput) reasonInput.value = '';
+    
+    // Show success message
+    showFeedback('site-block-30min', `✓ ${cleanDomain} blocked!`);
+    
+    // Update active blocks list
+    await renderActiveBlocks();
+    
+    // Notify all tabs
+    notifyContentScript();
+    
+    return true;
+  } catch (error) {
+    console.error('[FocusTube] Error blocking site:', error);
+    alert('❌ Error blocking site. Check console.');
+    return false;
+  }
+}
+
+function addSiteBlockingListeners() {
+  try {
+    const siteInput = document.getElementById('site-to-block');
+    const reasonInput = document.getElementById('block-reason');
+    const customInput = document.getElementById('site-custom-duration');
+
+    // Quick block buttons
+    const quickButtons = {
+      'site-block-30min': 30,
+      'site-block-1hr': 60,
+      'site-block-3hr': 180,
+    };
+
+    Object.entries(quickButtons).forEach(([id, minutes]) => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener('click', async () => {
+          const domain = (siteInput?.value || '').trim();
+          if (domain) {
+            const reason = (reasonInput?.value || '').trim();
+            await blockSiteForDuration(domain, minutes, reason);
+          } else {
+            alert('❌ Please enter a website domain');
+          }
+        });
+      }
+    });
+
+    // Custom duration toggle button
+    const customBtn = document.getElementById('site-block-custom');
+    if (customBtn) {
+      customBtn.addEventListener('click', () => {
+        const customBlock = document.getElementById('site-custom-block');
+        if (customBlock) {
+          const isHidden = customBlock.style.display === 'none' || customBlock.style.display === '';
+          customBlock.style.display = isHidden ? 'flex' : 'none';
+          customBtn.textContent = isHidden ? 'Custom ▼' : 'Custom ▶';
+        }
+      });
+    }
+
+    // Custom block submit button
+    const blockBtn = document.getElementById('site-block-btn');
+    if (blockBtn) {
+      blockBtn.addEventListener('click', async () => {
+        const domain = (siteInput?.value || '').trim();
+        const reason = (reasonInput?.value || '').trim();
+        const minutes = parseCustomDurationMinutes(customInput?.value || '');
+        
+        if (!domain) {
+          alert('❌ Please enter a domain');
+          return;
+        }
+        
+        if (minutes <= 0) {
+          alert('❌ Please enter valid minutes');
+          return;
+        }
+        
+        const success = await blockSiteForDuration(domain, minutes, reason);
+        if (success && customInput) {
+          customInput.value = '';
+          const customBlock = document.getElementById('site-custom-block');
+          if (customBlock) {
+            customBlock.style.display = 'none';
+            customBtn.textContent = 'Custom ▶';
+          }
+        }
+      });
+    }
+
+    // Keyboard shortcuts for inputs
+    if (siteInput) {
+      siteInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          document.getElementById('site-block-30min')?.click();
+        }
+      });
+    }
+
+    if (reasonInput) {
+      reasonInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          document.getElementById('site-block-30min')?.click();
+        }
+      });
+    }
+
+    if (customInput) {
+      customInput.addEventListener('input', (e) => {
+        const el = e.target;
+        const cleaned = sanitizeMinutesInput(el.value);
+        if (cleaned !== el.value) el.value = cleaned;
+      });
+      customInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('site-block-btn')?.click();
+        }
+      });
+    }
+
+    // Initial render of active blocks
+    renderActiveBlocks();
+    
+    // Update active blocks every 5 seconds
+    setInterval(() => renderActiveBlocks(), 5000);
+  } catch (error) {
+    console.error('[FocusTube] Error setting up site blocking listeners:', error);
+  }
+}
+
+/**
  * Profile Logic Listeners
  */
 function addProfileListeners() {
-  document.getElementById("saveProfile").addEventListener("click", async () => {
-    const settings = {
-      profileName: document.getElementById("profileName").value,
-      profileGoal: document.getElementById("profileGoal").value,
-    };
-    await saveSettings(settings);
-    populateProfile(settings); // Update display immediately
-    showFeedback("saveProfile", "Profile Saved!");
-  });
+  const saveProfileBtn = document.getElementById("saveProfile");
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener("click", async () => {
+      const profileNameEl = document.getElementById("profileName");
+      const profileGoalEl = document.getElementById("profileGoal");
+      if (!profileNameEl || !profileGoalEl) return;
+      
+      const settings = {
+        profileName: profileNameEl.value,
+        profileGoal: profileGoalEl.value,
+      };
+      await saveSettings(settings);
+      populateProfile({ ...(await loadSettings()), ...settings });
+      showFeedback("saveProfile", "Profile Saved!");
+    });
+  }
 }
 
 /**
@@ -838,6 +1310,22 @@ async function notifyContentScript() {
     }
   } catch (e) {
     console.warn("[FocusTube] Error notifying tabs:", e);
+  }
+}
+
+async function notifyTimeBlockUpdate(partialSettings) {
+  try {
+    const tabs = await chrome.tabs.query({ url: ["https://*.youtube.com/*"] });
+    for (const tab of tabs) {
+      chrome.tabs
+        .sendMessage(tab.id, {
+          action: "timeBlockUpdated",
+          settings: partialSettings,
+        })
+        .catch(() => {});
+    }
+  } catch (error) {
+    console.warn("[FocusTube] Error notifying time blocker:", error);
   }
 }
 
@@ -872,7 +1360,7 @@ function updateModelDropdown(provider, settings) {
   const defaults = {
     gemini: "gemini-1.5-flash",
     openai: "gpt-4o-mini",
-    mistral: "mistral-small",
+    mistral: "mistral-small-latest",
     deepseek: "deepseek-chat",
     grok: "grok-2-mini",
   };

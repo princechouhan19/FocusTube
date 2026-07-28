@@ -1,70 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FocusTube - Stats & Shame Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css">
-</head>
-<body>
-  <div class="dashboard-container">
-    <header class="header">
-      <div class="header-content">
-        <div class="header-main">
-          <img src="../icons/icon48.png" alt="FocusTube Logo" class="logo">
-          <h1>Focus Dashboard</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FocusTube Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body>
+    <div class="dashboard-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">FocusTube Analytics</p>
+          <h1>See what your attention looked like today, this week, and this month.</h1>
+          <p class="hero-text">
+            Local reports from this device. New activity is tracked into rolling
+            daily buckets for clearer progress.
+          </p>
         </div>
-        <div id="user-profile" class="user-profile" style="display: none; align-items: center; gap: 12px;">
-          <img id="user-avatar" src="" alt="User Avatar" class="user-avatar">
-          <div style="display: flex; flex-direction: column;">
-            <span id="user-name" class="user-name" style="font-weight: bold; color: white;">Guest User</span>
-            <span id="user-email" class="user-email" style="font-size: 11px; opacity: 0.6; color: white;"></span>
+        <div id="user-profile" class="user-pill">
+          <img id="user-avatar" class="user-avatar" alt="User avatar" />
+          <div>
+            <div id="user-name" class="user-name">Guest User</div>
+            <div id="user-email" class="user-email">Not connected</div>
           </div>
         </div>
-      </div>
-      <p class="subtitle">Track your productivity, ads skipped, and how many times you quit early...</p>
-    </header>
+      </header>
 
-    <main class="stats-grid">
-      <!-- Positive Stats -->
-      <div class="stat-card positive">
-        <div class="stat-icon">
-          <svg style="width:40px;height:40px;color:#38bdf8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+      <section class="toolbar">
+        <div class="range-tabs">
+          <button class="range-tab active" data-range="day">Day</button>
+          <button class="range-tab" data-range="week">Week</button>
+          <button class="range-tab" data-range="month">Month</button>
         </div>
-        <div class="stat-value" id="val-shorts">0</div>
-        <div class="stat-label">Shorts Skipped</div>
-      </div>
-      
-      <div class="stat-card positive">
-        <div class="stat-icon">
-          <svg style="width:40px;height:40px;color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        <div class="goal-chip">
+          <span>Goal</span>
+          <strong id="goal-text">Stay intentional</strong>
         </div>
-        <div class="stat-value" id="val-ads">0</div>
-        <div class="stat-label">Ads Blocked</div>
-      </div>
-      
-      <div class="stat-card positive">
-        <div class="stat-icon">
-          <svg style="width:40px;height:40px;color:#fcd34d;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-        </div>
-        <div class="stat-value" id="val-summaries">0</div>
-        <div class="stat-label">AI Summaries Generated</div>
-      </div>
-    </main>
-    
-    <div class="shame-section">
-      <h2 class="shame-title">The "Wall of Shame"</h2>
-      <div class="stat-card shame">
-        <div class="stat-icon">
-          <svg style="width:40px;height:40px;color:#ef4444;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-        </div>
-        <div class="stat-value shame-text" id="val-quits">0</div>
-        <div class="stat-label">Times You Quit Focus Early</div>
-        <p class="shame-subtext" id="shame-msg">Keep pushing through the hard questions next time!</p>
-      </div>
+      </section>
+
+      <main class="dashboard-grid">
+        <section class="panel metrics-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Current range</p>
+              <h2 id="range-title">Today</h2>
+            </div>
+            <p id="range-subtitle" class="panel-subtitle">Fresh local activity from this device.</p>
+          </div>
+          <div class="metric-grid">
+            <article class="metric-card sky">
+              <span class="metric-label">Shorts skipped</span>
+              <strong id="metric-shorts" class="metric-value">0</strong>
+            </article>
+            <article class="metric-card mint">
+              <span class="metric-label">Ads blocked</span>
+              <strong id="metric-ads" class="metric-value">0</strong>
+            </article>
+            <article class="metric-card gold">
+              <span class="metric-label">Summaries</span>
+              <strong id="metric-summaries" class="metric-value">0</strong>
+            </article>
+            <article class="metric-card coral">
+              <span class="metric-label">Quit attempts</span>
+              <strong id="metric-quits" class="metric-value">0</strong>
+            </article>
+            <article class="metric-card violet wide">
+              <span class="metric-label">Time protected</span>
+              <strong id="metric-time" class="metric-value">0m</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel chart-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Trend</p>
+              <h2>Activity timeline</h2>
+            </div>
+          </div>
+          <div id="chart-bars" class="chart-bars"></div>
+          <div class="chart-legend">
+            <span><i class="dot sky"></i> Shorts</span>
+            <span><i class="dot mint"></i> Ads</span>
+            <span><i class="dot gold"></i> Summaries</span>
+            <span><i class="dot coral"></i> Quits</span>
+          </div>
+        </section>
+
+        <section class="panel lifetime-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Lifetime</p>
+              <h2>All-time totals</h2>
+            </div>
+          </div>
+          <div class="lifetime-list">
+            <div><span>Shorts skipped</span><strong id="lifetime-shorts">0</strong></div>
+            <div><span>Ads blocked</span><strong id="lifetime-ads">0</strong></div>
+            <div><span>Summaries</span><strong id="lifetime-summaries">0</strong></div>
+            <div><span>Quit attempts</span><strong id="lifetime-quits">0</strong></div>
+            <div><span>Time protected</span><strong id="lifetime-time">0m</strong></div>
+          </div>
+        </section>
+
+        <section class="panel insight-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Insight</p>
+              <h2 id="insight-title">Steady focus</h2>
+            </div>
+          </div>
+          <p id="insight-body" class="insight-body">
+            Start using the blocker and summary tools to build a stronger report.
+          </p>
+        </section>
+      </main>
     </div>
-  </div>
 
-  <script src="dashboard.js"></script>
-</body>
+    <script src="dashboard.js"></script>
+  </body>
 </html>

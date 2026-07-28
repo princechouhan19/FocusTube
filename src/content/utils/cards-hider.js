@@ -11,6 +11,17 @@
   let settings = {};
   let cardsObserver = null;
 
+  function hideMatchingShelfByTitle(selector, pattern) {
+    const shelves = document.querySelectorAll(selector);
+    shelves.forEach((shelf) => {
+      const title =
+        shelf.querySelector('#title, #header, yt-formatted-string')?.textContent || '';
+      if (pattern.test(title.toLowerCase())) {
+        hideElement(shelf, 'display');
+      }
+    });
+  }
+
   /**
    * Initialize info cards hider
    */
@@ -113,14 +124,10 @@
     });
 
     // "People also watched" cards
-    const peopleAlsoWatched = document.querySelectorAll(
-      'ytd-item-section-renderer:has(#title:contains("also watched")), ' +
-      'ytd-shelf-renderer:has(#title:contains("also watched"))'
+    hideMatchingShelfByTitle(
+      'ytd-item-section-renderer, ytd-shelf-renderer',
+      /also watched|people also watched/
     );
-
-    peopleAlsoWatched.forEach(section => {
-      hideElement(section, 'display');
-    });
   }
 
   /**

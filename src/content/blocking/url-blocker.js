@@ -157,8 +157,18 @@
       };
     }
 
-    // Add to page
-    document.body.innerHTML = '';
+    // Hide everything else on the page (instead of destroying body.innerHTML,
+    // which would also destroy all other content scripts' state).
+    const hideStyle = document.createElement('style');
+    hideStyle.id = 'focustube-url-block-hide-style';
+    hideStyle.textContent = `
+      body > *:not(#yfp-blocked-overlay) {
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+    `;
+    (document.head || document.documentElement).appendChild(hideStyle);
+
     document.body.appendChild(blockedOverlay);
 
     // Add event listeners

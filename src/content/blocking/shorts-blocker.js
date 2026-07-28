@@ -109,9 +109,10 @@
 
       // Increment stats
       try {
-        chrome.storage.sync.get(["statsShortsSkipped"], (result) => {
-          const current = result.statsShortsSkipped || 0;
-          chrome.storage.sync.set({ statsShortsSkipped: current + 1 });
+        chrome.runtime.sendMessage({
+          action: "recordMetric",
+          metric: "shortsSkipped",
+          amount: 1,
         });
       } catch (e) {
         console.error("[YFP] Error incrementing shorts stats", e);

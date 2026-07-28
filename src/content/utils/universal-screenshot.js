@@ -18,7 +18,7 @@
     );
 
     // Load initial settings
-    chrome.storage.sync.get(
+    chrome.storage.local.get(
       ["shortcutsEnabled", "floatingToolbarEnabled"],
       (res) => {
         console.log("[FocusTube] Settings loaded:", res);
@@ -32,8 +32,15 @@
       },
     );
 
-    // Initial recording status
+    // Initial recording status (ignore errors — background may be asleep)
     chrome.runtime.sendMessage({ action: "getRecordingStatus" }, (res) => {
+      if (chrome.runtime.lastError) {
+        console.log(
+          "[FocusTube] getRecordingStatus ignored:",
+          chrome.runtime.lastError.message,
+        );
+        return;
+      }
       if (res && res.isRecording) {
         isRecording = true;
         updateToolbarRecordingState();
@@ -49,7 +56,7 @@
         return true;
       }
       if (message.action === "reloadSettings") {
-        chrome.storage.sync.get(
+        chrome.storage.local.get(
           ["shortcutsEnabled", "floatingToolbarEnabled"],
           (res) => {
             if (res.hasOwnProperty("shortcutsEnabled")) {
@@ -197,6 +204,13 @@
     recBtn.onclick = (e) => {
       e.stopPropagation();
       chrome.runtime.sendMessage({ action: "toggleRecording" }, (res) => {
+        if (chrome.runtime.lastError) {
+          console.warn(
+            "[FocusTube] toggleRecording error:",
+            chrome.runtime.lastError.message,
+          );
+          return;
+        }
         if (res && res.success) {
           isRecording = res.isRecording;
           updateToolbarRecordingState();
@@ -252,7 +266,9 @@
       console.log("[FocusTube] Toolbar created and appended successfully");
     }
 
-    // Secondary Observer to ensure it stays in the DOM
+    // Secondary Observer to ensure it stays in the DOM — but ONLY when
+    // the toolbar is enabled, so we don't churn on every page mutation
+    // when the user has the toolbar turned off.
     const observer = new MutationObserver(() => {
       if (
         floatingToolbarEnabled &&
@@ -267,8 +283,16 @@
       subtree: true,
     });
 
-    // Safety check every 3s
-    setInterval(updateFloatingToolbar, 3000);
+    // Safety check every 5s — but bail out immediately when disabled so
+    // the interval does nothing instead of re-running updateFloatingToolbar.
+    const safetyInterval = setInterval(() => {
+      if (!floatingToolbarEnabled) return;
+      if (toolbarElement && !toolbarElement.parentElement) {
+        updateFloatingToolbar();
+      }
+    }, 5000);
+    // Store so a future teardown could clear it if needed.
+    toolbarElement.dataset.safetyInterval = String(safetyInterval);
   }
 
   function updateToolbarRecordingState() {

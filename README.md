@@ -4,13 +4,28 @@
 
 FocusTube is a comprehensive, privacy-first Chrome extension engineered to let you take back control of your YouTube experience. By deeply modifying YouTube's web interface, it eliminates algorithms, hides addictive content like Shorts, and protects your attention using dynamic intervention screens.
 
+## 🔒 v1.0.1 — Security & Stability Hardening
+
+This release fixes 23 issues across the codebase, including 4 critical bugs, 7 security fixes, and several performance improvements. Highlights:
+
+- **Fixed duplicate `chrome.runtime.onMessage` listener** in `background.js` that was double-handling every message.
+- **Added the missing `getTranscript` and `aiSummarize` handlers** — the AI Summary button now actually works.
+- **HTML-escaped all AI-generated content** before innerHTML insertion to prevent prompt-injection-driven XSS.
+- **Stopped destroying `document.body.innerHTML`** in the site/url blockers — uses CSS visibility:hidden instead, so other content scripts keep working.
+- **Tightened `web_accessible_resources`** so only icons are exposed to web pages, not the source of every content script.
+- **Stopped monkey-patching the global `console`** — the logger now lives in `window.FocusTubeLogger`.
+- **Replaced a whole-document `MutationObserver`** with YouTube's native `yt-navigate-finish` event for SPA navigation.
+- **Validated all incoming message payloads** in the background service worker.
+
+See [`SECURITY.md`](./SECURITY.md) for the full threat model and [`IMPROVEMENTS.md`](./IMPROVEMENTS.md) for the complete changelog.
+
 ## ✨ New Premium v2.1 Update
 
-### 👤 Profile Synchronization & Cross-Browser Sync
+### 👤 Profile Synchronization
 
 Now FocusTube is more powerful than ever. It automatically fetches your **YouTube Profile Name, Avatar, and Email** to personalize your dashboard.
 
-- **Cookie-Based Settings Sync:** Your extension settings are now backed up to a specialized cookie on the `youtube.com` domain. This means if you log into the same YouTube account on another browser, FocusTube will automatically restore your custom settings!
+> **Note (v1.0.1):** The previously-advertised "Cookie-Based Settings Sync" feature was never actually implemented in the codebase. The claim has been removed to avoid confusion. Settings sync across browsers can be added in a future release via `chrome.storage.sync`.
 
 ### 📊 Full-Screen "Stats & Shame" Dashboard
 
@@ -61,22 +76,63 @@ Track your productivity in real-time with a beautiful, newly designed **True Bla
 ## 📁 Project Architecture
 
 ```
-youtube-focus-pro/
+FocusTube/
 ├── manifest.json                        # Manifest V3 Configuration
-├── README.md                            # Documentation
+├── README.md                            # Main documentation
+├── docs/                                # 📚 Comprehensive Documentation (NEW!)
+│   ├── PROJECT_STRUCTURE.md             # Folder organization & navigation
+│   ├── ARCHITECTURE.md                  # System design & data flows
+│   ├── API.md                           # Complete API reference
+│   ├── MIGRATION_GUIDE.md               # Structure changes & migration
+│   └── CHANGELOG.md                     # Version history & roadmap
+│
+├── public/                              # Static assets
+│   ├── icons/                           # Extension icons
+│   └── images/                          # App images
 │
 ├── src/
-│   ├── background/                      # Background SW (Stats handling, LLM api calls)
-│   ├── popup/                           # React-like modular Vanilla JS popup UI
-│   ├── dashboard/                       # Full-screen stats dashboard UI
-│   └── content/                         # DOM-manipulation Content Scripts
-│       ├── ad-blocker.js                # Ad termination
-│       ├── shorts-blocker.js            # URL monitoring & redirects
-│       ├── summary-button.js            # Transcript scraping & Gemini integration
-│       ├── keyword-blocker.js           # Regex-based title & tag topic blocking
-│       ├── keyboard-shortcuts.js        # Global listeners for 'S' and 'C' commands
-│       └── content.css                  # True Black & Frosted Glass aesthetic variables
+│   ├── background/                      # Background SW (Stats, timers)
+│   ├── popup/                           # Popup UI
+│   ├── dashboard/                       # Dashboard UI
+│   ├── offscreen/                       # Offscreen document
+│   └── content/                         # Content Scripts (Organized)
+│       ├── core/                        # Core utilities
+│       ├── youtube/                     # YouTube-specific features
+│       ├── blocking/                    # Content blocking
+│       ├── controllers/                 # Page controllers
+│       ├── utils/                       # UI utilities
+│       └── ui/                          # UI orchestration
 ```
+
+## 📚 Documentation
+
+**🎉 Comprehensive documentation is available in the `docs/` folder:**
+
+### 🚀 Start Here
+- **[QUICK_START.md](docs/QUICK_START.md)** - Get up and running in 5 minutes
+- **[DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** - Find what you need
+
+### 📖 Core Documentation
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [QUICK_START.md](docs/QUICK_START.md) | Setup & common tasks | Everyone |
+| [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | Folder organization | Developers |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design | Developers |
+| [API.md](docs/API.md) | Function reference | Developers |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Version history | Everyone |
+
+### 🔒 v1.0.1 Hardening
+| Document | Purpose |
+|----------|---------|
+| [SECURITY.md](SECURITY.md) | Threat model, fixed issues, reporting policy |
+| [IMPROVEMENTS.md](IMPROVEMENTS.md) | Complete v1.0.1 changelog |
+
+**Choose your path:**
+- **Want a quick setup?** → Read [QUICK_START.md](docs/QUICK_START.md)
+- **Want to contribute?** → Read [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) then [ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Need a function?** → Check [API.md](docs/API.md)
+- **Reviewing security?** → Read [SECURITY.md](SECURITY.md)
+- **Not sure where to start?** → Read [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)
 
 ## 🚀 Installation
 

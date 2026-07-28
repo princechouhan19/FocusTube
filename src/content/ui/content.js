@@ -8,18 +8,97 @@
 
   console.log('[YFP] FocusTube - Content Script Loaded');
 
+  function getYouTubeProfileFromPage() {
+    const ytcfgData =
+      (window.ytcfg && typeof window.ytcfg.get === 'function' && {
+        name: window.ytcfg.get('ACCOUNT_NAME'),
+        email: window.ytcfg.get('SESSION_INDEX_EMAIL'),
+        avatar: window.ytcfg.get('LOGGED_IN_AVATAR_URL')
+      }) || {};
+
+    let profileName = ytcfgData.name || '';
+    let profileEmail = ytcfgData.email || '';
+    let profileImage = ytcfgData.avatar || '';
+
+    const avatarImg =
+      document.querySelector('button#avatar-btn img') ||
+      document.querySelector('img#img[draggable="false"].style-scope.yt-img-shadow') ||
+      document.querySelector('img#img.yt-img-shadow') ||
+      document.querySelector('ytd-topbar-menu-button-renderer img');
+    if (!profileImage && avatarImg?.src) {
+      profileImage = avatarImg.src;
+    }
+
+    if (!profileName && avatarImg?.alt) {
+      profileName = avatarImg.alt.replace(/avatar image for/i, '').trim();
+    }
+
+    const accountButton =
+      document.querySelector('button[aria-label*="Google Account"]') ||
+      document.querySelector('button[aria-label*="Account"]');
+    if (!profileName && accountButton?.getAttribute('aria-label')) {
+      profileName = accountButton
+        .getAttribute('aria-label')
+        .replace(/google account:/i, '')
+        .replace(/account/i, '')
+        .trim();
+    }
+
+    if (!profileEmail) {
+      const html = document.documentElement.innerHTML;
+      const emailMatch = html.match(/"SESSION_INDEX_EMAIL":"([^"]+)"/);
+      if (emailMatch?.[1]) {
+        profileEmail = emailMatch[1];
+      }
+    }
+
+    const accountNameNode =
+      document.querySelector(
+        'yt-formatted-string#account-name.style-scope.ytd-active-account-header-renderer',
+      ) ||
+      document.querySelector('#channel-container yt-formatted-string#account-name');
+    if (!profileName && accountNameNode?.textContent) {
+      profileName = accountNameNode.textContent.trim();
+    }
+
+    const activeHeaderAvatar = document.querySelector(
+      '#channel-container img#img.style-scope.yt-img-shadow',
+    );
+    if (!profileImage && activeHeaderAvatar?.src) {
+      profileImage = activeHeaderAvatar.src;
+    }
+
+    if (!profileName && !profileImage && !profileEmail) {
+      return null;
+    }
+
+    return {
+      profileName: profileName || 'Guest User',
+      profileImage: profileImage || '',
+      profileEmail: profileEmail || ''
+    };
+  }
+
   /**
    * Initialize all feature modules
    */
   async function initializeAll() {
     console.log('[YFP] Initializing all feature modules...');
 
-    // Wait for DOM to be ready
+    // Start blocker as early as possible so YouTube cannot flash through.
+    if (window.YFPTimeBlocker?.init) {
+      try {
+        await window.YFPTimeBlocker.init();
+      } catch (error) {
+        console.error('[YFP] Error initializing TimeBlocker:', error);
+      }
+    }
+
+    // Wait for DOM-heavy modules afterwards.
     await waitForDOM();
 
     // Initialize all controllers (they will check their own settings)
     const modules = [
-      { name: 'TimeBlocker', init: () => window.YFPTimeBlocker?.init() },
       { name: 'AdBlocker', init: () => window.YFPAdBlocker?.init() },
       { name: 'ShortsBlocker', init: () => window.YFPShortsBlocker?.init() },
       { name: 'AutoplayController', init: () => window.YFPAutoplayController?.init() },
@@ -85,24 +164,24 @@
    * Show that extension is active (console log only)
    */
   function showExtensionActive() {
-    console.log('%c🎯 FocusTube', 'color: #38bdf8; font-size: 20px; font-weight: bold;');
-    console.log('%cDistraction-free YouTube is now active!', 'color: #0ea5e9; font-size: 14px;');
-    console.log('%cClick extension icon to configure settings.', 'color: #666; font-size: 12px;');
+    return;
   }
 
   /**
-   * Handle messages from popup/background scripts
+   * Handle messages from popup/background scripts.
+   * Only return `true` (keep channel open) for genuinely async handlers.
    */
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[YFP] Message received:', message);
 
     switch (message.action) {
       case 'reloadSettings':
-        // Reload and reapply settings
         initializeAll().then(() => {
           sendResponse({ success: true });
+        }).catch((err) => {
+          sendResponse({ success: false, error: err.message });
         });
-        return true;
+        return true; // async
 
       case 'hideShorts':
         {
@@ -110,38 +189,54 @@
           window.YFPShortsBlocker?.updateSettings({ hideShorts: flag });
         }
         sendResponse({ success: true });
-        break;
+        return false;
 
       case 'hideAds':
         window.YFPAdBlocker?.hideBannerAds();
         sendResponse({ success: true });
-        break;
+        return false;
 
       case 'disableAutoplay':
         window.YFPAutoplayController?.disableAutoplay();
         sendResponse({ success: true });
-        break;
+        return false;
 
       case 'setQuality':
         window.YFPQualityController?.setHighestQuality();
         sendResponse({ success: true });
-        break;
+        return false;
 
-      case 'showSummary':
+      case 'showSummary': {
         // Trigger summary generation
         const summaryButton = document.querySelector('.yfp-summary-button');
         if (summaryButton) {
           summaryButton.click();
         }
         sendResponse({ success: true });
-        break;
+        return false;
+      }
+
+      case 'getYouTubeProfileFromPage':
+        sendResponse({
+          success: true,
+          profile: getYouTubeProfileFromPage()
+        });
+        return false;
+
+      case 'timeBlockUpdated':
+        window.YFPTimeBlocker?.updateSettings(message.settings || {});
+        sendResponse({ success: true });
+        return false;
+
+      case 'startRecording':
+      case 'recordingStopped':
+        sendResponse({ success: true, ignored: true });
+        return false;
 
       default:
-        console.log('[YFP] Unknown message action:', message.action);
         sendResponse({ success: false, error: 'Unknown action' });
+        return false;
     }
-
-    return true; // Keep message channel open for async response
   });
 
   /**
@@ -163,42 +258,29 @@
   }
 
   /**
-   * Handle YouTube's SPA navigation
+   * Handle YouTube's SPA navigation via yt-navigate-finish event
+   * (much cheaper than a subtree MutationObserver on the whole document).
    */
   let lastUrl = location.href;
-  const urlObserver = new MutationObserver(() => {
+  window.addEventListener('yt-navigate-finish', () => {
     const currentUrl = location.href;
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
       console.log('[YFP] Page navigation detected:', currentUrl);
-
-      // Reinitialize modules on page navigation
       setTimeout(initializeAll, 500);
     }
-  });
+  }, { passive: true });
 
-  urlObserver.observe(document, {
-    subtree: true,
-    childList: true
-  });
-
-  /**
-   * Periodic maintenance check
-   */
+  // Fallback: poll URL every 2s in case yt-navigate-finish doesn't fire
+  // (e.g. on /embed/ pages or non-standard navigation). Cheap and bounded.
   setInterval(() => {
-    // Ensure features are still active
-    if (window.YFPShortsBlocker) {
-      window.YFPShortsBlocker.updateSettings({ hideShorts: true });
+    const currentUrl = location.href;
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+      console.log('[YFP] URL change detected (polling fallback):', currentUrl);
+      setTimeout(initializeAll, 500);
     }
-
-    if (window.YFPAdBlocker && typeof loadSettings === 'function') {
-      loadSettings().then(settings => {
-        if (settings.hideBannerAds) {
-          window.YFPAdBlocker.hideBannerAds();
-        }
-      });
-    }
-  }, 10000); // Check every 10 seconds
+  }, 2000);
 
   /**
    * Global error handler
