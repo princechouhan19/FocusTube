@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "FocusTube - Productivity & Distraction Control",
-  "version": "1.0.1",
+  "version": "1.8.3",
   "description": "Take control of YouTube: block distractions, hide ads, and boost your productivity with advanced UI controls.",
-  "permissions": ["storage", "tabs", "scripting", "downloads", "activeTab", "tabCapture", "offscreen"],
+  "permissions": ["storage", "tabs", "scripting", "activeTab", "tabGroups", "notifications", "declarativeNetRequest", "idle", "alarms"],
   "host_permissions": [
     "<all_urls>",
     "https://*.youtube.com/*",
@@ -36,8 +36,9 @@
         "src/content/core/logger.js",
         "src/content/core/event-listener-utils.js",
         "src/content/core/sanitize-html.js",
-        "src/content/utils/universal-screenshot.js",
-        "src/content/blocking/site-blocker.js"
+        "src/content/blocking/site-blocker.js",
+        "src/content/blocking/smart-lists.js",
+        "src/content/utils/ai-nudge.js"
       ],
       "run_at": "document_start"
     },
@@ -50,6 +51,7 @@
         "src/content/core/storage.js",
         "src/content/core/dom-helpers.js",
         "src/content/youtube/time-blocker.js",
+        "src/content/youtube/topic-tracker.js",
         "src/content/blocking/ad-blocker.js",
         "src/content/blocking/shorts-blocker.js",
         "src/content/youtube/autoplay-controller.js",
@@ -62,6 +64,7 @@
         "src/content/blocking/keyword-blocker.js",
         "src/content/blocking/channel-blocker.js",
         "src/content/blocking/url-blocker.js",
+        "src/content/blocking/smart-lists.js",
         "src/content/utils/auto-pause.js",
         "src/content/utils/theater-mode.js",
         "src/content/utils/metrics-hider.js",
@@ -69,9 +72,10 @@
         "src/content/blocking/css-filter.js",
         "src/content/utils/comment-hider.js",
         "src/content/utils/cards-hider.js",
+        "src/content/utils/ai-nudge.js",
         "src/content/ui/content.js"
       ],
-      "css": ["src/content/ui/content.css"],
+      "css": ["src/shared/liquid-glass.css", "src/content/ui/content.css", "src/content/youtube/glass-theme.css"],
       "run_at": "document_start"
     }
   ],
@@ -79,25 +83,12 @@
     {
       "resources": [
         "public/icons/*",
-        "src/icons/banner.png"
+        "src/icons/banner.png",
+        "src/shared/liquid-glass.css",
+        "src/shared/icons.js",
+        "src/block-page/*"
       ],
-      "matches": ["https://*.youtube.com/*"]
+      "matches": ["https://*.youtube.com/*", "<all_urls>"]
     }
-  ],
-  "commands": {
-    "take-screenshot": {
-      "suggested_key": {
-        "default": "Ctrl+S",
-        "mac": "Command+S"
-      },
-      "description": "Capture a screenshot of the current video frame"
-    },
-    "toggle-recording": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+R",
-        "mac": "Command+Shift+R"
-      },
-      "description": "Start or stop screen recording"
-    }
-  }
+  ]
 }

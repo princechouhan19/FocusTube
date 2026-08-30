@@ -83,82 +83,102 @@
   }
 
   /**
-   * Show a custom blocked page
+   * Show a custom blocked page using the Liquid Glass design system.
+   * Also fixes the selector bug: the hide-style now correctly targets
+   * the overlay's actual id (not a className).
    */
   function showBlockedPage(pattern) {
-    // Create blocked message overlay
-    const blockedOverlay = createElement('div', {
-      className: 'yfp-url-blocked-overlay',
-      style: {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        background: '#0f0f0f',
-        zIndex: '2147483647',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
-      }
-    });
-    const bannerURL = chrome.runtime.getURL('src/icons/banner.png');
-    blockedOverlay.innerHTML = `
-        <div style="text-align: center; max-width: 500px; padding: 20px;">
-          <img class="yfp-banner" src="${bannerURL}" alt="FocusTube" style="height:48px; width:auto; object-fit:contain; margin-bottom:16px;" />
-          <div style="font-size: 64px; margin-bottom: 20px;">🚫</div>
-          <h1 style="color: white; font-size: 32px; margin-bottom: 16px;">
-            Content Blocked
-          </h1>
-          <p style="color: #888; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
-            This content has been blocked based on your URL pattern settings.
-          </p>
-          <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-            <button id="yfp-go-home" style="
-              background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              padding: 12px 24px;
-              font-size: 14px;
-              font-weight: 600;
-              cursor: pointer;
-            ">
-              🏠 Go to Home
-            </button>
-            <button id="yfp-unblock-temp" style="
-              background: #2d2d2d;
-              color: white;
-              border: 1px solid #3d3d3d;
-              border-radius: 8px;
-              padding: 12px 24px;
-              font-size: 14px;
-              font-weight: 600;
-              cursor: pointer;
-            ">
-              Temporarily Unblock
-            </button>
-          </div>
-        </div>
-      `;
-    const bannerImg = blockedOverlay.querySelector('.yfp-banner');
-    if (bannerImg) {
-      bannerImg.onerror = async () => {
-        try {
-          const resp = await fetch(bannerURL);
-          const blob = await resp.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          bannerImg.src = blobUrl;
-        } catch {
-          bannerImg.style.display = 'none';
-        }
-      };
+    // Ensure the liquid-glass CSS is loaded (url-blocker only runs on
+    // YouTube, where it's in the manifest content_scripts.css, but
+    // belt-and-suspenders).
+    if (
+      !document.querySelector('link[href*="liquid-glass.css"]') &&
+      !document.getElementById('focustube-liquid-glass-link')
+    ) {
+      try {
+        const link = document.createElement('link');
+        link.id = 'focustube-liquid-glass-link';
+        link.rel = 'stylesheet';
+        link.href = chrome.runtime.getURL('src/shared/liquid-glass.css');
+        (document.head || document.documentElement).appendChild(link);
+      } catch (_) {}
     }
 
-    // Hide everything else on the page (instead of destroying body.innerHTML,
-    // which would also destroy all other content scripts' state).
+    // Create overlay using liquid-glass classes
+    const blockedOverlay = document.createElement('div');
+    blockedOverlay.id = 'yfp-blocked-overlay';  // FIX: set the id so the hide-style :not() selector works
+    blockedOverlay.className = 'lg-block-overlay yfp-url-blocked-overlay';
+
+    // Build card with DOM APIs (no innerHTML for safety)
+    const card = document.createElement('div');
+    card.className = 'lg-block-card';
+
+    // Banner image
+    const bannerURL = chrome.runtime.getURL('src/icons/banner.png');
+    const bannerImg = document.createElement('img');
+    bannerImg.className = 'yfp-banner';
+    bannerImg.src = bannerURL;
+    bannerImg.alt = 'FocusTube';
+    Object.assign(bannerImg.style, {
+      height: '48px',
+      width: 'auto',
+      objectFit: 'contain',
+      marginBottom: '16px',
+      borderRadius: '8px',
+    });
+    bannerImg.onerror = async () => {
+      try {
+        const resp = await fetch(bannerURL);
+        const blob = await resp.blob();
+        bannerImg.src = URL.createObjectURL(blob);
+      } catch {
+        bannerImg.style.display = 'none';
+      }
+    };
+    card.appendChild(bannerImg);
+
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'lg-block-icon';
+    icon.textContent = '🚫';
+    card.appendChild(icon);
+
+    // Title
+    const title = document.createElement('h1');
+    title.className = 'lg-block-title';
+    title.textContent = 'Content Blocked';
+    card.appendChild(title);
+
+    // Message
+    const msg = document.createElement('p');
+    msg.className = 'lg-block-reason';
+    msg.textContent =
+      'This content has been blocked based on your URL pattern settings.';
+    card.appendChild(msg);
+
+    // Action buttons
+    const actions = document.createElement('div');
+    actions.className = 'lg-block-actions';
+
+    const goHomeBtn = document.createElement('button');
+    goHomeBtn.id = 'yfp-go-home';
+    goHomeBtn.className = 'lg-btn lg-btn-primary';
+    goHomeBtn.innerHTML = '🏠 Go to Home';
+
+    const unblockBtn = document.createElement('button');
+    unblockBtn.id = 'yfp-unblock-temp';
+    unblockBtn.className = 'lg-btn lg-btn-ghost';
+    unblockBtn.textContent = 'Temporarily Unblock';
+
+    actions.appendChild(goHomeBtn);
+    actions.appendChild(unblockBtn);
+    card.appendChild(actions);
+
+    blockedOverlay.appendChild(card);
+
+    // Hide everything else on the page.
+    // FIX: the selector now correctly targets #yfp-blocked-overlay (which
+    // we set above), so the overlay itself is exempt from hiding.
     const hideStyle = document.createElement('style');
     hideStyle.id = 'focustube-url-block-hide-style';
     hideStyle.textContent = `
@@ -172,9 +192,6 @@
     document.body.appendChild(blockedOverlay);
 
     // Add event listeners
-    const goHomeBtn = blockedOverlay.querySelector('#yfp-go-home');
-    const unblockBtn = blockedOverlay.querySelector('#yfp-unblock-temp');
-
     goHomeBtn.addEventListener('click', () => {
       window.location.href = 'https://www.youtube.com';
     });

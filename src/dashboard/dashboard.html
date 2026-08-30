@@ -4,119 +4,244 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FocusTube Dashboard</title>
+    <link rel="stylesheet" href="../shared/liquid-glass.css" />
     <link rel="stylesheet" href="dashboard.css" />
+    <script src="../shared/icons.js"></script>
   </head>
-  <body>
+  <body class="lg-surface">
+    <div class="lg-aurora"></div>
+
     <div class="dashboard-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">FocusTube Analytics</p>
-          <h1>See what your attention looked like today, this week, and this month.</h1>
-          <p class="hero-text">
-            Local reports from this device. New activity is tracked into rolling
-            daily buckets for clearer progress.
-          </p>
+      <!-- Compact Header -->
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <h1>Analytics</h1>
+          <p class="dash-subtitle">Your focus activity on this device</p>
         </div>
-        <div id="user-profile" class="user-pill">
-          <img id="user-avatar" class="user-avatar" alt="User avatar" />
-          <div>
-            <div id="user-name" class="user-name">Guest User</div>
-            <div id="user-email" class="user-email">Not connected</div>
+        <div class="dash-header-right">
+          <div class="range-tabs" role="tablist" aria-label="Report range">
+            <button class="range-tab active" data-range="day" role="tab" aria-selected="true">Day</button>
+            <button class="range-tab" data-range="week" role="tab" aria-selected="false" tabindex="-1">Week</button>
+            <button class="range-tab" data-range="month" role="tab" aria-selected="false" tabindex="-1">Month</button>
+          </div>
+          <button id="refresh-btn" class="icon-btn" title="Refresh data" aria-label="Refresh data">
+            <i data-icon="refresh" class="ft-icon ft-icon-md"></i>
+          </button>
+          <div id="user-profile" class="user-pill">
+            <img id="user-avatar" class="user-avatar" alt="" />
+            <div class="user-info">
+              <div id="user-name" class="user-name">Guest</div>
+            </div>
           </div>
         </div>
       </header>
 
-      <section class="toolbar">
-        <div class="range-tabs">
-          <button class="range-tab active" data-range="day">Day</button>
-          <button class="range-tab" data-range="week">Week</button>
-          <button class="range-tab" data-range="month">Month</button>
+      <!-- Focus Score Hero -->
+      <section class="hero-score">
+        <div class="score-ring-large" id="score-ring">
+          <svg class="score-svg" viewBox="0 0 120 120">
+            <circle class="score-track" cx="60" cy="60" r="52"/>
+            <circle class="score-fill" id="score-fill" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="score-center">
+            <span id="score-value" class="score-number">0</span>
+            <span class="score-label">Focus Score</span>
+          </div>
         </div>
-        <div class="goal-chip">
-          <span>Goal</span>
-          <strong id="goal-text">Stay intentional</strong>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <i data-icon="timer" class="ft-icon ft-icon-md"></i>
+            <div>
+              <span class="hero-stat-value" id="hero-pomodoros">0</span>
+              <span class="hero-stat-label">Pomodoros</span>
+            </div>
+          </div>
+          <div class="hero-stat">
+            <i data-icon="zap" class="ft-icon ft-icon-md"></i>
+            <div>
+              <span class="hero-stat-value" id="hero-willpower">0</span>
+              <span class="hero-stat-label">Willpower</span>
+            </div>
+          </div>
+          <div class="hero-stat">
+            <i data-icon="flame" class="ft-icon ft-icon-md"></i>
+            <div>
+              <span class="hero-stat-value" id="streak-days">0d</span>
+              <span class="hero-stat-label">Streak</span>
+            </div>
+          </div>
+          <div class="hero-stat">
+            <i data-icon="clock" class="ft-icon ft-icon-md"></i>
+            <div>
+              <span class="hero-stat-value" id="hero-time">0m</span>
+              <span class="hero-stat-label">Time Saved</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <main class="dashboard-grid">
-        <section class="panel metrics-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Current range</p>
-              <h2 id="range-title">Today</h2>
+      <!-- Metrics Grid -->
+      <section class="metrics-section">
+        <div class="section-header">
+          <h2 id="range-title">Today</h2>
+          <p id="range-subtitle" class="section-subtitle"></p>
+          <button id="retry-load" class="retry-btn" hidden>Retry loading</button>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card">
+            <div class="metric-icon metric-icon-blue"><i data-icon="ban" class="ft-icon ft-icon-lg"></i></div>
+            <div class="metric-body">
+              <span class="metric-value" id="metric-shorts">0</span>
+              <span class="metric-label">Shorts Skipped</span>
             </div>
-            <p id="range-subtitle" class="panel-subtitle">Fresh local activity from this device.</p>
-          </div>
-          <div class="metric-grid">
-            <article class="metric-card sky">
-              <span class="metric-label">Shorts skipped</span>
-              <strong id="metric-shorts" class="metric-value">0</strong>
-            </article>
-            <article class="metric-card mint">
-              <span class="metric-label">Ads blocked</span>
-              <strong id="metric-ads" class="metric-value">0</strong>
-            </article>
-            <article class="metric-card gold">
-              <span class="metric-label">Summaries</span>
-              <strong id="metric-summaries" class="metric-value">0</strong>
-            </article>
-            <article class="metric-card coral">
-              <span class="metric-label">Quit attempts</span>
-              <strong id="metric-quits" class="metric-value">0</strong>
-            </article>
-            <article class="metric-card violet wide">
-              <span class="metric-label">Time protected</span>
-              <strong id="metric-time" class="metric-value">0m</strong>
-            </article>
-          </div>
-        </section>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon metric-icon-green"><i data-icon="shield" class="ft-icon ft-icon-lg"></i></div>
+            <div class="metric-body">
+              <span class="metric-value" id="metric-ads">0</span>
+              <span class="metric-label">Ads Blocked</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon metric-icon-violet"><i data-icon="sparkles" class="ft-icon ft-icon-lg"></i></div>
+            <div class="metric-body">
+              <span class="metric-value" id="metric-summaries">0</span>
+              <span class="metric-label">AI Summaries</span>
+            </div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-icon metric-icon-amber"><i data-icon="trending" class="ft-icon ft-icon-lg"></i></div>
+            <div class="metric-body">
+              <span class="metric-value" id="metric-quits">0</span>
+              <span class="metric-label">Quit Attempts</span>
+            </div>
+          </article>
+        </div>
+      </section>
 
-        <section class="panel chart-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Trend</p>
-              <h2>Activity timeline</h2>
-            </div>
+      <!-- Two-column: Chart + Top Sites -->
+      <section class="dual-section">
+        <!-- Activity Chart -->
+        <div class="panel chart-panel">
+          <div class="panel-header">
+            <h2>Activity Timeline</h2>
+            <span id="chart-note" class="panel-subtitle"></span>
           </div>
           <div id="chart-bars" class="chart-bars"></div>
           <div class="chart-legend">
-            <span><i class="dot sky"></i> Shorts</span>
-            <span><i class="dot mint"></i> Ads</span>
-            <span><i class="dot gold"></i> Summaries</span>
-            <span><i class="dot coral"></i> Quits</span>
+            <span><i class="dot dot-blue"></i> Shorts</span>
+            <span><i class="dot dot-green"></i> Ads</span>
+            <span><i class="dot dot-violet"></i> Summaries</span>
+            <span><i class="dot dot-amber"></i> Quits</span>
           </div>
-        </section>
+        </div>
 
-        <section class="panel lifetime-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Lifetime</p>
-              <h2>All-time totals</h2>
-            </div>
+        <!-- Top Sites -->
+        <div class="panel top-sites-panel">
+          <div class="panel-header">
+            <h2>Top Sites Today</h2>
+            <span class="panel-subtitle">By time spent</span>
+          </div>
+          <div id="top-sites-list" class="top-sites-list"></div>
+        </div>      </section>
+
+      <!-- Heatmap -->
+      <section class="panel heatmap-panel">
+        <div class="panel-header">
+          <h2>30-Day Activity</h2>
+        </div>
+        <div id="heatmap-grid" class="heatmap-grid"></div>
+        <div class="heatmap-legend">
+          <span>Less</span>
+          <i class="heat-cell level-0"></i>
+          <i class="heat-cell level-1"></i>
+          <i class="heat-cell level-2"></i>
+          <i class="heat-cell level-3"></i>
+          <i class="heat-cell level-4"></i>
+          <span>More</span>
+        </div>
+      </section>
+
+      <!-- Watch Time & Topics -->
+      <section class="panel watch-topics-panel">
+        <div class="panel-header">
+          <h2>Watch Time &amp; Topics</h2>
+          <span id="watch-subtitle" class="panel-subtitle">across all tracked sites</span>
+        </div>
+        <div class="watch-topics-body">
+          <div class="watch-total">
+            <span id="watch-total" class="watch-total-value">0m</span>
+            <span id="watch-label" class="watch-total-label">watched today</span>
+          </div>
+          <div id="topics-list" class="topics-list"></div>
+        </div>
+      </section>
+
+      <!-- Lifetime + Insight -->
+      <section class="dual-section">
+        <div class="panel lifetime-panel">
+          <div class="panel-header">
+            <h2>Lifetime Totals</h2>
           </div>
           <div class="lifetime-list">
-            <div><span>Shorts skipped</span><strong id="lifetime-shorts">0</strong></div>
-            <div><span>Ads blocked</span><strong id="lifetime-ads">0</strong></div>
-            <div><span>Summaries</span><strong id="lifetime-summaries">0</strong></div>
-            <div><span>Quit attempts</span><strong id="lifetime-quits">0</strong></div>
-            <div><span>Time protected</span><strong id="lifetime-time">0m</strong></div>
+            <div class="lifetime-row"><span>Shorts skipped</span><strong id="lifetime-shorts">0</strong></div>
+            <div class="lifetime-row"><span>Ads blocked</span><strong id="lifetime-ads">0</strong></div>
+            <div class="lifetime-row"><span>Summaries generated</span><strong id="lifetime-summaries">0</strong></div>
+            <div class="lifetime-row"><span>Quit attempts</span><strong id="lifetime-quits">0</strong></div>
+            <div class="lifetime-row"><span>Time protected</span><strong id="lifetime-time">0m</strong></div>
+            <div class="lifetime-row"><span>Pomodoros completed</span><strong id="lifetime-pomodoros-2">0</strong></div>
+            <div class="lifetime-row"><span>Willpower points</span><strong id="lifetime-willpower-2">0</strong></div>
           </div>
-        </section>
+        </div>
 
-        <section class="panel insight-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Insight</p>
-              <h2 id="insight-title">Steady focus</h2>
-            </div>
+        <div class="panel insight-panel">
+          <div class="panel-header">
+            <h2 id="insight-title">Getting Started</h2>
           </div>
           <p id="insight-body" class="insight-body">
-            Start using the blocker and summary tools to build a stronger report.
+            Start using the blocker and summary tools to build your focus report.
           </p>
-        </section>
-      </main>
+          <div class="insight-goal">
+            <i data-icon="target" class="ft-icon ft-icon-md"></i>
+            <div>
+              <span class="insight-goal-label">Your Goal</span>
+              <strong id="goal-text">Stay intentional</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cross-Browser Data Sync -->
+      <section class="panel sync-panel">
+        <div class="panel-header">
+          <h2>Cross-Browser Data Sync</h2>
+          <span id="sync-status-badge" class="sync-badge">Checking…</span>
+        </div>
+        <p class="sync-help">
+          Pick one JSON file on your PC (for example in Documents, or a Dropbox/OneDrive
+          folder to also share across computers) as the shared data store. Choose the
+          <strong>same file</strong> in every browser where FocusTube is installed — daily
+          stats, time spent per site, site blocks, and daily time limits stay in sync
+          everywhere. No cloud, no account; the data never leaves your disk.
+        </p>
+        <div class="sync-actions">
+          <button id="sync-pick-btn" class="sync-btn primary">Choose data file…</button>
+          <button id="sync-now-btn" class="sync-btn">Sync now</button>
+          <button id="sync-disconnect-btn" class="sync-btn danger">Disconnect</button>
+          <button id="sync-export-btn" class="sync-btn">Export data file</button>
+          <label class="sync-btn" for="sync-import-input">Import data file</label>
+          <input type="file" id="sync-import-input" accept="application/json,.json" hidden />
+        </div>
+        <p id="sync-detail" class="sync-detail"></p>
+      </section>
+
+      <footer class="dash-footer">
+        <span id="footer-version">FocusTube</span>
+        <span>All data stored locally on this device</span>
+      </footer>
     </div>
 
     <script src="dashboard.js"></script>
+    <script src="sync-ui.js"></script>
   </body>
 </html>

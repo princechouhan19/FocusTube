@@ -206,42 +206,80 @@
       return;
     }
 
-    // Create overlay
+    // Create overlay — uses Liquid Glass design system classes.
+    // liquid-glass.css is loaded via the manifest content_scripts.css
+    // for YouTube pages, so these classes are already available.
     blockOverlay = document.createElement("div");
     blockOverlay.id = "yfp-time-block-overlay";
-    Object.assign(blockOverlay.style, {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: "#0f0f0f",
-      zIndex: "2147483647", // Max z-index
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "white",
-      fontFamily: "Segoe UI, sans-serif",
-      pointerEvents: "all", // Ensure it captures all clicks
-    });
+    blockOverlay.className = "lg-block-overlay";
 
-    // Content
+    // Build the card with DOM APIs (no innerHTML for untrusted content).
+    const card = document.createElement("div");
+    card.className = "lg-block-card";
+
+    // Banner image
     const bannerURL = chrome.runtime.getURL("src/icons/banner.png");
-    blockOverlay.innerHTML = `
-      <div style="text-align: center;">
-        <img class="yfp-banner" src="${bannerURL}" alt="FocusTube" style="height:100px; width:120px; object-fit:cover; margin-bottom:16px;" />
-        <div style="font-size: 64px; margin-bottom: 24px;">🚫</div>
-        <h1 style="font-size: 32px; margin-bottom: 16px; color: #ff7675;">YouTube is Blocked</h1>
-        <p id="yfp-block-message" style="font-size: 18px; opacity: 0.8; margin-bottom: 20px;"></p>
-        <p style="font-size: 14px; max-width: 460px; line-height: 1.6; color: #cbd5e1; margin: 0 auto 18px;">
-          Protect this session. A few focused minutes now will feel much better than another accidental binge.
-        </p>
-        <div style="font-size: 14px; color: #666;">
-          FocusTube Extension
-        </div>
-      </div>
-    `;
+    const bannerImg = document.createElement("img");
+    bannerImg.className = "yfp-banner";
+    bannerImg.src = bannerURL;
+    bannerImg.alt = "FocusTube";
+    Object.assign(bannerImg.style, {
+      height: "60px",
+      width: "auto",
+      objectFit: "contain",
+      marginBottom: "16px",
+      borderRadius: "8px",
+    });
+    bannerImg.onerror = async () => {
+      try {
+        const resp = await fetch(bannerURL);
+        const blob = await resp.blob();
+        bannerImg.src = URL.createObjectURL(blob);
+      } catch {
+        bannerImg.style.display = "none";
+      }
+    };
+    card.appendChild(bannerImg);
+
+    // Icon
+    const icon = document.createElement("div");
+    icon.className = "lg-block-icon";
+    icon.textContent = "🚫";
+    card.appendChild(icon);
+
+    // Title
+    const title = document.createElement("h1");
+    title.className = "lg-block-title";
+    title.style.color = "var(--lg-danger)";
+    title.textContent = "YouTube is Blocked";
+    card.appendChild(title);
+
+    // Message (timer countdown)
+    const msgEl = document.createElement("p");
+    msgEl.id = "yfp-block-message";
+    msgEl.className = "lg-block-reason";
+    msgEl.style.fontSize = "var(--lg-text-lg)";
+    card.appendChild(msgEl);
+
+    // Sub-message
+    const subMsg = document.createElement("p");
+    subMsg.className = "lg-block-message";
+    subMsg.style.maxWidth = "460px";
+    subMsg.textContent =
+      "Protect this session. A few focused minutes now will feel much better than another accidental binge.";
+    card.appendChild(subMsg);
+
+    // Footer
+    const footer = document.createElement("div");
+    footer.className = "lg-block-message";
+    footer.style.marginTop = "12px";
+    footer.style.fontSize = "var(--lg-text-xs)";
+    footer.style.color = "var(--lg-text-faint)";
+    footer.textContent = "FocusTube Extension";
+    card.appendChild(footer);
+
+    blockOverlay.appendChild(card);
+
     blockOverlay.dataset.endTs = endTs ? String(endTs) : "";
     blockOverlay.dataset.prefix = message || "";
     (function setInitialText() {
@@ -254,22 +292,8 @@
       const ss = Math.floor((remainingMs % 60000) / 1000)
         .toString()
         .padStart(2, "0");
-      const msgEl = blockOverlay.querySelector("#yfp-block-message");
       if (msgEl) msgEl.textContent = `${message}: ${mm}:${ss} remaining`;
     })();
-    const bannerImg = blockOverlay.querySelector(".yfp-banner");
-    if (bannerImg) {
-      bannerImg.onerror = async () => {
-        try {
-          const resp = await fetch(bannerURL);
-          const blob = await resp.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          bannerImg.src = blobUrl;
-        } catch {
-          bannerImg.style.display = "none";
-        }
-      };
-    }
 
     // Prevent scrolling and hide main content
     if (document.body) {

@@ -46,8 +46,6 @@ const DEFAULT_SETTINGS = {
   useNativePlayer: false,
   useTranscript: false,
   transcriptLang: "en",
-  shortcutsEnabled: true,
-  floatingToolbarEnabled: false,
 
   // Universal Site Blocking
   blockedSites: [], // Array of {domain, blockUntil (timestamp), reason}
@@ -57,6 +55,9 @@ const DEFAULT_SETTINGS = {
   hideInfoCards: false,
   autoTheaterMode: false,
   modernGlassTheme: false,
+  pomodoroAdaptiveFocus: true,
+  pomodoroFocusShield: true,
+  siteLogos: {},
 };
 
 const PROVIDER_MODELS = {
@@ -196,8 +197,13 @@ const TOGGLES_LIST = [
   "hideShareButtons",
   "useTranscript",
   "modernGlassTheme",
-  "shortcutsEnabled",
-  "floatingToolbarEnabled",
+  // v1.1.0 new toggles
+  "aiNudgeEnabled",
+  "quizStreakMultiplier",
+  "pomodoroDeepWork",
+  "pomodoroAdaptiveFocus",
+  "pomodoroFocusShield",
+  "pomodoroNotify",
 ];
 
 let quizState = {
@@ -227,8 +233,47 @@ function startQuiz(callback) {
     return;
   }
 
-  const topics = Object.keys(QUIZ_QUESTIONS);
-  quizState.currentTopic = topics[Math.floor(Math.random() * topics.length)];
+  // v1.1.0: pick topic based on user's configured difficulty.
+  // Falls back to the legacy random-across-all-topics behavior if the
+  // difficulty setting is missing or invalid.
+  let candidateTopics;
+  const difficulty =
+    (window.__focusTubeSettings && window.__focusTubeSettings.quizDifficulty) ||
+    "easy";
+
+  if (
+    typeof QUIZ_DIFFICULTY_TOPICS !== "undefined" &&
+    Array.isArray(QUIZ_DIFFICULTY_TOPICS[difficulty]) &&
+    QUIZ_DIFFICULTY_TOPICS[difficulty].length > 0
+  ) {
+    candidateTopics = QUIZ_DIFFICULTY_TOPICS[difficulty].filter(
+      (t) => Array.isArray(QUIZ_QUESTIONS[t]) && QUIZ_QUESTIONS[t].length > 0,
+    );
+  }
+  if (!candidateTopics || candidateTopics.length === 0) {
+    candidateTopics = Object.keys(QUIZ_QUESTIONS);
+  }
+
+  // v1.1.0 streak multiplier: if user has a high pomodoro streak,
+  // escalate the difficulty one level for this quiz.
+  if (
+    window.__focusTubeSettings &&
+    window.__focusTubeSettings.quizStreakMultiplier
+  ) {
+    const completed = Number(window.__focusTubeSettings.statsPomodoroCompleted) || 0;
+    if (completed >= 8 && difficulty === "easy") {
+      candidateTopics = QUIZ_DIFFICULTY_TOPICS.medium.filter(
+        (t) => Array.isArray(QUIZ_QUESTIONS[t]) && QUIZ_QUESTIONS[t].length > 0,
+      );
+    } else if (completed >= 16 && difficulty !== "hard") {
+      candidateTopics = QUIZ_DIFFICULTY_TOPICS.hard.filter(
+        (t) => Array.isArray(QUIZ_QUESTIONS[t]) && QUIZ_QUESTIONS[t].length > 0,
+      );
+    }
+  }
+
+  quizState.currentTopic =
+    candidateTopics[Math.floor(Math.random() * candidateTopics.length)];
 
   document.getElementById("quiz-topic-label").textContent =
     quizState.currentTopic.charAt(0).toUpperCase() +
@@ -336,7 +381,7 @@ function initQuizListeners() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Initializing popup...");
+  console.log("%c[FocusTube Popup] 🚀 Initializing popup...", "color:#d9a62e;font-weight:bold");
 
   // Load settings
   let settings = await loadSettings();
@@ -351,6 +396,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("[FocusTube] getUserProfile failed on init:", err);
   }
 
+  // v1.1.0: expose settings globally so startQuiz() can read difficulty
+  // and pomodoro-streak multiplier without re-loading from storage.
+  window.__focusTubeSettings = settings;
+
   // Initialize Views
   initNavigation();
 
@@ -359,11 +408,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateProfile(settings);
   renderBlockedKeywords(settings.blockedKeywords || []);
   
-  // Render active blocks on load
+  // Render active blocks + home summary on load
   await renderActiveBlocks();
-  
-  // Update active blocks every 5 seconds
-  setInterval(() => renderActiveBlocks(), 5000);
+  renderHomeSummary();
+
+  // Keep block countdowns and the home summary fresh
+  setInterval(() => {
+    renderActiveBlocks();
+    renderHomeSummary();
+  }, 5000);
+
+  // Version line in Settings → About
+  const versionEl = document.getElementById("popup-version");
+  if (versionEl) {
+    try {
+      versionEl.textContent = `FocusTube v${chrome.runtime.getManifest().version}`;
+    } catch (_) {}
+  }
 
   // Add event listeners
   addEventListeners();
@@ -372,6 +433,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   addKeywordBlocklistListeners();
   addSiteBlockingListeners();
   initQuizListeners();
+
+  // v1.1.0 new feature UIs
+  initPomodoroUI();
+  initSmartListsUI();
+  initTabManagerUI();
+  initTimeLimitUI();
 
   // Dashboard Button
   const dashBtn = document.getElementById("open-dashboard-btn");
@@ -383,146 +450,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Screenshot Button
-  const screenshotBtn = document.getElementById("capture-screenshot-btn");
-  if (screenshotBtn) {
-    screenshotBtn.addEventListener("click", () => {
-      chrome.runtime.sendMessage(
-        { action: "captureScreenshot" },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            showFeedback("capture-screenshot-btn", "Error");
-            console.warn(
-              "[FocusTube] Screenshot send error:",
-              chrome.runtime.lastError.message,
-            );
-            return;
-          }
-          if (response && response.success) {
-            showFeedback("capture-screenshot-btn", "SS Taken!");
-          } else {
-            showFeedback("capture-screenshot-btn", "Failed");
-            console.error(
-              "[FocusTube] Screenshot failed:",
-              response ? response.error : "Unknown error",
-            );
-          }
-        },
-      );
-    });
-  }
-
-  // Recording Button
-  const recordBtn = document.getElementById("toggle-recording-btn");
-  if (recordBtn) {
-    // Update button state from background
-    function updateRecordingUI(isRecording) {
-      recordBtn.textContent = isRecording ? "⏹ Stop" : "🔴 Rec";
-      recordBtn.style.background = isRecording
-        ? "linear-gradient(to right, #4b5563, #374151)"
-        : "linear-gradient(to right, #ef4444, #dc2626)";
-      recordBtn.title = isRecording ? "Stop Recording (Ctrl+Shift+R)" : "Start Recording (Ctrl+Shift+R)";
-    }
-
-    // Check initial recording state
-    function checkRecordingState() {
-      chrome.runtime.sendMessage({ action: "getRecordingStatus" }, (response) => {
-        if (chrome.runtime.lastError) {
-          // Background may be asleep; safe to assume not recording.
-          updateRecordingUI(false);
-          return;
-        }
-        if (response && response.isRecording) {
-          updateRecordingUI(true);
-        } else {
-          updateRecordingUI(false);
-        }
-      });
-    }
-
-    recordBtn.addEventListener("click", () => {
-      chrome.runtime.sendMessage({ action: "toggleRecording" }, (response) => {
-        if (chrome.runtime.lastError) {
-          showFeedback(
-            "toggle-recording-btn",
-            "Error: " + chrome.runtime.lastError.message,
-          );
-          return;
-        }
-        if (response && response.success) {
-          updateRecordingUI(response.isRecording);
-          showFeedback(
-            "toggle-recording-btn",
-            response.isRecording ? "Recording Started..." : "Recording Saved!",
-          );
-        } else {
-          showFeedback("toggle-recording-btn", "Error: " + (response?.error || "Unknown error"));
-          console.error(
-            "[FocusTube] Recording failed:",
-            response ? response.error : "Unknown error",
-          );
-        }
-      });
-    });
-
-    // Check state when popup opens
-    checkRecordingState();
-
-    // Also listen for recording status messages from background
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.action === "recordingStatusChanged") {
-        updateRecordingUI(message.isRecording);
-      }
-    });
-  }
 });
 
 /**
- * Navigation Logic
+ * Navigation Logic — v1.4.0 tab-based bottom nav
  */
 function initNavigation() {
   const views = {
     home: document.getElementById("home-view"),
+    focus: document.getElementById("focus-view"),
+    youtube: document.getElementById("youtube-view"),
     settings: document.getElementById("settings-view"),
     profile: document.getElementById("profile-view"),
   };
 
-  const navBtns = {
-    settings: document.getElementById("nav-settings"),
-    profile: document.getElementById("nav-profile"),
-  };
-
-  const backBtns = document.querySelectorAll(".back-btn");
+  const tabBtns = document.querySelectorAll(".tab-btn");
 
   function switchView(viewName) {
+    console.log("%c[FocusTube Popup] → switchView:", "color:#cf9448", viewName);
     Object.values(views).forEach((el) => {
       if (el) el.classList.remove("active");
     });
     if (views[viewName]) {
       views[viewName].classList.add("active");
     } else {
-      console.error(`[FocusTube] View not found: ${viewName}`);
+      console.error("[FocusTube] View not found:", viewName);
     }
+    // Update tab bar active state
+    tabBtns.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.tab === viewName);
+    });
   }
 
-  // Add settings navigation listener
-  if (navBtns.settings) {
-    navBtns.settings.addEventListener("click", () => switchView("settings"));
-  } else {
-    console.error("[FocusTube] Settings nav button not found");
-  }
+  // Tab bar click handlers
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      if (tab) switchView(tab);
+    });
+  });
 
-  // Add profile navigation listener
-  if (navBtns.profile) {
-    navBtns.profile.addEventListener("click", () => {
+  // Profile nav button (top bar)
+  const navProfile = document.getElementById("nav-profile");
+  if (navProfile) {
+    navProfile.addEventListener("click", () => {
       switchView("profile");
-      // Fetch fresh profile data when entering profile view
       chrome.runtime.sendMessage({ action: "getUserProfile" }, (response) => {
         if (chrome.runtime.lastError) {
-          console.warn(
-            "[FocusTube] getUserProfile (nav):",
-            chrome.runtime.lastError.message,
-          );
+          console.warn("[FocusTube] getUserProfile (nav):", chrome.runtime.lastError.message);
           return;
         }
         if (response && response.success && response.profile) {
@@ -530,21 +505,51 @@ function initNavigation() {
         }
       });
     });
-  } else {
-    console.error("[FocusTube] Profile nav button not found");
   }
 
-  backBtns.forEach((btn) => {
+  // Back buttons (for profile view)
+  document.querySelectorAll(".back-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const target = btn.dataset.target;
-      if (views[target.split("-")[0]]) {
-        switchView(target.split("-")[0]);
-      } else {
-        // Fallback to home if target id format differs
-        switchView("home");
-      }
+      switchView("home");
     });
   });
+
+  // Any element with data-goto jumps to that view — Home quick actions,
+  // "Manage"/"Limits" card links, and the pomodoro chip use this.
+  document.querySelectorAll("[data-goto]").forEach((el) => {
+    el.addEventListener("click", () => switchView(el.dataset.goto));
+  });
+
+  // Home quick action: start a Pomodoro and jump to the Focus tab.
+  const quickFocus = document.getElementById("quick-focus-session");
+  if (quickFocus) {
+    quickFocus.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ action: "pomodoroStart" }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        if (resp && resp.success) updatePomodoroDisplay(resp.status);
+      });
+      switchView("focus");
+    });
+  }
+
+  // Home quick action: block YouTube for 30 minutes.
+  const quickBlock = document.getElementById("quick-block-yt");
+  if (quickBlock) {
+    quickBlock.addEventListener("click", async () => {
+      await setTempBlock(30);
+      // Feedback on the inner label only — replacing textContent on the
+      // button itself would drop its icon element.
+      const label = quickBlock.querySelector("span");
+      if (label) {
+        const original = label.textContent;
+        label.textContent = "✓ Blocked!";
+        setTimeout(() => {
+          label.textContent = original;
+        }, 1600);
+      }
+      renderHomeSummary();
+    });
+  }
 }
 
 /**
@@ -585,6 +590,14 @@ function populateUI(settings) {
   const tl = document.getElementById("transcriptLang");
   if (tl) tl.value = settings.transcriptLang || "en";
 
+  // v1.1.0 — Quiz difficulty
+  const quizDiffSel = document.getElementById("quizDifficulty");
+  if (quizDiffSel) {
+    quizDiffSel.value = ["easy", "medium", "hard"].includes(settings.quizDifficulty)
+      ? settings.quizDifficulty
+      : "easy";
+  }
+
   // Toggles
   TOGGLES_LIST.forEach((id) => {
     const el = document.getElementById(id);
@@ -596,18 +609,20 @@ function updateStatusText(enabled) {
   const text = document.getElementById("status-text");
   const powerBtn = document.getElementById("nav-power");
   if (enabled) {
-    text.textContent = "Active and protecting";
-    text.style.color = "var(--success-color)";
+    if (text) {
+      text.textContent = "Active and protecting";
+      text.style.color = "var(--lg-success)";
+    }
     if (powerBtn) {
-      powerBtn.style.color = "var(--success-color)";
-      powerBtn.style.opacity = "1";
+      powerBtn.classList.remove("disabled");
     }
   } else {
-    text.textContent = "Extension disabled";
-    text.style.color = "var(--danger-color)";
+    if (text) {
+      text.textContent = "Extension disabled";
+      text.style.color = "var(--lg-danger)";
+    }
     if (powerBtn) {
-      powerBtn.style.color = "var(--danger-color)";
-      powerBtn.style.opacity = "0.7";
+      powerBtn.classList.add("disabled");
     }
   }
 }
@@ -636,10 +651,14 @@ function populateProfile(settings) {
     if (settings.profileImage) {
       // SECURITY: build the avatar with DOM APIs so a malicious profileImage
       // value (e.g. javascript: URL) cannot execute script in the popup.
+      // referrerPolicy=no-referrer prevents leaking the extension's origin
+      // to whoever hosts the avatar image.
       avatarContainer.textContent = "";
       const img = document.createElement("img");
       img.style.cssText =
         "width: 100%; height: 100%; border-radius: 50%; object-fit: cover;";
+      img.referrerPolicy = "no-referrer";
+      img.alt = "Profile avatar";
       // Only allow http(s) URLs.
       const src = String(settings.profileImage);
       if (/^https?:\/\//i.test(src)) {
@@ -851,6 +870,650 @@ function addEventListeners() {
       notifyContentScript();
     });
   }
+
+  // v1.1.0 — Quiz difficulty selector
+  const quizDiff = document.getElementById("quizDifficulty");
+  if (quizDiff) {
+    quizDiff.addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (["easy", "medium", "hard"].includes(val)) {
+        await saveSettings({ quizDifficulty: val });
+        if (window.__focusTubeSettings) {
+          window.__focusTubeSettings.quizDifficulty = val;
+        }
+        notifyContentScript();
+      }
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// v1.1.0: Pomodoro Timer UI
+// ---------------------------------------------------------------------------
+
+let pomodoroPollInterval = null;
+
+async function initPomodoroUI() {
+  // Restore settings toggles
+  const settings = await loadSettings();
+  const deepWorkEl = document.getElementById("pomodoro-deep-work");
+  const adaptiveEl = document.getElementById("pomodoro-adaptive-focus");
+  const shieldEl = document.getElementById("pomodoro-focus-shield");
+  const notifyEl = document.getElementById("pomodoro-notify");
+  if (deepWorkEl) deepWorkEl.checked = !!settings.pomodoroDeepWork;
+  if (adaptiveEl) adaptiveEl.checked = settings.pomodoroAdaptiveFocus !== false;
+  if (shieldEl) shieldEl.checked = settings.pomodoroFocusShield !== false;
+  if (notifyEl) notifyEl.checked = settings.pomodoroNotify !== false;
+
+  // Wire up control buttons
+  const wire = (id, action) => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener("click", () => {
+        chrome.runtime.sendMessage({ action }, (resp) => {
+          if (chrome.runtime.lastError) {
+            console.warn("[FocusTube Pomodoro]", chrome.runtime.lastError.message);
+            return;
+          }
+          if (resp && resp.success) updatePomodoroDisplay(resp.status);
+        });
+      });
+    }
+  };
+  wire("pomodoro-start", "pomodoroStart");
+  wire("pomodoro-pause", "pomodoroPause");
+  wire("pomodoro-skip", "pomodoroSkip");
+  wire("pomodoro-stop", "pomodoroStop");
+
+  // Wire up settings toggles
+  if (deepWorkEl) {
+    deepWorkEl.addEventListener("change", async (e) => {
+      await saveSettings({ pomodoroDeepWork: e.target.checked });
+    });
+  }
+  if (adaptiveEl) {
+    adaptiveEl.addEventListener("change", async (e) => {
+      await saveSettings({ pomodoroAdaptiveFocus: e.target.checked });
+    });
+  }
+  if (shieldEl) {
+    shieldEl.addEventListener("change", async (e) => {
+      await saveSettings({ pomodoroFocusShield: e.target.checked });
+    });
+  }
+  if (notifyEl) {
+    notifyEl.addEventListener("change", async (e) => {
+      await saveSettings({ pomodoroNotify: e.target.checked });
+    });
+  }
+
+  // Initial status fetch
+  chrome.runtime.sendMessage({ action: "pomodoroStatus" }, (resp) => {
+    if (chrome.runtime.lastError) return;
+    if (resp && resp.success) updatePomodoroDisplay(resp.status);
+  });
+
+  // Poll status every 1 second while popup is open
+  pomodoroPollInterval = setInterval(() => {
+    chrome.runtime.sendMessage({ action: "pomodoroStatus" }, (resp) => {
+      if (chrome.runtime.lastError) return;
+      if (resp && resp.success) updatePomodoroDisplay(resp.status);
+    });
+  }, 1000);
+}
+
+function updatePomodoroDisplay(status) {
+  if (!status) return;
+  const phaseEl = document.getElementById("pomodoro-phase-label");
+  const timeEl = document.getElementById("pomodoro-time");
+  const cycleEl = document.getElementById("pomodoro-cycle-label");
+  if (!phaseEl || !timeEl || !cycleEl) return;
+
+  // Home hero chip mirrors the countdown while a session runs.
+  const chip = document.getElementById("home-pomodoro-chip");
+  const chipTime = document.getElementById("home-pomodoro-time");
+
+  if (!status.active) {
+    phaseEl.textContent = "Ready";
+    const planned = status.settings?.plannedFocusMinutes || 25;
+    timeEl.textContent = `${String(planned).padStart(2, "0")}:00`;
+    cycleEl.textContent = "Cycle 1 of 4";
+    if (chip) chip.classList.add("yfp-hidden");
+    return;
+  }
+
+  const phaseLabel = {
+    focus: "🎯 Focus",
+    "short-break": "☕ Short Break",
+    "long-break": "🌿 Long Break",
+  }[status.phase] || status.phase;
+
+  phaseEl.textContent = (status.paused ? "⏸ Paused · " : "") + phaseLabel;
+  const ms = status.remainingMs || 0;
+  const total = Math.floor(ms / 1000);
+  const mm = String(Math.floor(total / 60)).padStart(2, "0");
+  const ss = String(total % 60).padStart(2, "0");
+  timeEl.textContent = `${mm}:${ss}`;
+
+  if (chip && chipTime) {
+    chip.classList.remove("yfp-hidden");
+    chipTime.textContent = `${mm}:${ss}`;
+    chip.title = `${status.paused ? "Paused — " : ""}${phaseLabel} — open Focus`;
+  }
+
+  const cycles = status.settings?.cyclesBeforeLongBreak || 4;
+  const cur = status.cycle || 1;
+  const plan = status.settings?.adaptiveFocus
+    ? ` · adaptive ${status.settings?.plannedFocusMinutes || 25}m`
+    : "";
+  cycleEl.textContent = `Cycle ${cur} of ${cycles}${plan}`;
+}
+
+// ---------------------------------------------------------------------------
+// v1.1.0: Smart Lists UI
+// ---------------------------------------------------------------------------
+
+async function initSmartListsUI() {
+  const grid = document.getElementById("smart-lists-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  const settings = await loadSettings();
+  const enabled = Array.isArray(settings.smartListsEnabled)
+    ? settings.smartListsEnabled
+    : [];
+
+  // The popup has no content scripts, so the Smart Lists module isn't
+  // loaded. We inline the categories here so the popup works standalone.
+  // The content-script version (smart-lists.js) is the source of truth
+  // for actually blocking requests; this inline copy is UI-only.
+  // Colors follow the design-system palette (muted, editorial).
+  const categories = [
+    { id: "social", label: "Social Media", emoji: "📱", color: "#8a97c6" },
+    { id: "shopping", label: "Shopping", emoji: "🛍️", color: "#8fb77a" },
+    { id: "gaming", label: "Gaming", emoji: "🎮", color: "#b18bc9" },
+    { id: "news", label: "News", emoji: "📰", color: "#cf9448" },
+    { id: "messaging", label: "Messaging", emoji: "💬", color: "#c9809b" },
+    { id: "streaming", label: "Streaming", emoji: "🎬", color: "#c96a62" },
+    { id: "adult", label: "Adult Content", emoji: "🔞", color: "#a05050" },
+  ];
+
+  // Helper to update a chip's visual state.
+  function applyState(chip, dot, cat, isOn) {
+    Object.assign(chip.style, {
+      background: isOn
+        ? `rgba(${hexToRgb(cat.color)}, 0.18)`
+        : "rgba(255,255,255,0.04)",
+      borderColor: isOn ? cat.color : "rgba(255,255,255,0.08)",
+    });
+    dot.style.background = isOn ? cat.color : "rgba(255,255,255,0.2)";
+    chip.setAttribute("aria-pressed", String(isOn));
+    chip.title = `${isOn ? "Unblock" : "Block"} ${cat.label}`;
+  }
+
+  categories.forEach((cat) => {
+    // Capture the initial state in a closure variable that we mutate.
+    let isOn = enabled.includes(cat.id);
+
+    const chip = document.createElement("div");
+    chip.setAttribute("role", "button");
+    chip.tabIndex = 0;
+    Object.assign(chip.style, {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "10px 12px",
+      borderRadius: "10px",
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+    });
+
+    const emoji = document.createElement("span");
+    emoji.textContent = cat.emoji;
+    emoji.style.fontSize = "18px";
+    chip.appendChild(emoji);
+
+    const label = document.createElement("span");
+    label.style.cssText =
+      "flex: 1; color: var(--lg-text); font-size: 12px; font-weight: 500;";
+    label.textContent = cat.label;
+    chip.appendChild(label);
+
+    const dot = document.createElement("span");
+    Object.assign(dot.style, {
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+    });
+    chip.appendChild(dot);
+
+    applyState(chip, dot, cat, isOn);
+
+    chip.onmouseenter = () => {
+      chip.style.transform = "translateY(-1px)";
+    };
+    chip.onmouseleave = () => {
+      chip.style.transform = "translateY(0)";
+    };
+    const toggleCategory = async () => {
+      const next = !isOn;
+      isOn = next; // update closure
+      applyState(chip, dot, cat, next);
+
+      // Persist via background (which fans out to all content scripts).
+      const newEnabled = next
+        ? Array.from(new Set([...enabled, cat.id]))
+        : enabled.filter((c) => c !== cat.id);
+      try {
+        await chrome.runtime.sendMessage({
+          action: "updateSettings",
+          settings: { smartListsEnabled: newEnabled },
+        });
+      } catch (_) {}
+
+      // Refresh local cache so subsequent toggles see the new state.
+      enabled.length = 0;
+      enabled.push(...newEnabled);
+    };
+    chip.onclick = toggleCategory;
+    chip.onkeydown = (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleCategory();
+      }
+    };
+
+    grid.appendChild(chip);
+  });
+}
+
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
+  if (!m) return "255,255,255";
+  return `${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)}`;
+}
+
+// ---------------------------------------------------------------------------
+// v1.1.0: Tab Manager UI
+// ---------------------------------------------------------------------------
+
+async function initTabManagerUI() {
+  const saveBtn = document.getElementById("tab-save-workspace");
+  const loadBtn = document.getElementById("tab-load-workspace");
+  const groupBtn = document.getElementById("tab-group-domain");
+  const closeBtn = document.getElementById("tab-close-all");
+
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      const name = prompt("Workspace name?", "Work");
+      if (!name) return;
+      chrome.runtime.sendMessage(
+        { action: "saveWorkspace", name },
+        (resp) => {
+          if (chrome.runtime.lastError) return;
+          if (resp && resp.success) {
+            showFeedback("tab-save-workspace", `Saved ${resp.count} tabs`);
+            refreshWorkspaceList();
+          }
+        },
+      );
+    });
+  }
+
+  if (loadBtn) {
+    loadBtn.addEventListener("click", async () => {
+      const stored = await chrome.storage.local.get("workspaces");
+      const workspaces = stored.workspaces || {};
+      const names = Object.keys(workspaces);
+      if (names.length === 0) {
+        alert("No saved workspaces. Use 'Save' first.");
+        return;
+      }
+      const name = prompt(`Load which workspace? (${names.join(", ")})`, names[0]);
+      if (!name) return;
+      chrome.runtime.sendMessage({ action: "loadWorkspace", name }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        if (resp && resp.success) {
+          showFeedback("tab-load-workspace", `Loaded ${resp.count} tabs`);
+        } else {
+          alert(resp?.error || "Could not load workspace");
+        }
+      });
+    });
+  }
+
+  if (groupBtn) {
+    groupBtn.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ action: "groupByDomain" }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        if (resp && resp.success) {
+          showFeedback("tab-group-domain", `${resp.groups} groups`);
+        }
+      });
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      if (!confirm("Close all non-YouTube tabs in this window?")) return;
+      chrome.runtime.sendMessage({ action: "closeAllTabs" }, (resp) => {
+        if (chrome.runtime.lastError) return;
+        if (resp && resp.success) {
+          showFeedback("tab-close-all", `Closed ${resp.closed}`);
+        }
+      });
+    });
+  }
+
+  refreshWorkspaceList();
+}
+
+async function refreshWorkspaceList() {
+  const list = document.getElementById("workspace-list");
+  if (!list) return;
+  list.innerHTML = "";
+  const stored = await chrome.storage.local.get("workspaces");
+  const workspaces = stored.workspaces || {};
+  for (const [name, w] of Object.entries(workspaces)) {
+    const row = document.createElement("div");
+    Object.assign(row.style, {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "6px 8px",
+      fontSize: "11px",
+      color: "var(--lg-text-muted)",
+      background: "rgba(255,255,255,0.04)",
+      borderRadius: "6px",
+      marginBottom: "4px",
+    });
+    const left = document.createElement("span");
+    left.textContent = `${name} · ${w.tabs?.length || 0} tabs`;
+    row.appendChild(left);
+
+    const del = document.createElement("button");
+    del.textContent = "✕";
+    Object.assign(del.style, {
+      background: "transparent",
+      border: "none",
+      color: "var(--lg-danger)",
+      cursor: "pointer",
+      fontSize: "12px",
+    });
+    del.onclick = async () => {
+      const next = { ...workspaces };
+      delete next[name];
+      await chrome.storage.local.set({ workspaces: next });
+      refreshWorkspaceList();
+    };
+    row.appendChild(del);
+    list.appendChild(row);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// v1.3.0: Time Limit UI
+// ---------------------------------------------------------------------------
+
+async function initTimeLimitUI() {
+  const addBtn = document.getElementById("time-limit-add");
+  const domainInput = document.getElementById("time-limit-domain");
+  const minutesInput = document.getElementById("time-limit-minutes");
+
+  if (addBtn) {
+    addBtn.addEventListener("click", async () => {
+      const domain = (domainInput?.value || "").trim().toLowerCase();
+      const minutes = parseInt(minutesInput?.value || "0", 10);
+      if (!domain) {
+        showFeedback("time-limit-add", "Enter domain");
+        return;
+      }
+      if (!minutes || minutes < 1) {
+        showFeedback("time-limit-add", "Enter minutes");
+        return;
+      }
+      await chrome.runtime.sendMessage({
+        action: "setTimeLimit",
+        domain,
+        minutes,
+      });
+      domainInput.value = "";
+      minutesInput.value = "";
+      showFeedback("time-limit-add", `Limit set: ${domain}`);
+      refreshTimeUsage();
+    });
+  }
+
+  // Enter key on either input
+  [domainInput, minutesInput].forEach((el) => {
+    if (el) {
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          addBtn?.click();
+        }
+      });
+    }
+  });
+
+  // Initial render
+  refreshTimeUsage();
+
+  // Refresh every 5 seconds while popup is open
+  setInterval(refreshTimeUsage, 5000);
+}
+
+async function refreshTimeUsage() {
+  const container = document.getElementById("time-usage-list");
+  if (!container) return;
+
+  let resp;
+  try {
+    resp = await chrome.runtime.sendMessage({ action: "getTimeUsage" });
+  } catch (_) {
+    return;
+  }
+  if (!resp || !resp.success) return;
+
+  const { today, limits, logos = {} } = resp;
+  container.innerHTML = "";
+
+  // Build a combined set of domains: those with limits + those with usage today.
+  const allDomains = new Set([
+    ...Object.keys(limits || {}),
+    ...Object.keys(today || {}),
+  ]);
+
+  if (allDomains.size === 0) {
+    const empty = document.createElement("p");
+    empty.style.cssText =
+      "color: var(--lg-text-dim); font-size: 11px; text-align: center; padding: 8px;";
+    empty.textContent = "No time limits set. Add one above.";
+    container.appendChild(empty);
+    renderHomeUsage([], today || {}, limits || {});
+    return;
+  }
+
+  // Sort by usage (desc), then by limit (desc).
+  const sorted = Array.from(allDomains).sort((a, b) => {
+    const ua = today[a] || 0;
+    const ub = today[b] || 0;
+    if (ub !== ua) return ub - ua;
+    return (limits[b] || 0) - (limits[a] || 0);
+  });
+
+  for (const domain of sorted) {
+    const usedMin = today[domain] || 0;
+    const limitMin = limits[domain] || 0;
+    const pct = limitMin > 0 ? Math.min(100, (usedMin / limitMin) * 100) : 0;
+    const isOver = limitMin > 0 && usedMin >= limitMin;
+
+    const row = document.createElement("div");
+    Object.assign(row.style, {
+      display: "flex",
+      flexDirection: "column",
+      gap: "4px",
+      padding: "8px 10px",
+      marginBottom: "6px",
+      background: isOver
+        ? "var(--lg-danger-soft)"
+        : "var(--lg-glass-bg)",
+      border: `1px solid ${isOver ? "var(--lg-danger-border)" : "var(--lg-glass-border)"}`,
+      borderRadius: "var(--lg-radius-md)",
+    });
+
+    // Top row: domain + delete
+    const top = document.createElement("div");
+    Object.assign(top.style, {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+    });
+
+    const identity = document.createElement("div");
+    Object.assign(identity.style, { display: "flex", alignItems: "center", gap: "7px", minWidth: 0 });
+    const logo = document.createElement("img");
+    const logoEntry = logos[domain];
+    const logoUrl = typeof logoEntry === "string" ? logoEntry : logoEntry?.url;
+    logo.src = /^https?:\/\//i.test(logoUrl || "") ? logoUrl : `https://${domain}/favicon.ico`;
+    logo.alt = "";
+    logo.setAttribute("aria-hidden", "true");
+    Object.assign(logo.style, {
+      width: "18px", height: "18px", flex: "0 0 18px", borderRadius: "5px",
+      objectFit: "contain", background: "var(--lg-glass-bg)",
+    });
+    logo.onerror = () => {
+      logo.style.display = "none";
+    };
+    identity.appendChild(logo);
+
+    const name = document.createElement("span");
+    name.style.cssText =
+      "color: var(--lg-text); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+    name.textContent = domain;
+    identity.appendChild(name);
+
+    const del = document.createElement("button");
+    del.textContent = "✕";
+    Object.assign(del.style, {
+      background: "transparent",
+      border: "none",
+      color: "var(--lg-text-dim)",
+      cursor: "pointer",
+      fontSize: "12px",
+      padding: "2px 6px",
+    });
+    del.onclick = async () => {
+      await chrome.runtime.sendMessage({
+        action: "setTimeLimit",
+        domain,
+        minutes: 0,
+      });
+      refreshTimeUsage();
+    };
+
+    top.appendChild(identity);
+    top.appendChild(del);
+    row.appendChild(top);
+
+    // Progress bar
+    if (limitMin > 0) {
+      const barBg = document.createElement("div");
+      Object.assign(barBg.style, {
+        height: "6px",
+        background: "var(--lg-glass-bg)",
+        borderRadius: "var(--lg-radius-full)",
+        overflow: "hidden",
+      });
+
+      const barFill = document.createElement("div");
+      Object.assign(barFill.style, {
+        height: "100%",
+        width: `${pct}%`,
+        background: isOver
+          ? "var(--lg-danger)"
+          : pct > 80
+          ? "var(--lg-warning)"
+          : "var(--lg-gradient-primary)",
+        borderRadius: "var(--lg-radius-full)",
+        transition: "width 0.3s var(--lg-ease-smooth)",
+      });
+      barBg.appendChild(barFill);
+      row.appendChild(barBg);
+    }
+
+    // Usage text
+    const usage = document.createElement("span");
+    usage.style.cssText =
+      "color: var(--lg-text-muted); font-size: 11px;";
+    if (limitMin > 0) {
+      usage.textContent = isOver
+        ? `${usedMin.toFixed(1)} / ${limitMin} min — limit reached`
+        : `${usedMin.toFixed(1)} / ${limitMin} min used`;
+    } else {
+      usage.textContent = `${usedMin.toFixed(1)} min today (no limit set)`;
+    }
+    row.appendChild(usage);
+
+    container.appendChild(row);
+  }
+
+  renderHomeUsage(sorted, today || {}, limits || {});
+}
+
+/**
+ * Compact top-3 mirror of today's usage for the Home card.
+ */
+function renderHomeUsage(sortedDomains, today, limits) {
+  const home = document.getElementById("home-time-usage");
+  if (!home) return;
+  home.textContent = "";
+
+  const tracked = (sortedDomains || [])
+    .filter((d) => (today[d] || 0) > 0)
+    .slice(0, 3);
+
+  if (tracked.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "protection-empty";
+    empty.textContent = "No sites tracked yet today.";
+    home.appendChild(empty);
+    return;
+  }
+
+  for (const domain of tracked) {
+    const usedMin = today[domain] || 0;
+    const limitMin = limits[domain] || 0;
+    const pct = limitMin > 0 ? Math.min(100, (usedMin / limitMin) * 100) : 0;
+    const isOver = limitMin > 0 && usedMin >= limitMin;
+
+    const row = document.createElement("div");
+    row.className = "home-usage-row";
+
+    const top = document.createElement("div");
+    top.className = "home-usage-top";
+    const name = document.createElement("span");
+    name.textContent = domain;
+    const val = document.createElement("span");
+    val.textContent =
+      limitMin > 0 ? `${Math.round(usedMin)}/${limitMin}m` : `${Math.round(usedMin)}m`;
+    if (isOver) val.classList.add("over");
+    top.appendChild(name);
+    top.appendChild(val);
+    row.appendChild(top);
+
+    if (limitMin > 0) {
+      const bg = document.createElement("div");
+      bg.className = "home-usage-bar";
+      const fill = document.createElement("div");
+      fill.className = isOver ? "fill over" : "fill";
+      fill.style.width = `${pct}%`;
+      bg.appendChild(fill);
+      row.appendChild(bg);
+    }
+
+    home.appendChild(row);
+  }
 }
 
 /**
@@ -996,6 +1659,86 @@ async function setTempBlock(minutes) {
 }
 
 /**
+ * Home — one glance: today's stats plus everything currently protecting.
+ */
+async function renderHomeSummary() {
+  const settings = await loadSettings();
+
+  const time = document.getElementById("home-stats-time");
+  const points = document.getElementById("home-stats-points");
+  const ads = document.getElementById("home-stats-ads");
+  if (time) time.textContent = formatTime(settings.statsTimeSaved);
+  if (points) points.textContent = Number(settings.statsWillpowerPoints) || 0;
+  if (ads) ads.textContent = Number(settings.statsAdsBlocked) || 0;
+
+  const list = document.getElementById("home-protection-list");
+  if (!list) return;
+
+  const now = Date.now();
+  const rows = [];
+
+  const tempLeft = Number(settings.tempBlockUntil) - now;
+  if (tempLeft > 0) {
+    const mins = Math.ceil(tempLeft / 60000);
+    rows.push([
+      "YouTube blocked",
+      mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m left` : `${mins}m left`,
+    ]);
+  }
+
+  if (settings.scheduleBlockEnabled) {
+    rows.push([
+      "Scheduled block",
+      `${settings.scheduleBlockStart || "09:00"}–${settings.scheduleBlockEnd || "17:00"} daily`,
+    ]);
+  }
+
+  const active = (settings.blockedSites || []).filter(
+    (b) => b && b.domain && b.blockUntil > now,
+  );
+  if (active.length > 0) {
+    const names = active
+      .slice(0, 3)
+      .map((b) => String(b.domain).replace(/^(https?:\/\/)?(www\.)?/, ""));
+    const extra = active.length > 3 ? ` +${active.length - 3}` : "";
+    rows.push([
+      `${active.length} site block${active.length > 1 ? "s" : ""}`,
+      names.join(", ") + extra,
+    ]);
+  }
+
+  const smart = Array.isArray(settings.smartListsEnabled)
+    ? settings.smartListsEnabled
+    : [];
+  if (smart.length > 0) {
+    rows.push(["Smart Lists", smart.join(", ")]);
+  }
+
+  list.textContent = "";
+  if (rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "protection-empty";
+    empty.textContent = "Nothing active. Start a block or a focus session.";
+    list.appendChild(empty);
+    return;
+  }
+
+  for (const [label, value] of rows) {
+    const row = document.createElement("div");
+    row.className = "protection-row";
+    const l = document.createElement("span");
+    l.className = "protection-label";
+    l.textContent = label;
+    const v = document.createElement("span");
+    v.className = "protection-value";
+    v.textContent = value;
+    row.appendChild(l);
+    row.appendChild(v);
+    list.appendChild(row);
+  }
+}
+
+/**
  * Universal Site Blocking Listeners
  */
 async function renderActiveBlocks() {
@@ -1023,7 +1766,7 @@ async function renderActiveBlocks() {
 
         const item = document.createElement('div');
         item.style.cssText = `
-          background: rgba(255,255,255,0.05);
+          background: rgba(255,255,255,0.04);
           padding: 8px 12px;
           border-radius: 6px;
           margin-bottom: 6px;
@@ -1031,29 +1774,29 @@ async function renderActiveBlocks() {
           justify-content: space-between;
           align-items: center;
           font-size: 12px;
-          border-left: 3px solid #667eea;
+          border-left: 3px solid var(--lg-primary);
           transition: all 0.2s ease;
         `;
-        
+
         const info = document.createElement('div');
-        info.style.cssText = 'color: #fff; flex: 1;';
+        info.style.cssText = 'color: var(--lg-text); flex: 1;';
         const domainName = String(block.domain || '').replace(/^(https?:\/\/)?(www\.)?/, '');
         // SECURITY: use DOM APIs to avoid XSS via a stored domain payload.
         const strong = document.createElement('strong');
-        strong.style.cssText = 'color: #fff; display: block;';
+        strong.style.cssText = 'color: var(--lg-text); display: block;';
         strong.textContent = domainName;
         const span = document.createElement('span');
-        span.style.cssText = 'color: #aaa; font-size: 11px;';
+        span.style.cssText = 'color: var(--lg-text-muted); font-size: 11px;';
         span.textContent = `${timeStr} remaining`;
         info.appendChild(strong);
         info.appendChild(span);
-        
+
         const removeBtn = document.createElement('button');
         removeBtn.textContent = '✕';
         removeBtn.style.cssText = `
-          background: rgba(255,67,67,0.2);
-          border: 1px solid rgba(255,67,67,0.4);
-          color: #ff6b6b;
+          background: var(--lg-danger-soft);
+          border: 1px solid var(--lg-danger-border);
+          color: var(--lg-danger);
           border-radius: 4px;
           cursor: pointer;
           padding: 4px 8px;

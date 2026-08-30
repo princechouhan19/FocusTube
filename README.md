@@ -4,6 +4,34 @@
 
 FocusTube is a comprehensive, privacy-first Chrome extension engineered to let you take back control of your YouTube experience. By deeply modifying YouTube's web interface, it eliminates algorithms, hides addictive content like Shorts, and protects your attention using dynamic intervention screens.
 
+## 🎨 v1.2.0 — Unified Liquid Glass Design System
+
+Every screen now shares a single visual language. Previously the popup (purple/teal dark glass), dashboard (cream/sky editorial), content overlays (purple gradient, flat black, Unsplash photos — four different styles), and AI nudge card (Tailwind alpha colors) all used different palettes, radius scales, font stacks, and component patterns.
+
+**Now all 8 surfaces** — popup, dashboard, AI Summary modal, site blocker, time blocker, URL blocker, keyword blocker, AI nudge card — **use one design system**: `src/shared/liquid-glass.css`.
+
+- **Deep liquid background** with slowly drifting aurora blooms (blue, violet, cyan).
+- **Translucent glass panels** with `backdrop-filter: blur(16px) saturate(160%)`, inner-top highlight, and soft shadows.
+- **Spring-easing transitions** everywhere (`cubic-bezier(0.34, 1.56, 0.64, 1)`).
+- **Shimmer sweep** on buttons, **breathing glow** on active elements, **liquid entrance** animation on panels.
+- **One palette**: blue `#3b82f6` → violet `#8b5cf6` primary gradient, emerald success, rose danger, amber warning, cyan accent.
+- **One type scale**, **one radius scale** (8/12/16/20/24/999px), **one shadow scale**, **one z-index scale**.
+- **Dashboard switched from cream/light to dark liquid glass** to match everything else.
+- Also fixed the url-blocker hide-style selector bug (overlay was hiding itself).
+
+## 🚀 v1.1.0 — New Features
+
+Six new productivity features added on top of the v1.0.1 hardening release:
+
+- **🍅 Pomodoro Timer** — built-in 25/5/15 cycles, Deep Work mode (auto-blocks Social during focus), desktop notifications, pause/skip/stop, persists across service-worker restarts.
+- **📋 Smart Lists** — one-click category blocking: Social, Shopping, Gaming, News, Messaging, Streaming, Adult. No expiry — toggle on/off anytime.
+- **📊 Dashboard v2** — Focus Score (0-100) with conic-gradient ring, 30-day GitHub-style heatmap, streak counter, willpower & pomodoro lifetime metrics.
+- **🤖 AI Nudge System** — when a site is blocked, shows a motivational message (60-message local library by default, or AI-generated if enabled) plus a 3-breath animation and +1 willpower button.
+- **🗂️ Tab Manager** — save/load workspaces, group tabs by domain (with colored Chrome tab groups), and "close all non-YouTube tabs" for instant focus restart.
+- **🧠 Quiz Overhaul** — three difficulty levels (Easy riddles / Medium math / Hard logic), plus a streak multiplier that escalates difficulty after 8+ completed pomodoros.
+
+See [`IMPROVEMENTS.md`](./IMPROVEMENTS.md) for the complete changelog.
+
 ## 🔒 v1.0.1 — Security & Stability Hardening
 
 This release fixes 23 issues across the codebase, including 4 critical bugs, 7 security fixes, and several performance improvements. Highlights:
@@ -21,11 +49,26 @@ See [`SECURITY.md`](./SECURITY.md) for the full threat model and [`IMPROVEMENTS.
 
 ## ✨ New Premium v2.1 Update
 
-### 👤 Profile Synchronization
+### 🔄 Local-First Cross-Browser Sync
+
+FocusTube always saves activity and settings in Chrome extension storage first. A
+shared `focustube-data.json` file is optional: when it is disconnected, the
+Dashboard shows **Saved locally** and safely queues changes. Choosing or
+reconnecting the file triggers an immediate merge and push, so offline time is
+not lost.
+
+The shared file includes usage history, metrics, site logos, profile name/avatar/
+goal, blocked topics/keywords, Smart Lists, time limits, Pomodoro preferences,
+and other productivity settings. API keys, passwords, browser session data,
+and file handles never leave the current browser.
+
+### 👤 Profile Personalization
 
 Now FocusTube is more powerful than ever. It automatically fetches your **YouTube Profile Name, Avatar, and Email** to personalize your dashboard.
 
-> **Note (v1.0.1):** The previously-advertised "Cookie-Based Settings Sync" feature was never actually implemented in the codebase. The claim has been removed to avoid confusion. Settings sync across browsers can be added in a future release via `chrome.storage.sync`.
+> **Note:** Profile information is collected locally. Only the display name,
+> avatar, and goal are included in the optional user-chosen sync file; email
+> and credentials remain local.
 
 ### 📊 Full-Screen "Stats & Shame" Dashboard
 
@@ -37,7 +80,6 @@ Track your productivity in real-time with a beautiful, newly designed **True Bla
 ### ⌨️ Power-User Keyboard Shortcuts
 
 - Press **`S`** while watching any video to attempt an AI Summary.
-- Press **`C`** to capture a high-quality, timestamped screenshot.
 
 ### 🤖 AI Summaries (Beta Status) ⚠️
 
@@ -94,7 +136,6 @@ FocusTube/
 │   ├── background/                      # Background SW (Stats, timers)
 │   ├── popup/                           # Popup UI
 │   ├── dashboard/                       # Dashboard UI
-│   ├── offscreen/                       # Offscreen document
 │   └── content/                         # Content Scripts (Organized)
 │       ├── core/                        # Core utilities
 │       ├── youtube/                     # YouTube-specific features

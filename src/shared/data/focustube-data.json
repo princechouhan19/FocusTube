@@ -1,0 +1,160 @@
+{
+  "version": 2,
+  "lifetime": {
+    "statsAdsBlocked": 2,
+    "statsShortsSkipped": 10,
+    "statsSummariesGenerated": 0,
+    "statsQuitsEarly": 3,
+    "statsTimeSaved": 255,
+    "statsWillpowerPoints": 0,
+    "statsPomodoroCompleted": 9
+  },
+  "analyticsDaily": {
+    "2026-07-28": {
+      "quitsEarly": 1,
+      "timeSavedMinutes": 70
+    },
+    "2026-07-29": {
+      "pomodoroCompleted": 2
+    },
+    "2026-07-30": {
+      "pomodoroCompleted": 1
+    },
+    "2026-08-01": {
+      "pomodoroCompleted": 1,
+      "quitsEarly": 1,
+      "shortsSkipped": 10,
+      "timeSavedMinutes": 60
+    },
+    "2026-08-15": {
+      "pomodoroCompleted": 2
+    },
+    "2026-08-21": {
+      "pomodoroCompleted": 1
+    },
+    "2026-08-22": {
+      "pomodoroCompleted": 1,
+      "quitsEarly": 1,
+      "timeSavedMinutes": 30
+    },
+    "2026-08-29": {
+      "adsBlocked": 2
+    },
+    "2026-08-30": {
+      "pomodoroCompleted": 1,
+      "timeSavedMinutes": 95
+    }
+  },
+  "timeUsage": {
+    "2026-08-22": {
+      "chat.deepseek.com": 30,
+      "deepseek.com": 150,
+      "github.com": 30,
+      "google.com": 16,
+      "in.pinterest.com": 30,
+      "instagram.com": 594,
+      "platform.deepseek.com": 150,
+      "youtube.com": 1170
+    },
+    "2026-08-23": {
+      "chatgpt.com": 2370,
+      "discord.com": 14994,
+      "docs.google.com": 30,
+      "gemini.google.com": 1680,
+      "google.com": 150,
+      "instagram.com": 270,
+      "opencomet.onrender.com": 30,
+      "princechouhan.netlify.app": 60,
+      "youtube.com": 1869
+    },
+    "2026-08-24": {
+      "chatgpt.com": 2010,
+      "github.com": 420,
+      "instagram.com": 834,
+      "youtube.com": 370
+    },
+    "2026-08-25": {
+      "instagram.com": 150,
+      "youtube.com": 30
+    },
+    "2026-08-26": {
+      "discord.com": 360
+    },
+    "2026-08-27": {
+      "chat.z.ai": 48,
+      "docs.google.com": 180,
+      "examform.nptel.ac.in": 240,
+      "mail.google.com": 90,
+      "onlinecourses.nptel.ac.in": 30,
+      "sjmsnew.rajasthan.gov.in": 60,
+      "sso.rajasthan.gov.in": 60,
+      "swayam-fb.swayam2.ac.in": 30,
+      "youtube.com": 174
+    },
+    "2026-08-28": {
+      "digilocker.meripehchaan.gov.in": 330,
+      "docs.google.com": 210,
+      "examform.nptel.ac.in": 810,
+      "examinationservices.nic.in": 30,
+      "exams.nta.nic.in": 30,
+      "instagram.com": 868,
+      "onlinecourses.nptel.ac.in": 1716,
+      "onlinecourses.swayam2.ac.in": 420,
+      "reduceimages.com": 540,
+      "swayam-fb.swayam2.ac.in": 30,
+      "swayam.gov.in": 180,
+      "youtube.com": 157
+    },
+    "2026-08-29": {
+      "build.nvidia.com": 300,
+      "chat.deepseek.com": 390,
+      "chatgpt.com": 360,
+      "examform.nptel.ac.in": 30,
+      "gemini.google.com": 180,
+      "github.com": 199,
+      "google.com": 60,
+      "music.youtube.com": 60,
+      "notebook.google.com": 1170,
+      "onlinecourses.nptel.ac.in": 900,
+      "youtube.com": 3909
+    },
+    "2026-08-30": {
+      "accountscenter.instagram.com": 30,
+      "chatgpt.com": 450,
+      "instagram.com": 1290,
+      "notebook.google.com": 300,
+      "threads.com": 30,
+      "youtube.com": 1323
+    }
+  },
+  "topicStats": {
+    "2026-08-22": {
+      "#iqooz11": 1
+    },
+    "2026-08-23": {
+      "#education": 1
+    },
+    "2026-08-24": {
+      "#freefiremax": 1,
+      "#iqooproseries": 1,
+      "#iqooz11": 1
+    },
+    "2026-08-29": {
+      "#education": 4
+    }
+  },
+  "profile": {},
+  "settings": {},
+  "blockedTopics": {
+    "blockedKeywords": [],
+    "blockedChannels": [],
+    "blockedPatterns": []
+  },
+  "timeLimits": {},
+  "blockedSites": [],
+  "syncMeta": {
+    "timeLimitsUpdatedAt": 0,
+    "blockedSitesUpdatedAt": 0,
+    "lastMergedAt": 1788085969316
+  }
+}

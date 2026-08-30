@@ -90,18 +90,50 @@ const DEFAULT_SETTINGS = {
   hideVideoDuration: false,
   hideMerch: false,
   customCSSRules: [],
-  shortcutsEnabled: true,
-  floatingToolbarEnabled: false,
 
   // Universal Site Blocking
   blockedSites: [], // Array of {domain, blockUntil (timestamp), reason}
 
-  // Stats
+  // ----- v1.1.0 new features -----
+  // Smart Lists
+  smartListsEnabled: [],
+
+  // Pomodoro
+  pomodoroFocusMinutes: 25,
+  pomodoroShortBreakMinutes: 5,
+  pomodoroLongBreakMinutes: 15,
+  pomodoroCyclesBeforeLongBreak: 4,
+  pomodoroDeepWork: false,
+  pomodoroAdaptiveFocus: true,
+  pomodoroFocusShield: true,
+  pomodoroSessionHistory: [],
+  pomodoroAutoStartBreaks: true,
+  pomodoroAutoStartFocus: false,
+  pomodoroNotify: true,
+  pomodoroState: null,
+
+  // AI Nudge
+  aiNudgeEnabled: false,
+
+  // Quiz Overhaul
+  quizDifficulty: "easy",
+  quizStreakMultiplier: false,
+
+  // Tab Manager
+  workspaces: {},
+
+  // Analytics v2
+  productivityScore: 0,
+
+  // Stats (extended)
   statsTimeSaved: 0,
   statsAdsBlocked: 0,
   statsShortsSkipped: 0,
   statsSummariesGenerated: 0,
   statsQuitsEarly: 0,
+  statsWillpowerPoints: 0,
+  statsPomodoroCompleted: 0,
+  siteLogos: {},
 };
 
 function applyExtensionEnabledOverride(settings) {

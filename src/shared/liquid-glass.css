@@ -1,0 +1,862 @@
+/* =========================================================================
+   FocusTube — Design System v2.0 "Graphite & Honey"
+   =========================================================================
+   The single source of truth for all FocusTube UI surfaces.
+
+   Loaded by:
+     - popup.html        (<link href="../shared/liquid-glass.css">)
+     - dashboard.html    (<link href="../shared/liquid-glass.css">)
+     - content scripts   (manifest.json content_scripts.css for YouTube)
+     - site-blocker      (injected via <style> at document_start for all URLs)
+
+   Design direction:
+     1. Warm graphite dark theme — near-black with a slight warm cast,
+        never pure blue-black.
+     2. ONE brand accent: honey amber. It marks interactive/primary
+        elements and nothing else. Semantic colors are muted, editorial
+        versions (sage / ochre / clay), never saturated neons.
+     3. Flat, calm surfaces: hairline borders, soft realistic shadows,
+        restrained blur. No neon glows, no drifting aurora, no shimmer
+        sweeps, no bounce physics.
+     4. Motion is brief and purposeful: 150–250ms, standard easing.
+     5. Text on amber fills is near-black ("ink") for AA contrast.
+     6. One type scale, one radius scale, one spacing scale (4px base).
+   ========================================================================= */
+
+
+/* =========================================================================
+   1. DESIGN TOKENS
+   ========================================================================= */
+
+:root {
+  /* --- Base surfaces (warm graphite) --- */
+  --lg-bg-deep:        #131318;   /* page background */
+  --lg-bg-surface:     #18181e;   /* raised panel base */
+  --lg-bg-raised:      #1f1f26;   /* highest surface (menus, popovers) */
+  --lg-glass-bg:       rgba(255, 255, 255, 0.032);
+  --lg-glass-bg-hover: rgba(255, 255, 255, 0.06);
+  --lg-glass-bg-active:rgba(255, 255, 255, 0.09);
+  --lg-glass-border:   rgba(255, 255, 255, 0.07);
+  --lg-glass-border-hover: rgba(255, 255, 255, 0.13);
+  --lg-glass-highlight:rgba(255, 255, 255, 0.09);  /* top-edge light */
+  --lg-glass-blur:     12px;
+  --lg-glass-saturate: 115%;
+
+  /* --- Ambient light (static, barely-there warm tints) --- */
+  --lg-aurora-1: rgba(217, 166, 46, 0.045);   /* honey */
+  --lg-aurora-2: rgba(138, 151, 198, 0.04);   /* periwinkle */
+  --lg-aurora-3: rgba(217, 166, 46, 0.03);    /* honey, lower */
+
+  /* --- Brand accent: honey amber --- */
+  --lg-primary:    #d9a62e;
+  --lg-primary-hi: #e6bc58;   /* hover / emphasis */
+  --lg-primary-ink:#221a07;   /* text ON amber fills (AA contrast) */
+
+  /* --- Supporting palette (muted, editorial) --- */
+  --lg-secondary:  #8a97c6;   /* dusty periwinkle */
+  --lg-accent:     #8a97c6;
+  --lg-success:    #8fb77a;   /* sage */
+  --lg-warning:    #cf9448;   /* ochre */
+  --lg-danger:     #c96a62;   /* clay */
+  --lg-gold:       #d9a62e;
+
+  /* --- Chart series (ordered, colorblind-distinct, all muted) --- */
+  --lg-chart-1:    #d9a62e;   /* amber   — shorts */
+  --lg-chart-2:    #8fb77a;   /* sage    — ads */
+  --lg-chart-3:    #8a97c6;   /* periwinkle — summaries */
+  --lg-chart-4:    #cf9448;   /* ochre   — quits */
+
+  /* --- Accent translucent fills (chips, badges, buttons) --- */
+  --lg-primary-soft:  rgba(217, 166, 46, 0.13);
+  --lg-primary-border:rgba(217, 166, 46, 0.32);
+  --lg-success-soft:  rgba(143, 183, 122, 0.13);
+  --lg-success-border:rgba(143, 183, 122, 0.32);
+  --lg-danger-soft:   rgba(201, 106, 98, 0.13);
+  --lg-danger-border: rgba(201, 106, 98, 0.32);
+  --lg-warning-soft:  rgba(207, 148, 72, 0.13);
+  --lg-warning-border:rgba(207, 148, 72, 0.32);
+  --lg-violet-soft:   rgba(138, 151, 198, 0.13);
+  --lg-violet-border: rgba(138, 151, 198, 0.32);
+
+  /* --- Text (warm neutrals) --- */
+  --lg-text:        #edebe7;
+  --lg-text-muted:  #a8a49c;
+  --lg-text-dim:    #807c74;
+  --lg-text-faint:  #5f5b54;
+
+  /* --- Fills (solid, for primary CTAs — prefer these over gradients) --- */
+  --lg-gradient-primary: #d9a62e;                        /* solid amber */
+  --lg-gradient-success: #6f9a5c;                        /* solid sage  */
+  --lg-gradient-danger:  #b05a52;                        /* solid clay  */
+  --lg-gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.008) 100%);
+
+  /* --- Radius scale --- */
+  --lg-radius-sm:   8px;
+  --lg-radius-md:   10px;
+  --lg-radius-lg:   14px;
+  --lg-radius-xl:   18px;
+  --lg-radius-2xl:  22px;
+  --lg-radius-full: 999px;
+
+  /* --- Shadow scale (soft, realistic — no glows) --- */
+  --lg-shadow-sm:   0 1px 4px rgba(0, 0, 0, 0.24);
+  --lg-shadow-md:   0 4px 16px rgba(0, 0, 0, 0.28);
+  --lg-shadow-lg:   0 12px 36px rgba(0, 0, 0, 0.36);
+  --lg-shadow-glow: 0 2px 12px rgba(217, 166, 46, 0.16); /* subtle warm lift */
+  --lg-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --lg-focus-ring:  0 0 0 3px rgba(217, 166, 46, 0.22);
+
+  /* --- Spacing scale (4px base unit) --- */
+  --lg-space-1:  4px;
+  --lg-space-2:  8px;
+  --lg-space-3:  12px;
+  --lg-space-4:  16px;
+  --lg-space-5:  20px;
+  --lg-space-6:  24px;
+  --lg-space-8:  32px;
+  --lg-space-10: 40px;
+
+  /* --- Typography --- */
+  --lg-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --lg-font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+
+  /* Type scale */
+  --lg-text-xs:    11px;
+  --lg-text-sm:    12px;
+  --lg-text-base:  13px;
+  --lg-text-md:    14px;
+  --lg-text-lg:    16px;
+  --lg-text-xl:    18px;
+  --lg-text-2xl:   22px;
+  --lg-text-3xl:   28px;
+  --lg-text-4xl:   36px;
+  --lg-text-5xl:   48px;
+
+  /* Font weights */
+  --lg-weight-normal:  400;
+  --lg-weight-medium:  500;
+  --lg-weight-semibold:600;
+  --lg-weight-bold:    700;
+  --lg-weight-extrabold:800;
+
+  /* --- Transitions (brief, standard) --- */
+  --lg-ease-spring:  cubic-bezier(0.4, 0, 0.2, 1);  /* legacy name — now smooth */
+  --lg-ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);
+  --lg-ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --lg-speed-fast:   0.12s;
+  --lg-speed-normal: 0.18s;
+  --lg-speed-slow:   0.28s;
+
+  /* --- Z-index scale --- */
+  --lg-z-base:    1;
+  --lg-z-overlay: 100;
+  --lg-z-modal:   1000;
+  --lg-z-blocker: 2147483647;
+}
+
+
+/* =========================================================================
+   2. BASE RESETS & BACKGROUND
+   ========================================================================= */
+
+.lg-surface,
+.lg-surface body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--lg-font);
+  color: var(--lg-text);
+  background: var(--lg-bg-deep);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ambient light — a static, quiet wash. Not a moving light show. */
+.lg-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 18% 0%, var(--lg-aurora-1), transparent 60%),
+    radial-gradient(ellipse 45% 50% at 88% 12%, var(--lg-aurora-2), transparent 60%);
+}
+
+
+/* =========================================================================
+   3. PANELS & CARDS
+   ========================================================================= */
+
+/* --- Panel — the primary container --- */
+.lg-panel {
+  background: var(--lg-glass-bg);
+  backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-xl);
+  box-shadow: var(--lg-shadow-sm), var(--lg-shadow-inset);
+  position: relative;
+}
+
+/* Top-edge highlight — light catching the surface */
+.lg-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--lg-glass-highlight) 50%,
+    transparent 100%);
+  pointer-events: none;
+}
+
+/* --- Card (smaller nested container) --- */
+.lg-card {
+  background: var(--lg-glass-bg);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-lg);
+  padding: var(--lg-space-4);
+  transition: background var(--lg-speed-normal) var(--lg-ease-smooth),
+              border-color var(--lg-speed-normal) var(--lg-ease-smooth);
+}
+
+.lg-card:hover {
+  background: var(--lg-glass-bg-hover);
+  border-color: var(--lg-glass-border-hover);
+}
+
+
+/* =========================================================================
+   4. BUTTONS
+   ========================================================================= */
+
+.lg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lg-space-2);
+  padding: var(--lg-space-3) var(--lg-space-4);
+  font-family: var(--lg-font);
+  font-size: var(--lg-text-md);
+  font-weight: var(--lg-weight-semibold);
+  color: var(--lg-text);
+  background: var(--lg-glass-bg);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-md);
+  cursor: pointer;
+  transition: background var(--lg-speed-normal) var(--lg-ease-smooth),
+              border-color var(--lg-speed-normal) var(--lg-ease-smooth),
+              color var(--lg-speed-normal) var(--lg-ease-smooth),
+              box-shadow var(--lg-speed-normal) var(--lg-ease-smooth);
+  user-select: none;
+  text-decoration: none;
+}
+
+.lg-btn:hover {
+  background: var(--lg-glass-bg-hover);
+  border-color: var(--lg-glass-border-hover);
+}
+
+.lg-btn:active {
+  background: var(--lg-glass-bg-active);
+}
+
+.lg-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--lg-focus-ring);
+}
+
+.lg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- Primary Button (solid amber, ink text) --- */
+.lg-btn-primary {
+  background: var(--lg-primary);
+  border: 1px solid transparent;
+  color: var(--lg-primary-ink);
+  font-weight: var(--lg-weight-bold);
+}
+
+.lg-btn-primary:hover {
+  background: var(--lg-primary-hi);
+}
+
+.lg-btn-primary:active {
+  background: var(--lg-primary);
+}
+
+/* --- Success / Danger variants (solid, muted) --- */
+.lg-btn-success {
+  background: var(--lg-gradient-success);
+  border: 1px solid transparent;
+  color: #101508;
+  font-weight: var(--lg-weight-bold);
+}
+
+.lg-btn-danger {
+  background: var(--lg-gradient-danger);
+  border: 1px solid transparent;
+  color: #1c0f0d;
+  font-weight: var(--lg-weight-bold);
+}
+
+/* --- Ghost Button (transparent, border only) --- */
+.lg-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--lg-glass-border);
+}
+
+.lg-btn-ghost:hover {
+  background: var(--lg-glass-bg);
+  border-color: var(--lg-glass-border-hover);
+}
+
+/* --- Soft Button (translucent accent fill) --- */
+.lg-btn-soft-primary {
+  background: var(--lg-primary-soft);
+  border: 1px solid var(--lg-primary-border);
+  color: var(--lg-primary-hi);
+}
+
+.lg-btn-soft-success {
+  background: var(--lg-success-soft);
+  border: 1px solid var(--lg-success-border);
+  color: var(--lg-success);
+}
+
+.lg-btn-soft-danger {
+  background: var(--lg-danger-soft);
+  border: 1px solid var(--lg-danger-border);
+  color: var(--lg-danger);
+}
+
+
+/* =========================================================================
+   5. INPUTS
+   ========================================================================= */
+
+.lg-input {
+  width: 100%;
+  padding: var(--lg-space-3) var(--lg-space-4);
+  font-family: var(--lg-font);
+  font-size: var(--lg-text-md);
+  color: var(--lg-text);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-md);
+  transition: border-color var(--lg-speed-normal) var(--lg-ease-smooth),
+              box-shadow var(--lg-speed-normal) var(--lg-ease-smooth);
+  box-sizing: border-box;
+}
+
+.lg-input::placeholder {
+  color: var(--lg-text-faint);
+}
+
+.lg-input:focus {
+  outline: none;
+  border-color: var(--lg-primary);
+  box-shadow: var(--lg-focus-ring);
+}
+
+.lg-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: var(--lg-space-2) var(--lg-space-4);
+  font-family: var(--lg-font);
+  font-size: var(--lg-text-md);
+  color: var(--lg-text);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-md);
+  cursor: pointer;
+  transition: border-color var(--lg-speed-normal) var(--lg-ease-smooth),
+              box-shadow var(--lg-speed-normal) var(--lg-ease-smooth);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a49c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.lg-select:focus {
+  outline: none;
+  border-color: var(--lg-primary);
+  box-shadow: var(--lg-focus-ring);
+}
+
+.lg-select option {
+  background: var(--lg-bg-surface);
+  color: var(--lg-text);
+}
+
+
+/* =========================================================================
+   6. TOGGLE SWITCH
+   ========================================================================= */
+
+.lg-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.lg-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lg-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-full);
+  transition: background var(--lg-speed-normal) var(--lg-ease-smooth),
+              border-color var(--lg-speed-normal) var(--lg-ease-smooth);
+}
+
+.lg-toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--lg-text-dim);
+  border-radius: 50%;
+  transition: transform var(--lg-speed-normal) var(--lg-ease-smooth),
+              background var(--lg-speed-normal) var(--lg-ease-smooth);
+  box-shadow: var(--lg-shadow-sm);
+}
+
+.lg-toggle input:checked + .lg-toggle-slider {
+  background: var(--lg-primary);
+  border-color: transparent;
+}
+
+.lg-toggle input:checked + .lg-toggle-slider::before {
+  transform: translateY(-50%) translateX(18px);
+  background: var(--lg-primary-ink);
+}
+
+.lg-toggle input:focus-visible + .lg-toggle-slider {
+  box-shadow: var(--lg-focus-ring);
+}
+
+
+/* =========================================================================
+   7. CHIPS / TAGS / BADGES
+   ========================================================================= */
+
+.lg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lg-space-2);
+  padding: var(--lg-space-1) var(--lg-space-3);
+  font-size: var(--lg-text-sm);
+  font-weight: var(--lg-weight-medium);
+  color: var(--lg-text-muted);
+  background: var(--lg-glass-bg);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-full);
+  transition: background var(--lg-speed-normal) var(--lg-ease-smooth);
+}
+
+.lg-chip-primary {
+  color: var(--lg-primary-hi);
+  background: var(--lg-primary-soft);
+  border-color: var(--lg-primary-border);
+}
+
+.lg-chip-success {
+  color: var(--lg-success);
+  background: var(--lg-success-soft);
+  border-color: var(--lg-success-border);
+}
+
+.lg-chip-danger {
+  color: var(--lg-danger);
+  background: var(--lg-danger-soft);
+  border-color: var(--lg-danger-border);
+}
+
+.lg-chip-warning {
+  color: var(--lg-warning);
+  background: var(--lg-warning-soft);
+  border-color: var(--lg-warning-border);
+}
+
+
+/* =========================================================================
+   8. TYPOGRAPHY HELPERS
+   ========================================================================= */
+
+.lg-title       { font-size: var(--lg-text-2xl); font-weight: var(--lg-weight-bold); color: var(--lg-text); letter-spacing: -0.02em; }
+.lg-subtitle    { font-size: var(--lg-text-lg); font-weight: var(--lg-weight-medium); color: var(--lg-text-muted); }
+.lg-label       { font-size: var(--lg-text-md); font-weight: var(--lg-weight-semibold); color: var(--lg-text); }
+.lg-description { font-size: var(--lg-text-sm); color: var(--lg-text-muted); line-height: 1.5; }
+.lg-hint        { font-size: var(--lg-text-xs); color: var(--lg-text-dim); }
+.lg-mono        { font-family: var(--lg-font-mono); font-variant-numeric: tabular-nums; }
+.lg-eyebrow     { font-size: var(--lg-text-xs); font-weight: var(--lg-weight-bold); color: var(--lg-text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+
+
+/* =========================================================================
+   9. LAYOUT UTILITIES
+   ========================================================================= */
+
+.lg-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--lg-space-3); }
+.lg-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--lg-space-3); }
+.lg-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--lg-space-3); }
+.lg-flex-row { display: flex; align-items: center; gap: var(--lg-space-3); }
+.lg-flex-col { display: flex; flex-direction: column; gap: var(--lg-space-3); }
+.lg-flex-between { display: flex; align-items: center; justify-content: space-between; }
+.lg-text-center { text-align: center; }
+.lg-mt-2 { margin-top: var(--lg-space-2); }
+.lg-mt-3 { margin-top: var(--lg-space-3); }
+.lg-mt-4 { margin-top: var(--lg-space-4); }
+.lg-mb-2 { margin-bottom: var(--lg-space-2); }
+.lg-mb-3 { margin-bottom: var(--lg-space-3); }
+.lg-mb-4 { margin-bottom: var(--lg-space-4); }
+
+
+/* =========================================================================
+   10. ANIMATIONS
+   ========================================================================= */
+
+/* Quiet entrance — a small rise, no bounce */
+@keyframes lg-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lg-enter {
+  animation: lg-enter var(--lg-speed-slow) var(--lg-ease-out) both;
+}
+
+/* Gentle breathing for "live" indicators (opacity only — no glow) */
+@keyframes lg-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.lg-pulse {
+  animation: lg-pulse 2s ease-in-out infinite;
+}
+
+/* Shimmer — loading placeholders */
+@keyframes lg-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.lg-shimmer {
+  background: linear-gradient(90deg,
+    var(--lg-glass-bg) 0%,
+    var(--lg-glass-bg-hover) 50%,
+    var(--lg-glass-bg) 100%);
+  background-size: 200% 100%;
+  animation: lg-shimmer 1.5s linear infinite;
+}
+
+/* Spin — loading spinners */
+@keyframes lg-spin {
+  to { transform: rotate(360deg); }
+}
+
+.lg-spin {
+  animation: lg-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-enter, .lg-pulse, .lg-shimmer, .lg-spin {
+    animation: none;
+  }
+}
+
+
+/* =========================================================================
+   11. BLOCK OVERLAY (shared by site-blocker, time-blocker, url-blocker)
+   ========================================================================= */
+
+.lg-block-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--lg-z-blocker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--lg-font);
+  background: var(--lg-bg-deep);
+}
+
+.lg-block-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 20% 8%, var(--lg-aurora-1), transparent 60%),
+    radial-gradient(ellipse 45% 45% at 82% 88%, var(--lg-aurora-2), transparent 60%);
+  pointer-events: none;
+}
+
+.lg-block-card {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  width: 90%;
+  padding: var(--lg-space-8) var(--lg-space-6);
+  text-align: center;
+  background: var(--lg-glass-bg);
+  backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-2xl);
+  box-shadow: var(--lg-shadow-lg), var(--lg-shadow-inset);
+  animation: lg-enter var(--lg-speed-slow) var(--lg-ease-out) both;
+}
+
+.lg-block-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--lg-space-4);
+  color: var(--lg-primary);
+  background: var(--lg-primary-soft);
+  border: 1px solid var(--lg-primary-border);
+  border-radius: var(--lg-radius-xl);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.lg-block-title {
+  margin: 0 0 var(--lg-space-2) 0;
+  font-size: var(--lg-text-2xl);
+  font-weight: var(--lg-weight-bold);
+  color: var(--lg-text);
+  letter-spacing: -0.02em;
+}
+
+.lg-block-reason {
+  margin: 0 0 var(--lg-space-4) 0;
+  font-size: var(--lg-text-md);
+  color: var(--lg-text-muted);
+  line-height: 1.5;
+}
+
+.lg-block-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--lg-space-4) var(--lg-space-6);
+  margin: var(--lg-space-4) 0;
+  font-family: var(--lg-font-mono);
+  font-size: var(--lg-text-4xl);
+  font-weight: var(--lg-weight-bold);
+  color: var(--lg-primary-ink);
+  background: var(--lg-primary);
+  border-radius: var(--lg-radius-lg);
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lg-block-message {
+  margin: var(--lg-space-4) 0 0 0;
+  font-size: var(--lg-text-sm);
+  color: var(--lg-text-dim);
+  line-height: 1.6;
+}
+
+.lg-block-actions {
+  display: flex;
+  gap: var(--lg-space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--lg-space-5);
+}
+
+
+/* =========================================================================
+   12. MODAL (shared by AI Summary modal)
+   ========================================================================= */
+
+.lg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--lg-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--lg-space-6);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: lg-enter var(--lg-speed-normal) var(--lg-ease-out) both;
+}
+
+.lg-modal {
+  position: relative;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--lg-bg-surface);
+  backdrop-filter: blur(20px) saturate(var(--lg-glass-saturate));
+  -webkit-backdrop-filter: blur(20px) saturate(var(--lg-glass-saturate));
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-2xl);
+  box-shadow: var(--lg-shadow-lg), var(--lg-shadow-inset);
+  animation: lg-enter var(--lg-speed-slow) var(--lg-ease-out) both;
+}
+
+.lg-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--lg-space-5) var(--lg-space-6);
+  border-bottom: 1px solid var(--lg-glass-border);
+}
+
+.lg-modal-title {
+  margin: 0;
+  font-size: var(--lg-text-xl);
+  font-weight: var(--lg-weight-bold);
+  color: var(--lg-text);
+}
+
+.lg-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  color: var(--lg-text-muted);
+  background: var(--lg-glass-bg);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-full);
+  cursor: pointer;
+  transition: color var(--lg-speed-normal) var(--lg-ease-smooth),
+              background var(--lg-speed-normal) var(--lg-ease-smooth),
+              border-color var(--lg-speed-normal) var(--lg-ease-smooth);
+}
+
+.lg-modal-close:hover {
+  color: var(--lg-danger);
+  background: var(--lg-danger-soft);
+  border-color: var(--lg-danger-border);
+}
+
+.lg-modal-body {
+  padding: var(--lg-space-6);
+}
+
+
+/* =========================================================================
+   13. SCROLLBAR
+   ========================================================================= */
+
+.lg-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.lg-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lg-scroll::-webkit-scrollbar-thumb {
+  background: var(--lg-glass-border-hover);
+  border-radius: var(--lg-radius-full);
+}
+
+.lg-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--lg-text-dim);
+}
+
+
+/* =========================================================================
+   14. METRIC STAT BLOCKS
+   ========================================================================= */
+
+.lg-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-space-1);
+  padding: var(--lg-space-4);
+  background: var(--lg-glass-bg);
+  border: 1px solid var(--lg-glass-border);
+  border-radius: var(--lg-radius-lg);
+  transition: background var(--lg-speed-normal) var(--lg-ease-smooth);
+}
+
+.lg-stat:hover {
+  background: var(--lg-glass-bg-hover);
+}
+
+.lg-stat-label {
+  font-size: var(--lg-text-xs);
+  font-weight: var(--lg-weight-semibold);
+  color: var(--lg-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lg-stat-value {
+  font-size: var(--lg-text-2xl);
+  font-weight: var(--lg-weight-extrabold);
+  color: var(--lg-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.lg-stat-accent { color: var(--lg-primary-hi); }
+.lg-stat-success { color: var(--lg-success); }
+.lg-stat-warning { color: var(--lg-warning); }
+.lg-stat-danger { color: var(--lg-danger); }
+
+
+/* =========================================================================
+   15. Icon System — inline SVG icons
+   ========================================================================= */
+
+.ft-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.ft-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Icon sizes */
+.ft-icon-sm { font-size: 14px; }
+.ft-icon-md { font-size: 18px; }
+.ft-icon-lg { font-size: 22px; }
+.ft-icon-xl { font-size: 28px; }
+
+/* Icon + text combo */
+.ft-icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lg-space-2);
+}
+
+.ft-icon-text .ft-icon {
+  font-size: inherit;
+}

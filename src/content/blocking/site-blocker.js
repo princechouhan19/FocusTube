@@ -35,24 +35,61 @@ function extractDomain(url) {
 }
 
 /**
- * Check if two domains match (handles subdomains)
+ * Check if two domains match (handles subdomains).
+ *
+ * Matching is one-directional: a blocked entry matches the current
+ * page's domain AND any subdomain of it. The reverse (blocking
+ * "old.reddit.com" should also block "reddit.com") is NOT done —
+ * that was a previous bug where `blocked.endsWith('.' + current)`
+ * caused over-blocking when a user blocked a specific subdomain.
+ *
+ * Examples:
+ *   current="reddit.com",      blocked="reddit.com"       → true  (exact)
+ *   current="old.reddit.com",  blocked="reddit.com"       → true  (subdomain)
+ *   current="reddit.com",      blocked="old.reddit.com"   → false (would over-block)
+ *   current="reddit.com",      blocked="google.com"       → false
  */
 function domainsMatch(currentDomain, blockedDomain) {
   if (!currentDomain || !blockedDomain) return false;
-  
+
   const current = normalizeDomain(currentDomain);
   const blocked = normalizeDomain(blockedDomain);
-  
+
   if (!current || !blocked) return false;
-  
-  // Exact match or subdomain match
-  return current === blocked || current.endsWith('.' + blocked) || blocked.endsWith('.' + current);
+
+  // Exact match, or current is a subdomain of blocked.
+  return current === blocked || current.endsWith('.' + blocked);
 }
 
 /**
- * Check if current site is blocked
+ * Check if current site is blocked.
+ *
+ * Two sources of "blocked":
+ *   1. Per-site time-based blocks (stored in `blockedSites`).
+ *   2. Smart Lists category blocks (sync O(1) lookup against the
+ *      `FocusTubeSmartLists` cache built from `smartListsEnabled`).
+ *
+ * Smart Lists blocks have no expiry — they're either on or off — so we
+ * synthesize a `blockEndTime` of `Infinity` for them. The overlay
+ * formatter handles `Infinity` gracefully by showing "until disabled".
  */
 async function checkIfSiteBlocked() {
+  // 1. Smart Lists (fast sync check, no storage round-trip).
+  try {
+    if (
+      window.FocusTubeSmartLists &&
+      window.FocusTubeSmartLists.isDomainBlocked(window.location.href)
+    ) {
+      isBlocked = true;
+      blockReason = 'Smart List category';
+      blockEndTime = Number.MAX_SAFE_INTEGER;
+      return true;
+    }
+  } catch (err) {
+    console.warn('[FocusTube Blocker] SmartLists check error:', err);
+  }
+
+  // 2. Per-site time-based blocks (storage lookup).
   return new Promise((resolve) => {
     try {
       chrome.storage.local.get(['blockedSites'], (data) => {
@@ -94,9 +131,14 @@ async function checkIfSiteBlocked() {
 }
 
 /**
- * Format remaining time efficiently
+ * Format remaining time efficiently.
+ * Smart Lists blocks use `Number.MAX_SAFE_INTEGER` as the end time;
+ * we render those as "until disabled" rather than a huge number.
  */
 function formatRemainingTime(endTime) {
+  if (!Number.isFinite(endTime) || endTime >= Number.MAX_SAFE_INTEGER) {
+    return 'until disabled';
+  }
   const remaining = Math.max(0, endTime - Date.now());
   if (remaining <= 0) return '0s';
 
@@ -115,21 +157,39 @@ function formatRemainingTime(endTime) {
 }
 
 /**
- * Create and display block page efficiently
+ * Inject the Liquid Glass design system CSS if it isn\'t already loaded.
+ * On YouTube pages, it\'s loaded via the manifest content_scripts.css.
+ * On all other pages (where the <all_urls> site-blocker runs), we
+ * inject it via a <link> tag from web_accessible_resources.
+ */
+function ensureLiquidGlassCSS() {
+  if (document.getElementById('focustube-liquid-glass-link')) return;
+  if (document.querySelector('link[href*="liquid-glass.css"]')) return;
+  try {
+    const link = document.createElement('link');
+    link.id = 'focustube-liquid-glass-link';
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = chrome.runtime.getURL('src/shared/liquid-glass.css');
+    (document.head || document.documentElement).appendChild(link);
+  } catch (_) {
+    // If we can\'t load the CSS (e.g. restricted context), the overlay
+    // will still work — it just won\'t have the liquid-glass styling.
+  }
+}
+
+/**
+ * Create and display block page using the Liquid Glass design system.
  */
 function displayBlockPage() {
-  // Prevent multiple overlays
   if (blockOverlayDisplayed) return;
   if (document.getElementById('focus-site-block-overlay')) return;
 
   blockOverlayDisplayed = true;
 
   try {
-    // Inject a CSS rule that hides underlying site content without
-    // destroying it. This is safer than clearing body.innerHTML, which
-    // would destroy all other content scripts' state on the page (and
-    // could break the block overlay itself if a mutation observer
-    // recreated body).
+    ensureLiquidGlassCSS();
+
     const hideStyle = document.createElement('style');
     hideStyle.id = 'focustube-block-hide-style';
     hideStyle.textContent = `
@@ -140,117 +200,34 @@ function displayBlockPage() {
     `;
     (document.head || document.documentElement).appendChild(hideStyle);
 
-    // Create overlay
     const blockPage = document.createElement('div');
     blockPage.id = 'focus-site-block-overlay';
-    blockPage.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2147483647;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    `;
+    blockPage.className = 'lg-block-overlay';
 
-    const container = document.createElement('div');
-    container.style.cssText = `
-      background: rgba(255, 255, 255, 0.98);
-      padding: 50px 40px;
-      border-radius: 20px;
-      text-align: center;
-      max-width: 480px;
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      animation: focustube-slideIn 0.3s ease-out;
-    `;
+    const card = document.createElement('div');
+    card.className = 'lg-block-card';
 
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes focustube-slideIn {
-        from {
-          opacity: 0;
-          transform: scale(0.9);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-      @keyframes focustube-pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-      }
-      #block-timer-pulse {
-        animation: focustube-pulse 1s ease-in-out infinite;
-      }
-    `;
-
-    // Icon
     const icon = document.createElement('div');
-    icon.style.cssText = `
-      font-size: 70px;
-      margin-bottom: 20px;
-      display: block;
-    `;
+    icon.className = 'lg-block-icon';
     icon.textContent = '🔒';
 
-    // Title
     const title = document.createElement('h1');
-    title.style.cssText = `
-      margin: 0 0 12px 0;
-      color: #333;
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    `;
+    title.className = 'lg-block-title';
     title.textContent = 'Site Blocked';
 
-    // Reason
     const reason = document.createElement('p');
-    reason.style.cssText = `
-      margin: 0 0 20px 0;
-      color: #666;
-      font-size: 15px;
-      line-height: 1.4;
-    `;
+    reason.className = 'lg-block-reason';
     reason.textContent = `${blockReason} is blocked to help you focus`;
 
-    // Timer
-    const timeContainer = document.createElement('div');
-    timeContainer.style.cssText = `
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 25px 30px;
-      border-radius: 15px;
-      margin: 25px 0;
-      font-size: 36px;
-      font-weight: 700;
-      font-family: 'Courier New', monospace;
-      letter-spacing: 1px;
-    `;
     const timerDisplay = document.createElement('div');
+    timerDisplay.className = 'lg-block-timer';
     timerDisplay.id = 'block-timer';
     timerDisplay.textContent = formatRemainingTime(blockEndTime);
-    timeContainer.appendChild(timerDisplay);
 
-    // Message — built with DOM APIs so we never interpolate raw HTML.
     const message = document.createElement('p');
-    message.style.cssText = `
-      margin: 20px 0 0 0;
-      color: #888;
-      font-size: 13px;
-      line-height: 1.6;
-    `;
+    message.className = 'lg-block-message';
     const strong = document.createElement('strong');
-    strong.style.color = '#333';
+    strong.style.color = 'var(--lg-text)';
     strong.textContent = 'Stay Focused!';
     message.appendChild(strong);
     message.appendChild(document.createElement('br'));
@@ -260,18 +237,31 @@ function displayBlockPage() {
       ),
     );
 
-    // Assemble
-    container.appendChild(icon);
-    container.appendChild(title);
-    container.appendChild(reason);
-    container.appendChild(timeContainer);
-    container.appendChild(message);
-    blockPage.appendChild(style);
-    blockPage.appendChild(container);
+    card.appendChild(icon);
+    card.appendChild(title);
+    card.appendChild(reason);
+    card.appendChild(timerDisplay);
+    card.appendChild(message);
 
-    // Append the overlay to body without destroying the rest of the DOM.
-    // We rely on the `focustube-block-hide-style` stylesheet above to hide
-    // the underlying site content.
+    const nudgeHost = document.createElement('div');
+    nudgeHost.style.cssText = 'margin-top: 8px;';
+    card.appendChild(nudgeHost);
+
+    if (window.FocusTubeAINudge) {
+      setTimeout(() => {
+        try {
+          window.FocusTubeAINudge.renderInto(nudgeHost, {
+            domain: extractDomain(window.location.href),
+            reason: blockReason,
+          });
+        } catch (err) {
+          console.warn('[FocusTube Blocker] nudge render failed:', err);
+        }
+      }, 50);
+    }
+
+    blockPage.appendChild(card);
+
     document.documentElement.style.overflow = 'hidden';
     const root = document.body || document.documentElement;
     root.appendChild(blockPage);
@@ -279,7 +269,6 @@ function displayBlockPage() {
       document.body.style.overflow = 'hidden';
     }
 
-    // Start efficient timer
     startTimerUpdate();
   } catch (error) {
     console.error('[FocusTube Blocker] Error displaying block page:', error);
@@ -288,12 +277,18 @@ function displayBlockPage() {
 }
 
 /**
- * Start efficient timer using requestAnimationFrame
+ * Start efficient timer using requestAnimationFrame.
+ * Smart Lists blocks never expire, so we skip the reload-on-expiry path.
  */
 function startTimerUpdate() {
   if (timerInterval) clearInterval(timerInterval);
 
-  // Update every second with minimal reflow
+  const isPermanent =
+    !Number.isFinite(blockEndTime) || blockEndTime >= Number.MAX_SAFE_INTEGER;
+
+  // Permanent blocks: update the display only when the storage changes
+  // (handled separately), so a 1-second poll is enough.
+  // Time-based blocks: poll every second and reload on expiry.
   timerInterval = setInterval(() => {
     const timer = document.getElementById('block-timer');
     if (!timer) {
@@ -302,14 +297,14 @@ function startTimerUpdate() {
     }
 
     const remaining = formatRemainingTime(blockEndTime);
-    
+
     // Only update if changed
     if (timer.textContent !== remaining) {
       timer.textContent = remaining;
     }
 
-    // If time is up, reload
-    if (blockEndTime <= Date.now()) {
+    // If time is up, reload (skip for permanent blocks)
+    if (!isPermanent && blockEndTime <= Date.now()) {
       clearInterval(timerInterval);
       window.location.reload();
     }
@@ -344,11 +339,35 @@ if (document.readyState === 'loading') {
   initSiteBlocker();
 }
 
-// Listen for storage changes from popup
+// Listen for storage changes from popup.
+// Two triggers:
+//   - blockedSites changed (per-site add/remove)
+//   - smartListsEnabled changed (category toggle)
+// We also reload if a Smart-List block was just removed, so the user
+// doesn't have to manually refresh to unblock.
 try {
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes.blockedSites && !isBlocked) {
+    if (areaName !== 'local') return;
+
+    if (changes.blockedSites && !isBlocked) {
       initSiteBlocker();
+    }
+
+    if (changes.smartListsEnabled) {
+      // Smart Lists state changed. If we're currently blocked because of
+      // a Smart List, check whether we're still blocked; if not, reload
+      // to clear the overlay.
+      if (isBlocked && blockEndTime >= Number.MAX_SAFE_INTEGER) {
+        // Re-run the check; if it returns false, the category was disabled.
+        checkIfSiteBlocked().then((stillBlocked) => {
+          if (!stillBlocked) {
+            window.location.reload();
+          }
+        });
+      } else if (!isBlocked) {
+        // Not currently blocked — re-check in case a category was enabled.
+        initSiteBlocker();
+      }
     }
   });
 } catch (error) {

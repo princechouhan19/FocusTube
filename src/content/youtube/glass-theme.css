@@ -1,0 +1,478 @@
+/**
+ * FocusTube — Modern Glass Theme for YouTube
+ * Apple "Liquid Glass" design language on YouTube's UI.
+ *
+ * Activated when glass-theme.js adds `yfp-modern-glass` to <html>.
+ * Colors come from the extension's liquid-glass.css tokens (Graphite &
+ * Honey). This file adds a small set of --ftg-* material tokens so the
+ * glass surfaces can adapt to YouTube's light/dark mode.
+ *
+ * Material rules of the system:
+ *   1. Glass is chrome, not content. Floating layers (masthead, guide,
+ *      menus, dialogs, miniplayer) get real backdrop-filter because
+ *      content genuinely scrolls beneath them. Feed cards sit directly
+ *      on the canvas — no per-card blur (wasted GPU over a static
+ *      background, and boxy).
+ *   2. Every glass surface has three layers: blur+saturate backdrop,
+ *      a top specular hairline, and a 1px luminous rim.
+ *   3. Corner radii are concentric: panel 22px → item 14px → chip 999px.
+ *   4. Motion is spring-eased and small: lifts, capsule fills, rim
+ *      brightening. Honors prefers-reduced-motion.
+ */
+
+/* =========================================================================
+   1. Material tokens (dark default, light adapts via html:not([dark]))
+   ========================================================================= */
+
+html.yfp-modern-glass {
+  /* Floating chrome (masthead, menus, dialogs) */
+  --ftg-chrome-bg: rgba(24, 26, 31, 0.62);
+  --ftg-chrome-bg-hover: rgba(255, 255, 255, 0.08);
+  --ftg-chrome-bg-active: rgba(255, 255, 255, 0.12);
+
+  /* Static surfaces sitting on the canvas (cards, description) */
+  --ftg-surface-bg: rgba(255, 255, 255, 0.035);
+  --ftg-surface-bg-hover: rgba(255, 255, 255, 0.065);
+
+  /* Rim + specular (the "glass edge") */
+  --ftg-rim: rgba(255, 255, 255, 0.13);
+  --ftg-rim-strong: rgba(255, 255, 255, 0.26);
+  --ftg-spec: rgba(255, 255, 255, 0.11);
+
+  /* Geometry (concentric) */
+  --ftg-radius: 22px;
+  --ftg-radius-item: 14px;
+  --ftg-radius-thumb: 16px;
+
+  --ftg-blur: 24px;
+  --ftg-saturate: 170%;
+  --ftg-shadow: 0 14px 44px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.30);
+  --ftg-shadow-soft: 0 6px 24px rgba(0, 0, 0, 0.32);
+
+  /* Remap YouTube's design system onto ours */
+  --yt-spec-base-background: #0c0d10;
+  --yt-spec-raised-background: #17181d;
+  --yt-spec-menu-background: rgba(24, 26, 31, 0.92);
+  --yt-spec-additive-background: rgba(255, 255, 255, 0.05);
+  --yt-spec-text-primary: #f4f2ee;
+  --yt-spec-text-secondary: #b9b4ab;
+  --yt-spec-text-disabled: #6f6b63;
+  --yt-spec-bordered: rgba(255, 255, 255, 0.13);
+  --yt-spec-call-to-action: #d9a62e;
+  --yt-spec-10-percent-layer: rgba(255, 255, 255, 0.07);
+  --yt-spec-general-background-a: transparent;
+}
+
+/* Light mode — frosted milk glass instead of smoked glass */
+html.yfp-modern-glass:not([dark]) {
+  --ftg-chrome-bg: rgba(250, 249, 246, 0.62);
+  --ftg-chrome-bg-hover: rgba(28, 27, 24, 0.07);
+  --ftg-chrome-bg-active: rgba(28, 27, 24, 0.11);
+
+  --ftg-surface-bg: rgba(28, 27, 24, 0.035);
+  --ftg-surface-bg-hover: rgba(28, 27, 24, 0.065);
+
+  --ftg-rim: rgba(28, 27, 24, 0.14);
+  --ftg-rim-strong: rgba(28, 27, 24, 0.26);
+  --ftg-spec: rgba(255, 255, 255, 0.85);
+
+  --ftg-shadow: 0 14px 44px rgba(60, 52, 30, 0.22), 0 2px 10px rgba(60, 52, 30, 0.14);
+  --ftg-shadow-soft: 0 6px 24px rgba(60, 52, 30, 0.16);
+
+  --yt-spec-base-background: #f5f4f0;
+  --yt-spec-raised-background: #fffefb;
+  --yt-spec-menu-background: rgba(250, 249, 246, 0.94);
+  --yt-spec-text-primary: #1d1c1a;
+  --yt-spec-text-secondary: #5d5a52;
+  --yt-spec-text-disabled: #a3a099;
+  --yt-spec-bordered: rgba(28, 27, 24, 0.14);
+  --yt-spec-additive-background: rgba(28, 27, 24, 0.05);
+  --yt-spec-10-percent-layer: rgba(28, 27, 24, 0.07);
+}
+
+/* =========================================================================
+   2. Canvas — soft aurora light behind everything
+   ========================================================================= */
+
+html.yfp-modern-glass body {
+  background: var(--yt-spec-base-background) !important;
+}
+
+html.yfp-modern-glass ytd-app {
+  background:
+    radial-gradient(ellipse 55% 45% at 12% -5%, var(--lg-aurora-1), transparent 60%),
+    radial-gradient(ellipse 45% 50% at 92% 8%, var(--lg-aurora-2), transparent 62%),
+    radial-gradient(ellipse 70% 40% at 50% 110%, var(--lg-aurora-3), transparent 70%),
+    var(--yt-spec-base-background) !important;
+  background-attachment: fixed !important;
+}
+
+html.yfp-modern-glass:not([dark]) ytd-app {
+  background:
+    radial-gradient(ellipse 55% 45% at 12% -5%, rgba(217, 166, 46, 0.10), transparent 60%),
+    radial-gradient(ellipse 45% 50% at 92% 8%, rgba(138, 151, 198, 0.10), transparent 62%),
+    var(--yt-spec-base-background) !important;
+  background-attachment: fixed !important;
+}
+
+html.yfp-modern-glass ytd-browse,
+html.yfp-modern-glass ytd-watch-flexy,
+html.yfp-modern-glass ytd-search,
+html.yfp-modern-glass #page-manager,
+html.yfp-modern-glass #content {
+  background: transparent !important;
+}
+
+/* =========================================================================
+   3. Masthead — floating glass toolbar
+   ========================================================================= */
+
+html.yfp-modern-glass ytd-masthead,
+html.yfp-modern-glass #masthead-container,
+html.yfp-modern-glass #background {
+  background: var(--ftg-chrome-bg) !important;
+  backdrop-filter: blur(var(--ftg-blur)) saturate(var(--ftg-saturate));
+  -webkit-backdrop-filter: blur(var(--ftg-blur)) saturate(var(--ftg-saturate));
+  border-bottom: none !important;
+  box-shadow:
+    inset 0 1px 0 var(--ftg-spec),
+    inset 0 -1px 0 var(--ftg-rim),
+    0 8px 32px rgba(0, 0, 0, 0.28) !important;
+}
+
+html.yfp-modern-glass #container.ytd-masthead {
+  background: transparent !important;
+}
+
+/* Search capsule */
+html.yfp-modern-glass ytd-searchbox input {
+  background: var(--ftg-surface-bg) !important;
+  border: 1px solid var(--ftg-rim) !important;
+  border-radius: 999px 0 0 999px !important;
+  color: var(--yt-spec-text-primary) !important;
+  box-shadow: inset 0 1px 0 var(--ftg-spec) !important;
+  transition: border-color 0.2s var(--lg-ease-smooth), box-shadow 0.2s var(--lg-ease-smooth);
+}
+
+html.yfp-modern-glass ytd-searchbox input:focus {
+  border-color: var(--lg-primary) !important;
+  box-shadow:
+    inset 0 1px 0 var(--ftg-spec),
+    0 0 0 3px var(--lg-primary-soft) !important;
+}
+
+html.yfp-modern-glass #search-icon-legacy {
+  border-radius: 0 999px 999px 0 !important;
+  background: var(--ftg-surface-bg-hover) !important;
+  border: 1px solid var(--ftg-rim) !important;
+  border-left: none !important;
+}
+
+/* Masthead buttons become glass capsules on hover */
+html.yfp-modern-glass ytd-masthead yt-icon-button,
+html.yfp-modern-glass ytd-masthead button[aria-label] {
+  border-radius: 999px !important;
+  transition: background 0.2s var(--lg-ease-smooth), box-shadow 0.2s var(--lg-ease-smooth);
+}
+
+html.yfp-modern-glass ytd-masthead yt-icon-button:hover,
+html.yfp-modern-glass ytd-masthead button[aria-label]:hover {
+  background: var(--ftg-chrome-bg-hover) !important;
+  box-shadow: inset 0 0 0 1px var(--ftg-rim);
+}
+
+/* =========================================================================
+   4. Guide (sidebar) — concentric glass rail
+   ========================================================================= */
+
+html.yfp-modern-glass #guide,
+html.yfp-modern-glass ytd-guide-renderer,
+html.yfp-modern-glass #guide-content {
+  background: transparent !important;
+}
+
+/* Guide sections are quiet glass panels; entries are capsule items
+   nested inside (22px panel → 14px item = concentric). */
+html.yfp-modern-glass ytd-guide-section-renderer {
+  background: var(--ftg-surface-bg) !important;
+  border: 1px solid var(--ftg-rim) !important;
+  border-radius: var(--ftg-radius) !important;
+  box-shadow: inset 0 1px 0 var(--ftg-spec) !important;
+  margin-bottom: 12px !important;
+}
+
+html.yfp-modern-glass ytd-guide-entry-renderer {
+  border-radius: var(--ftg-radius-item) !important;
+  transition: background 0.2s var(--lg-ease-smooth), box-shadow 0.2s var(--lg-ease-smooth);
+}
+
+html.yfp-modern-glass ytd-guide-entry-renderer:hover {
+  background: var(--ftg-chrome-bg-hover) !important;
+}
+
+html.yfp-modern-glass ytd-guide-entry-renderer[active] {
+  background: var(--lg-primary-soft) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 0 0 1px var(--lg-primary-border) !important;
+}
+
+/* =========================================================================
+   5. Filter chips — frosted capsules, honey when selected
+   ========================================================================= */
+
+html.yfp-modern-glass yt-chip-cloud-chip-renderer,
+html.yfp-modern-glass ytd-chip-bar-renderer yt-chip-cloud-chip-renderer {
+  border-radius: 999px !important;
+  background: var(--ftg-surface-bg) !important;
+  border: 1px solid transparent !important;
+  box-shadow: inset 0 0 0 1px var(--ftg-rim), inset 0 1px 0 var(--ftg-spec) !important;
+  transition: all 0.2s var(--lg-ease-spring);
+}
+
+html.yfp-modern-glass yt-chip-cloud-chip-renderer:hover {
+  background: var(--ftg-surface-bg-hover) !important;
+}
+
+html.yfp-modern-glass yt-chip-cloud-chip-renderer[selected],
+html.yfp-modern-glass yt-chip-cloud-chip-renderer[chip-style="STYLE_PRIMARY"] {
+  background: var(--lg-primary-soft) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--lg-primary-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+/* =========================================================================
+   6. Feed cards — content on canvas, no boxes
+   ========================================================================= */
+
+html.yfp-modern-glass ytd-rich-item-renderer,
+html.yfp-modern-glass ytd-video-renderer,
+html.yfp-modern-glass ytd-compact-video-renderer,
+html.yfp-modern-glass ytd-grid-video-renderer {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Thumbnails carry the glass: luminous hairline, radius, hover lift */
+html.yfp-modern-glass ytd-thumbnail,
+html.yfp-modern-glass #thumbnail.ytd-rich-item-renderer,
+html.yfp-modern-glass ytd-compact-video-renderer ytd-thumbnail {
+  border-radius: var(--ftg-radius-thumb) !important;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--ftg-rim) !important;
+  transition: transform 0.25s var(--lg-ease-spring), box-shadow 0.25s var(--lg-ease-spring);
+}
+
+html.yfp-modern-glass ytd-rich-item-renderer:hover ytd-thumbnail,
+html.yfp-modern-glass ytd-video-renderer:hover ytd-thumbnail,
+html.yfp-modern-glass ytd-compact-video-renderer:hover ytd-thumbnail {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    inset 0 0 0 1px var(--ftg-rim-strong),
+    var(--ftg-shadow-soft) !important;
+}
+
+/* Duration badge becomes a glass pill */
+html.yfp-modern-glass ytd-thumbnail #time-status,
+html.yfp-modern-glass .badge-shape-wiz__text {
+  background: rgba(12, 13, 16, 0.65) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 999px !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16) !important;
+}
+
+/* =========================================================================
+   7. Watch page
+   ========================================================================= */
+
+html.yfp-modern-glass #movie_player {
+  border-radius: var(--ftg-radius) !important;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px var(--ftg-rim),
+    var(--ftg-shadow-soft) !important;
+}
+
+html.yfp-modern-glass ytd-watch-flexy[theater] #movie_player,
+html.yfp-modern-glass ytd-watch-flexy[fullscreen] #movie_player {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Player control bar: glass shelf, not flat black */
+html.yfp-modern-glass .ytp-chrome-bottom {
+  background: linear-gradient(transparent, rgba(12, 13, 16, 0.72)) !important;
+}
+
+/* All pill buttons get true capsule geometry */
+html.yfp-modern-glass .yt-spec-button-shape-next--button,
+html.yfp-modern-glass ytd-button-renderer,
+html.yfp-modern-glass tp-yt-paper-button {
+  border-radius: 999px !important;
+}
+
+html.yfp-modern-glass .yt-spec-button-shape-next--tonal:hover {
+  background: var(--ftg-chrome-bg-hover) !important;
+}
+
+/* Subscribe — the one saturated element, in honey */
+html.yfp-modern-glass #subscribe-button .yt-spec-button-shape-next--filled,
+html.yfp-modern-glass ytd-subscribe-button-renderer .yt-spec-button-shape-next--filled {
+  background: var(--lg-gradient-primary) !important;
+  color: var(--lg-primary-ink) !important;
+  border-radius: 999px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 4px 16px rgba(217, 166, 46, 0.30) !important;
+}
+
+/* Description = quiet glass panel */
+html.yfp-modern-glass ytd-watch-metadata #description-inline-expander,
+html.yfp-modern-glass ytd-watch-metadata ytd-text-inline-expander {
+  background: var(--ftg-surface-bg) !important;
+  border: 1px solid var(--ftg-rim) !important;
+  border-radius: var(--ftg-radius) !important;
+  box-shadow: inset 0 1px 0 var(--ftg-spec) !important;
+}
+
+/* Comments header rides a glass panel */
+html.yfp-modern-glass ytd-comments #comments-title {
+  background: var(--ftg-surface-bg) !important;
+  border: 1px solid var(--ftg-rim) !important;
+  border-radius: var(--ftg-radius-item) !important;
+}
+
+/* =========================================================================
+   8. Floating glass — menus, dialogs, dropdowns
+      The signature Liquid Glass moment: content refracts beneath.
+   ========================================================================= */
+
+html.yfp-modern-glass ytd-menu-popup-renderer,
+html.yfp-modern-glass ytd-multi-menu-menu-renderer,
+html.yfp-modern-glass tp-yt-paper-dialog,
+html.yfp-modern-glass ytd-confirm-dialog-renderer,
+html.yfp-modern-glass yt-tooltip-renderer,
+html.yfp-modern-glass ytd-settings-renderer {
+  position: relative;
+  background: var(--ftg-chrome-bg) !important;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-radius: var(--ftg-radius) !important;
+  box-shadow:
+    inset 0 1px 0 var(--ftg-spec),
+    inset 0 0 0 1px var(--ftg-rim),
+    var(--ftg-shadow) !important;
+}
+
+/* Directional luminous rim — light from top-left, like real glass */
+html.yfp-modern-glass ytd-menu-popup-renderer::before,
+html.yfp-modern-glass tp-yt-paper-dialog::before,
+html.yfp-modern-glass ytd-multi-menu-menu-renderer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    var(--ftg-rim-strong),
+    var(--ftg-rim) 30%,
+    transparent 55%,
+    var(--ftg-rim)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Menu items: concentric inner radius */
+html.yfp-modern-glass ytd-menu-popup-renderer ytd-menu-service-item-renderer,
+html.yfp-modern-glass ytd-menu-popup-renderer tp-yt-paper-item {
+  border-radius: var(--ftg-radius-item) !important;
+}
+
+html.yfp-modern-glass ytd-menu-popup-renderer ytd-menu-service-item-renderer:hover {
+  background: var(--ftg-chrome-bg-hover) !important;
+}
+
+/* Share/sheets dropdowns */
+html.yfp-modern-glass tp-yt-iron-dropdown,
+html.yfp-modern-glass ytd-popup-container .style-scope {
+  --yt-spec-menu-background: var(--ftg-chrome-bg);
+}
+
+/* =========================================================================
+   9. Overlay surfaces — miniplayer, engagement panels, live chat, shorts
+   ========================================================================= */
+
+html.yfp-modern-glass ytd-miniplayer {
+  border-radius: var(--ftg-radius) !important;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px var(--ftg-rim-strong),
+    var(--ftg-shadow) !important;
+}
+
+html.yfp-modern-glass ytd-engagement-panel-section-list-renderer {
+  background: var(--ftg-chrome-bg) !important;
+  backdrop-filter: blur(var(--ftg-blur)) saturate(var(--ftg-saturate));
+  -webkit-backdrop-filter: blur(var(--ftg-blur)) saturate(var(--ftg-saturate));
+  box-shadow:
+    inset 1px 0 0 var(--ftg-rim),
+    var(--ftg-shadow) !important;
+}
+
+html.yfp-modern-glass ytd-live-chat-frame #chat,
+html.yfp-modern-glass ytd-live-chat-frame yt-live-chat-renderer {
+  background: var(--ftg-chrome-bg) !important;
+  backdrop-filter: blur(var(--ftg-blur)) saturate(var(--ftg-saturate));
+  -webkit-backdrop-filter: blur(var(--ftg-blur)) saturate(var(--ftg-saturate));
+  border-radius: var(--ftg-radius) !important;
+  box-shadow: inset 0 0 0 1px var(--ftg-rim), var(--ftg-shadow-soft) !important;
+}
+
+/* =========================================================================
+   10. Details — selection, focus, reduced motion
+   ========================================================================= */
+
+html.yfp-modern-glass ::selection {
+  background: var(--lg-primary-soft);
+  color: var(--lg-text);
+}
+
+html.yfp-modern-glass ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.yfp-modern-glass ::-webkit-scrollbar-thumb {
+  background: var(--ftg-rim);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html.yfp-modern-glass ::-webkit-scrollbar-thumb:hover {
+  background: var(--ftg-rim-strong);
+  background-clip: padding-box;
+}
+
+html.yfp-modern-glass a {
+  color: var(--lg-primary-hi);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.yfp-modern-glass *,
+  html.yfp-modern-glass *::before {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    transform: none !important;
+  }
+}

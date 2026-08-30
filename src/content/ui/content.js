@@ -228,11 +228,6 @@
         sendResponse({ success: true });
         return false;
 
-      case 'startRecording':
-      case 'recordingStopped':
-        sendResponse({ success: true, ignored: true });
-        return false;
-
       default:
         sendResponse({ success: false, error: 'Unknown action' });
         return false;

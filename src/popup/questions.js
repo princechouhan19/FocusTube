@@ -308,4 +308,42 @@ const QUIZ_QUESTIONS = {
     { q: "What building has the most stories?", a: "library" },
     { q: "I am full of holes but still hold water. What am I?", a: "sponge" },
   ],
+  // v1.1.0 — Hard difficulty: logic puzzles with multi-step reasoning.
+  logic: [
+    { q: "If A > B and B > C, is A > C? (yes/no)", a: "yes" },
+    { q: "All cats are animals. Tom is a cat. Is Tom an animal? (yes/no)", a: "yes" },
+    { q: "If all roses are flowers and some flowers fade quickly, can we say all roses fade quickly? (yes/no)", a: "no" },
+    { q: "A is the father of B. B is the sister of C. How is A related to C? (father/mother)", a: "father" },
+    { q: "If you rearrange 'LISTEN' you get a 6-letter word meaning quiet. What is it?", a: "silent" },
+    { q: "What comes next: 2, 4, 8, 16, ?", a: "32" },
+    { q: "What comes next: 1, 1, 2, 3, 5, 8, ?", a: "13" },
+    { q: "What comes next: 3, 6, 11, 18, ?", a: "27" },
+    { q: "If 5 machines make 5 widgets in 5 minutes, how many minutes for 100 machines to make 100 widgets?", a: "5" },
+    { q: "A bat and ball cost $1.10. The bat costs $1 more than the ball. How much is the ball? (cents)", a: "5" },
+    { q: "If today is Wednesday, what day will it be 100 days from now? (full name)", a: "friday" },
+    { q: "A clock shows 3:15. What is the angle between the hour and minute hands? (degrees)", a: "7.5" },
+    { q: "Two trains 100km apart approach each other at 50km/h each. A bird flies between them at 100km/h. How far does the bird fly before they collide? (km)", a: "100" },
+    { q: "You have 8 marbles, one heavier. Using a balance scale, what's the minimum number of weighings to find it?", a: "2" },
+    { q: "A man pushes his car to a hotel and tells the owner he's bankrupt. What game is he playing? (one word)", a: "monopoly" },
+    { q: "What number when multiplied by itself gives the same result as when added to itself? (one digit)", a: "2" },
+    { q: "If you have 3 apples and take away 2, how many do you have?", a: "2" },
+    { q: "A doctor gives you 3 pills, take one every 30 minutes. How long until all are taken? (minutes)", a: "60" },
+    { q: "What is the next prime after 13?", a: "17" },
+    { q: "How many times can you subtract 10 from 100? (number)", a: "1" },
+    { q: "Forward I am heavy, but backward I am not. What am I? (one word)", a: "ton" },
+    { q: "The more you take, the more you leave behind. What are they? (one word, plural)", a: "footsteps" },
+    { q: "What has 13 hearts but no other organs?", a: "deck" },
+    { q: "What can travel around the world while staying in a corner?", a: "stamp" },
+    { q: "I have no voice but I can teach you. I have no spine but I have a back. What am I?", a: "book" },
+  ],
+};
+
+// v1.1.0 — Difficulty-level topic mapping.
+// EASY:   typing riddles & aptitude (current behavior)
+// MEDIUM: math (single-step arithmetic)
+// HARD:   logic puzzles (multi-step reasoning)
+const QUIZ_DIFFICULTY_TOPICS = {
+  easy: ["aptitude"],
+  medium: ["math"],
+  hard: ["logic", "coding"],
 };

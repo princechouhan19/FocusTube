@@ -4,65 +4,132 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FocusTube</title>
+    <link rel="stylesheet" href="../shared/liquid-glass.css" />
     <link rel="stylesheet" href="popup.css" />
+    <script src="../shared/icons.js"></script>
   </head>
   <body>
     <div class="popup-container">
-      <!-- Navigation Bar -->
+      <!-- Unified Navigation Bar -->
       <nav class="navbar glass-panel">
-        <button class="nav-btn" id="nav-settings" title="Settings">⚙️</button>
-        <div class="logo-section">
-          <img src="../icons/banner.png" alt="FocusTube" class="logo-image" />
+        <button class="nav-btn nav-power" id="nav-power" title="Power Toggle">
+          <i data-icon="power" class="ft-icon ft-icon-md"></i>
+        </button>
+        <div class="nav-tabs">
+          <button class="tab-btn active" data-tab="home" title="Today">
+            <i data-icon="home" class="ft-icon ft-icon-md"></i>
+          </button>
+          <button class="tab-btn" data-tab="focus" title="Focus & Blocking">
+            <i data-icon="target" class="ft-icon ft-icon-md"></i>
+          </button>
+          <button class="tab-btn" data-tab="youtube" title="YouTube">
+            <i data-icon="play" class="ft-icon ft-icon-md"></i>
+          </button>
+          <button class="tab-btn" data-tab="settings" title="Settings">
+            <i data-icon="settings" class="ft-icon ft-icon-md"></i>
+          </button>
         </div>
-        <button class="nav-btn" id="nav-power" title="Power Toggle" style="font-size: 1.2rem; margin-right: 4px; font-family: sans-serif;">⏻</button>
-        <button class="nav-btn" id="nav-profile" title="Profile">👤</button>
+        <button class="nav-btn" id="nav-profile" title="Profile">
+          <i data-icon="user" class="ft-icon ft-icon-md"></i>
+        </button>
       </nav>
 
-      <!-- HOME VIEW -->
+      <!-- ═══════════════════════ HOME ═══════════════════════ -->
       <div id="home-view" class="view-container active">
-        <!-- Master Toggle -->
+        <!-- Status hero -->
         <div class="glass-panel master-control">
           <div class="master-label">
-            <h2>Extension Status</h2>
+            <h2>FocusTube</h2>
             <p id="status-text">Active and protecting</p>
           </div>
+          <button
+            class="pomodoro-chip yfp-hidden"
+            id="home-pomodoro-chip"
+            data-goto="focus"
+            title="Pomodoro running — open Focus"
+          >
+            <i data-icon="timer" class="ft-icon ft-icon-sm"></i>
+            <span id="home-pomodoro-time">25:00</span>
+          </button>
           <label class="toggle-switch">
             <input type="checkbox" id="extensionEnabled" checked />
             <span class="toggle-slider"></span>
           </label>
         </div>
 
-        <div style="margin-top: -8px; margin-bottom: 16px; text-align: center; display: flex; gap: 8px;">
-          <button id="open-dashboard-btn" style="background: linear-gradient(to right, #0ea5e9, #0284c7); color: white; border: none; padding: 12px 16px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; flex: 1.2; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">📊 Focus Dashboard</button>
-          <button id="capture-screenshot-btn" style="background: linear-gradient(to right, #10b981, #059669); color: white; border: none; padding: 12px 16px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; flex: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" title="Shortcut: Ctrl+S">📸 SS</button>
-          <button id="toggle-recording-btn" style="background: linear-gradient(to right, #ef4444, #dc2626); color: white; border: none; padding: 12px 16px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; flex: 1; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" title="Shortcut: Ctrl+Shift+R">🔴 Rec</button>
+        <!-- Quick actions -->
+        <div class="quick-grid">
+          <button id="quick-focus-session" class="quick-btn">
+            <i data-icon="timer" class="ft-icon ft-icon-md"></i>
+            <span>Focus Session</span>
+          </button>
+          <button id="quick-block-yt" class="quick-btn">
+            <i data-icon="ban" class="ft-icon ft-icon-md"></i>
+            <span>Block YouTube · 30m</span>
+          </button>
+          <button id="quick-smart-lists" class="quick-btn" data-goto="focus">
+            <i data-icon="list" class="ft-icon ft-icon-md"></i>
+            <span>Smart Lists</span>
+          </button>
+          <button id="open-dashboard-btn" class="quick-btn">
+            <i data-icon="chart" class="ft-icon ft-icon-md"></i>
+            <span>Dashboard</span>
+          </button>
         </div>
 
-        <!-- Shortcuts Toggle -->
-        <div class="glass-panel" style="margin-bottom: 16px; padding: 12px 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <div class="setting-info">
-              <label class="setting-label" style="font-weight: bold; color: white;">Keyboard Shortcuts</label>
-              <p class="setting-description" style="font-size: 11px; margin-top: 2px;">SS (Ctrl+S / C) & Rec (R)</p>
+        <!-- Today at a glance -->
+        <div class="stat-chips">
+          <div class="stat-chip">
+            <i data-icon="clock" class="ft-icon ft-icon-sm"></i>
+            <div class="stat-chip-text">
+              <strong id="home-stats-time">0m</strong>
+              <span>time saved</span>
             </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="shortcutsEnabled" checked />
-              <span class="toggle-slider"></span>
-            </label>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-            <div class="setting-info">
-              <label class="setting-label" style="font-weight: bold; color: white;">Floating Toolbar</label>
-              <p class="setting-description" style="font-size: 11px; margin-top: 2px;">Show tools in Player area</p>
+          <div class="stat-chip">
+            <i data-icon="zap" class="ft-icon ft-icon-sm"></i>
+            <div class="stat-chip-text">
+              <strong id="home-stats-points">0</strong>
+              <span>willpower</span>
             </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="floatingToolbarEnabled" />
-              <span class="toggle-slider"></span>
-            </label>
+          </div>
+          <div class="stat-chip">
+            <i data-icon="ban" class="ft-icon ft-icon-sm"></i>
+            <div class="stat-chip-text">
+              <strong id="home-stats-ads">0</strong>
+              <span>ads blocked</span>
+            </div>
           </div>
         </div>
 
-        <!-- Focus Controls -->
+        <!-- Active protection -->
+        <div class="glass-panel home-card">
+          <div class="home-card-head">
+            <h3 class="panel-title">
+              <i data-icon="shield" class="ft-icon ft-icon-sm"></i> Protected
+              right now
+            </h3>
+            <button class="link-btn" data-goto="focus">Manage</button>
+          </div>
+          <div id="home-protection-list" class="protection-list"></div>
+        </div>
+
+        <!-- Today's top sites -->
+        <div class="glass-panel home-card">
+          <div class="home-card-head">
+            <h3 class="panel-title">
+              <i data-icon="trending" class="ft-icon ft-icon-sm"></i> Today's
+              time
+            </h3>
+            <button class="link-btn" data-goto="focus">Limits</button>
+          </div>
+          <div id="home-time-usage" class="home-usage-list"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════ FOCUS ═══════════════════════ -->
+      <div id="focus-view" class="view-container">
+        <!-- Block YouTube -->
         <div class="glass-panel focus-control-panel">
           <h3 class="panel-title">Block YouTube</h3>
 
@@ -103,10 +170,10 @@
           </div>
         </div>
 
-        <!-- Block Any Site Panel -->
+        <!-- Block Any Site -->
         <div class="glass-panel focus-control-panel">
-          <h3 class="panel-title">🌐 Block Any Website</h3>
-          
+          <h3 class="panel-title"><i data-icon="globe" class="ft-icon ft-icon-md"></i> Block Any Website</h3>
+
           <div style="margin-bottom: 12px;">
             <input
               type="text"
@@ -149,7 +216,6 @@
             <button class="timer-btn" id="site-block-btn">Block</button>
           </div>
 
-          <!-- Active Site Blocks List -->
           <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
             <p style="color: #fff; font-size: 12px; font-weight: 600; margin: 0 0 8px 0;">ACTIVE BLOCKS</p>
             <div id="active-blocks-list" style="max-height: 200px; overflow-y: auto;">
@@ -157,15 +223,441 @@
             </div>
           </div>
         </div>
+
+        <!-- Smart Lists -->
+        <div class="glass-panel focus-control-panel" id="smart-lists-panel">
+          <h3 class="panel-title"><i data-icon="list" class="ft-icon ft-icon-md"></i> Smart Lists</h3>
+          <p style="color: #a1a1aa; font-size: 11px; margin: 0 0 12px 0;">Choose your distractions once. Focus sessions can temporarily add a protective shield without changing your choices.</p>
+          <div id="smart-lists-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <!-- chips injected by popup.js -->
+          </div>
+        </div>
+
+        <!-- Time Limits -->
+        <div class="glass-panel focus-control-panel" id="time-limit-panel">
+          <h3 class="panel-title"><i data-icon="clock" class="ft-icon ft-icon-md"></i> Time Limits</h3>
+          <p style="color: var(--lg-text-muted); font-size: 11px; margin: 0 0 10px 0;">
+            Set daily time budgets for any website. Auto-blocks at the limit, resets at midnight.
+          </p>
+
+          <div class="inline-input-row" style="margin-bottom: 8px;">
+            <input
+              id="time-limit-domain"
+              class="glass-input"
+              placeholder="e.g., reddit.com"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <input
+              id="time-limit-minutes"
+              class="glass-input"
+              type="number"
+              min="1"
+              max="1440"
+              placeholder="min"
+              style="max-width: 70px;"
+            />
+            <button id="time-limit-add" class="glass-button">Add</button>
+          </div>
+
+          <div id="time-usage-list" style="margin-top: 12px;"></div>
+        </div>
+
+        <!-- Pomodoro -->
+        <div class="glass-panel focus-control-panel" id="pomodoro-panel">
+          <h3 class="panel-title"><i data-icon="timer" class="ft-icon ft-icon-md"></i> Pomodoro Timer</h3>
+          <div id="pomodoro-display" style="text-align: center; padding: 16px 0;">
+            <div id="pomodoro-phase-label" style="font-size: 12px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Ready</div>
+            <div id="pomodoro-time" style="font-size: 38px; font-weight: 700; color: #f8fafc; font-family: 'Courier New', monospace; letter-spacing: 1px;">25:00</div>
+            <div id="pomodoro-cycle-label" style="font-size: 11px; color: #666; margin-top: 4px;">Cycle 1 of 4</div>
+          </div>
+          <div class="timer-grid" id="pomodoro-controls">
+            <button class="timer-btn" id="pomodoro-start"><i data-icon="play" class="ft-icon ft-icon-sm"></i> Start</button>
+            <button class="timer-btn" id="pomodoro-pause"><i data-icon="pause" class="ft-icon ft-icon-sm"></i> Pause</button>
+            <button class="timer-btn" id="pomodoro-skip"><i data-icon="skip" class="ft-icon ft-icon-sm"></i> Skip</button>
+            <button class="timer-btn" id="pomodoro-stop"><i data-icon="stop" class="ft-icon ft-icon-sm"></i> Stop</button>
+          </div>
+          <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
+              <span>Focus Shield (Social, Gaming, Streaming, Shopping)</span>
+              <input type="checkbox" id="pomodoro-focus-shield" checked />
+            </label>
+            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
+              <span>Adaptive focus length (learns from completion)</span>
+              <input type="checkbox" id="pomodoro-adaptive-focus" checked />
+            </label>
+            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
+              <span>Deep Work (always include Social)</span>
+              <input type="checkbox" id="pomodoro-deep-work" />
+            </label>
+            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
+              <span>Notifications</span>
+              <input type="checkbox" id="pomodoro-notify" checked />
+            </label>
+          </div>
+        </div>
       </div>
 
-      <!-- SETTINGS VIEW -->
-      <div id="settings-view" class="view-container">
-        <button class="action-btn back-btn" data-target="home-view">
-          ← Back
-        </button>
+      <!-- ═══════════════════════ YOUTUBE ═══════════════════════ -->
+      <div id="youtube-view" class="view-container">
+        <details class="yt-section" open>
+          <summary class="yt-section-head">
+            <span>Home Feed</span>
+            <i class="chev"></i>
+          </summary>
+          <div class="yt-section-body">
+            <div class="setting-item setting-item-stacked">
+              <div class="setting-info">
+                <label class="setting-label">Home Redirect</label>
+                <p class="setting-description">Where to go instead of Home</p>
+              </div>
+              <select id="homePageRedirect" class="glass-input compact-select">
+                <option value="none">None</option>
+                <option value="subscriptions">Subscriptions</option>
+                <option value="search">Search</option>
+                <option value="blank">Blank Page</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Suggestions</label>
+                <p class="setting-description">Remove video grid</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideSuggestions" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Trending</label>
+                <p class="setting-description">Remove trending section</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideTrending" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide "People Also Watched"</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hidePeopleAlsoWatched" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Shorts</label>
+                <p class="setting-description">Remove Shorts from feed</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideShorts" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </details>
 
-        <div class="glass-panel" style="padding: 16px">
+        <details class="yt-section">
+          <summary class="yt-section-head">
+            <span>Sidebar &amp; Navigation</span>
+            <i class="chev"></i>
+          </summary>
+          <div class="yt-section-body">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Sidebar</label>
+                <p class="setting-description">Hide main navigation menu</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideSidebar" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Shorts Tab</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideNavShorts" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Explore</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideNavExplore" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Gaming</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideNavGaming" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Trending Tab</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideNavTrending" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <details class="yt-section">
+          <summary class="yt-section-head">
+            <span>Header</span>
+            <i class="chev"></i>
+          </summary>
+          <div class="yt-section-body">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Notifications</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideNotifications" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Voice Search</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideVoiceSearch" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Create Button</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideCreateButton" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <details class="yt-section">
+          <summary class="yt-section-head">
+            <span>Player &amp; Video</span>
+            <i class="chev"></i>
+          </summary>
+          <div class="yt-section-body">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Use Native Player</label>
+                <p class="setting-description">Simpler player, less distractions</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="useNativePlayer" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Force High Quality</label>
+                <p class="setting-description">Always use 4K/HD</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="forceHighestQuality" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Banner Ads</label>
+                <p class="setting-description">Remove banner ads</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideBannerAds" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Skip Ads</label>
+                <p class="setting-description">Auto-skip video ads</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="skipVideoAds" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Disable Autoplay</label>
+                <p class="setting-description">Prevent next video</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="disableAutoplay" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Auto Theater Mode</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autoTheaterMode" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Comments</label>
+                <p class="setting-description">Remove comments section</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideComments" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Info Cards</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideInfoCards" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide End Screens</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideEndScreens" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Live Chat</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideLiveChat" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Next Video</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideNextVideo" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide More Videos</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideMoreVideos" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Video Metrics</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideVideoMetrics" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Video Duration</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideVideoDuration" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Merch Shelf</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideMerch" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Hide Share Buttons</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="hideShareButtons" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <details class="yt-section" open>
+          <summary class="yt-section-head">
+            <span>Topics &amp; Theme</span>
+            <i class="chev"></i>
+          </summary>
+          <div class="yt-section-body">
+            <div class="setting-item setting-item-stacked">
+              <div class="setting-info">
+                <label class="setting-label">Blocked Topics</label>
+                <p class="setting-description">
+                  Hide videos matching these keywords
+                </p>
+              </div>
+              <div class="inline-input-row">
+                <input
+                  id="blockedKeywordInput"
+                  class="glass-input"
+                  placeholder="Add topic keyword (e.g., Free fire)"
+                />
+                <button id="addBlockedKeyword" class="glass-button">Add</button>
+              </div>
+            </div>
+            <div class="setting-item setting-item-stacked">
+              <div class="setting-info">
+                <label class="setting-label">Current Blocklist</label>
+                <p class="setting-description">Click the remove icon to delete</p>
+              </div>
+              <div id="blockedKeywordsList" class="yfp-tag-list"></div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Modern Glass Theme</label>
+                <p class="setting-description">
+                  Glassmorphism UI: blur, transparency, rounded panels
+                </p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="modernGlassTheme" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- ═══════════════════════ SETTINGS ═══════════════════════ -->
+      <div id="settings-view" class="view-container">
+        <div class="glass-panel settings-list">
           <h3 class="panel-title">AI Settings</h3>
           <div class="ai-settings-grid">
             <div class="input-group">
@@ -197,22 +689,26 @@
               Stored locally on this device.
             </p>
           </div>
-          <div class="input-group">
-            <label for="useTranscript">Use transcript in AI summary</label>
-            <label class="toggle-switch" style="margin-left: 8px">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Use transcript in AI summary</label>
+            </div>
+            <label class="toggle-switch">
               <input type="checkbox" id="useTranscript" />
               <span class="toggle-slider"></span>
             </label>
           </div>
-          <div class="input-group">
-            <label for="transcriptLang">Transcript language</label>
+          <div class="setting-item setting-item-stacked">
+            <div class="setting-info">
+              <label class="setting-label">Transcript language</label>
+            </div>
             <select id="transcriptLang" class="glass-input compact-select">
               <option value="en">en</option>
               <option value="en-US">en-US</option>
               <option value="hi">hi</option>
             </select>
           </div>
-          <div class="setting-item" style="border: none; padding-top: 8px">
+          <div class="setting-item">
             <div class="setting-info">
               <label class="setting-label">Show Summary Button</label>
             </div>
@@ -221,386 +717,80 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
-          <button id="saveApiKey" class="action-btn" style="margin-top: 0">
+          <button id="saveApiKey" class="action-btn">
             Save AI Settings
           </button>
         </div>
 
+        <!-- Focus & Nudge -->
         <div class="glass-panel settings-list">
-          <h3 class="panel-title" style="padding: 16px 16px 0">Home Page</h3>
+          <h3 class="panel-title">Focus &amp; Nudge</h3>
 
-          <div class="setting-item">
+          <div class="setting-item setting-item-stacked">
             <div class="setting-info">
-              <label class="setting-label">Home Redirect</label>
-              <p class="setting-description">Where to go instead of Home</p>
+              <label class="setting-label">Quiz Difficulty</label>
+              <p class="setting-description">Harder quizzes make bypassing focus blocks more friction.</p>
             </div>
-            <select
-              id="homePageRedirect"
-              class="glass-input"
-              style="width: auto; padding: 4px 8px"
-            >
-              <option value="none">None</option>
-              <option value="subscriptions">Subscriptions</option>
-              <option value="search">Search</option>
-              <option value="blank">Blank Page</option>
+            <select id="quizDifficulty" class="glass-input compact-select">
+              <option value="easy">Easy (riddles)</option>
+              <option value="medium">Medium (math)</option>
+              <option value="hard">Hard (logic)</option>
             </select>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Hide Suggestions</label>
-              <p class="setting-description">Remove video grid</p>
+              <label class="setting-label">Streak Multiplier</label>
+              <p class="setting-description">Escalate quiz difficulty after 8+ completed Pomodoros.</p>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="hideSuggestions" />
+              <input type="checkbox" id="quizStreakMultiplier" />
               <span class="toggle-slider"></span>
             </label>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label">Hide Trending</label>
-              <p class="setting-description">Remove trending section</p>
+              <label class="setting-label">AI Nudge on Block</label>
+              <p class="setting-description">Use your AI key to generate personalized motivational messages on the block screen. Off = local library of 60+ messages.</p>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="hideTrending" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide "People Also Watched"</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hidePeopleAlsoWatched" />
+              <input type="checkbox" id="aiNudgeEnabled" />
               <span class="toggle-slider"></span>
             </label>
           </div>
         </div>
 
-        <div class="glass-panel settings-list">
-          <h3 class="panel-title" style="padding: 16px 16px 0">Navigation</h3>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Sidebar</label>
-              <p class="setting-description">Hide main navigation menu</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideSidebar" />
-              <span class="toggle-slider"></span>
-            </label>
+        <!-- Utilities -->
+        <div class="glass-panel settings-list" id="tab-manager-panel">
+          <h3 class="panel-title"><i data-icon="layers" class="ft-icon ft-icon-md"></i> Tab Manager</h3>
+          <div class="timer-grid">
+            <button class="timer-btn" id="tab-save-workspace"><i data-icon="save" class="ft-icon ft-icon-sm"></i> Save</button>
+            <button class="timer-btn" id="tab-load-workspace"><i data-icon="folder" class="ft-icon ft-icon-sm"></i> Load</button>
+            <button class="timer-btn" id="tab-group-domain"><i data-icon="layers" class="ft-icon ft-icon-sm"></i> Group</button>
+            <button class="timer-btn" id="tab-close-all"><i data-icon="trash" class="ft-icon ft-icon-sm"></i> Close All</button>
           </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Shorts Tab</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideNavShorts" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Explore</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideNavExplore" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Gaming</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideNavGaming" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Trending Tab</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideNavTrending" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
+          <div id="workspace-list" style="margin-top: 10px; max-height: 120px; overflow-y: auto;"></div>
         </div>
 
-        <div class="glass-panel settings-list">
-          <h3 class="panel-title" style="padding: 16px 16px 0">
-            Header Controls
-          </h3>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Notifications</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideNotifications" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Voice Search</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideVoiceSearch" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Create Button</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideCreateButton" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="glass-panel settings-list">
-          <h3 class="panel-title" style="padding: 16px 16px 0">
-            Video Controls
-          </h3>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Use Native Player</label>
-              <p class="setting-description">
-                Simpler player, less distractions
-              </p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="useNativePlayer" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Force High Quality</label>
-              <p class="setting-description">Always use 4K/HD</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="forceHighestQuality" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Banner Ads</label>
-              <p class="setting-description">Remove banner ads</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideBannerAds" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Skip Ads</label>
-              <p class="setting-description">Auto-skip video ads</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="skipVideoAds" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Shorts</label>
-              <p class="setting-description">Remove Shorts from feed</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideShorts" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Comments</label>
-              <p class="setting-description">Remove comments section</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideComments" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Disable Autoplay</label>
-              <p class="setting-description">Prevent next video</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="disableAutoplay" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Blocked Topics</label>
-              <p class="setting-description">
-                Hide videos matching these keywords
-              </p>
-            </div>
-            <div class="inline-input-row">
-              <input
-                id="blockedKeywordInput"
-                class="glass-input"
-                placeholder="Add topic keyword (e.g., Free fire)"
-                style="flex: 1"
-              />
-              <button id="addBlockedKeyword" class="glass-button">Add</button>
-            </div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Current Blocklist</label>
-              <p class="setting-description">Click ✕ to remove</p>
-            </div>
-            <div id="blockedKeywordsList" class="yfp-tag-list"></div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Modern Glass Theme</label>
-              <p class="setting-description">
-                Glassmorphism UI: blur, transparency, rounded panels
-              </p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="modernGlassTheme" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Auto Theater Mode</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="autoTheaterMode" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Info Cards</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideInfoCards" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide End Screens</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideEndScreens" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Live Chat</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideLiveChat" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Next Video</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideNextVideo" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide More Videos</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideMoreVideos" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Video Metrics</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideVideoMetrics" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Video Duration</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideVideoDuration" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Merch Shelf</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideMerch" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label">Hide Share Buttons</label>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="hideShareButtons" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
+        <!-- About -->
+        <div class="glass-panel settings-list" id="about-panel">
+          <h3 class="panel-title">About</h3>
+          <p class="setting-description" style="margin: 0;">
+            <span id="popup-version">FocusTube</span> — everything stays on
+            this device. No cloud, no accounts.
+          </p>
         </div>
       </div>
 
-      <!-- PROFILE VIEW -->
+      <!-- ═══════════════════════ PROFILE ═══════════════════════ -->
       <div id="profile-view" class="view-container">
         <button class="action-btn back-btn" data-target="home-view">
-          ← Back
+          <i data-icon="back" class="ft-icon ft-icon-sm"></i> Back
         </button>
 
         <div class="glass-panel profile-header">
-          <div class="profile-avatar">👤</div>
+          <div class="profile-avatar"></div>
           <h2 id="profile-name-display">Guest User</h2>
           <p id="profile-email-display" style="opacity: 0.5; font-size: 11px; margin-top: -4px; margin-bottom: 8px;">Not logged in</p>
           <p id="profile-goal-display" style="opacity: 0.7; font-size: 12px">
@@ -647,14 +837,14 @@
     <!-- Quiz Overlay -->
     <div id="quiz-overlay" class="yfp-modal-overlay yfp-hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:9999;">
       <div class="glass-panel" style="width: 90%; max-width: 400px; padding: 24px;">
-        <h2 style="margin:0 0 12px 0; color:#fff;">Focus Challenge</h2>
-        <p style="color:#bbb; font-size:14px; margin-bottom:16px;">To turn off FocusTube or cancel an active block, you must solve 5 hard questions from <span id="quiz-topic-label" style="color:#38bdf8;font-weight:bold;">Math</span>. (<span id="quiz-progress">0/5</span>)</p>
-        <p style="color:#ff6b81; font-size:12px; margin-bottom:12px;"><strong>Time left: <span id="quiz-timer">30</span>s</strong> | Paste disabled!</p>
-        
+        <h2 style="margin:0 0 12px 0; color:var(--lg-text);">Focus Challenge</h2>
+        <p style="color:var(--lg-text-muted); font-size:14px; margin-bottom:16px;">To turn off FocusTube or cancel an active block, you must solve 5 hard questions from <span id="quiz-topic-label" style="color:var(--lg-primary-hi);font-weight:bold;">Math</span>. (<span id="quiz-progress">0/5</span>)</p>
+        <p style="color:var(--lg-warning); font-size:12px; margin-bottom:12px;"><strong>Time left: <span id="quiz-timer">30</span>s</strong> | Paste disabled!</p>
+
         <div id="quiz-question-container" style="background:rgba(255,255,255,0.05); padding:16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); margin-bottom:16px;">
-          <h3 id="quiz-question" style="margin:0; font-size:16px; line-height:1.4; color:#fff;">Loading...</h3>
+          <h3 id="quiz-question" style="margin:0; font-size:16px; line-height:1.4; color:var(--lg-text);">Loading...</h3>
         </div>
-        
+
         <div class="input-group" style="margin-bottom:16px;">
           <input
             type="text"
@@ -666,10 +856,10 @@
             style="font-size:16px;"
           />
         </div>
-        
+
         <div style="display:flex; gap:10px;">
           <button id="quiz-submit-btn" class="action-btn" style="flex:1;">Submit</button>
-          <button id="quiz-cancel-btn" class="glass-button" style="color:#ff6b81;">Cancel</button>
+          <button id="quiz-cancel-btn" class="glass-button" style="color:var(--lg-danger);">Cancel</button>
         </div>
       </div>
     </div>
