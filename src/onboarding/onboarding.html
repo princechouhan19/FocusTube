@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to FocusTube</title>
+  <link rel="stylesheet" href="../shared/apple-ui.css" />
+  <link rel="stylesheet" href="onboarding.css" />
+  <script src="../shared/icons.js"></script>
+</head>
+<body class="ios-theme ob-body" data-ft-companion="onboarding">
+  <!-- Top bar: back chevron + progress -->
+  <header class="ob-topbar">
+    <button id="ob-back" class="ob-back" aria-label="Go back" hidden>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="ob-progress" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="ob-progress-fill" id="ob-progress-fill"></div>
+    </div>
+  </header>
+
+  <main class="ob-main">
+    <!-- Step 0 · Welcome -->
+    <section class="ob-step active" data-step="0">
+      <img class="ob-logo anim-fade-up" src="../icons/banner.png" alt="FocusTube" />
+      <h1 class="ob-title anim-fade-up" style="animation-delay:80ms">Focus, by design.</h1>
+      <p class="ob-lead anim-fade-up" style="animation-delay:160ms">
+        FocusTube helps you use YouTube on purpose — keep what's useful,
+        screen out the rabbit holes. Let's set it up for you.
+      </p>
+      <div class="ob-actions anim-fade-up" style="animation-delay:240ms">
+        <button class="ob-btn ob-btn-primary" data-next>Get Started</button>
+      </div>
+      <p class="ob-footnote anim-fade-up" style="animation-delay:320ms">
+        Takes about a minute. Everything can be changed later in Settings.
+      </p>
+    </section>
+
+    <!-- Step 1 · Choose your buddy (anime duo: Mika / Haru) -->
+    <section class="ob-step" data-step="1">
+      <h1 class="ob-title-sm">Choose your focus buddy</h1>
+      <p class="ob-lead-sm">They'll guide this setup, ride along on every full screen, celebrate your rings — and call out rabbit holes. Tell us your name and pick your guide.</p>
+      <input class="ob-name-input" id="ob-name" type="text" maxlength="24"
+             placeholder="What should we call you?" autocomplete="off" spellcheck="false" />
+      <div class="ob-buddies" id="ob-buddies" role="radiogroup" aria-label="Focus buddy">
+        <button class="ob-buddy selected" data-value="mika" role="radio" aria-checked="true">
+          <span class="ob-buddy-art" data-art="mika" aria-hidden="true"></span>
+          <span class="ob-buddy-name">Mika</span>
+          <span class="ob-buddy-tag">Warm &amp; cheery</span>
+          <span class="ob-buddy-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+        </button>
+        <button class="ob-buddy" data-value="haru" role="radio" aria-checked="false">
+          <span class="ob-buddy-art" data-art="haru" aria-hidden="true"></span>
+          <span class="ob-buddy-name">Haru</span>
+          <span class="ob-buddy-tag">Calm &amp; steady</span>
+          <span class="ob-buddy-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Step 2 · Goals -->
+    <section class="ob-step" data-step="2">
+      <h1 class="ob-title-sm">What brings you here?</h1>
+      <p class="ob-lead-sm">Pick as many as you like — FocusTube uses this to tune your insights.</p>
+      <div class="ob-chips" id="ob-goals" role="group" aria-label="Goals">
+        <button class="ob-chip" data-value="Deep work">Deep work</button>
+        <button class="ob-chip" data-value="Studying">Studying</button>
+        <button class="ob-chip" data-value="Coding">Coding</button>
+        <button class="ob-chip" data-value="Reading">Reading</button>
+        <button class="ob-chip" data-value="Family time">Family time</button>
+        <button class="ob-chip" data-value="Better sleep">Better sleep</button>
+      </div>
+    </section>
+
+    <!-- Step 3 · Distractions -->
+    <section class="ob-step" data-step="3">
+      <h1 class="ob-title-sm">What should we tame?</h1>
+      <p class="ob-lead-sm">Choose what YouTube hides while you're focusing. You can flip any of these later.</p>
+      <div class="ob-list" id="ob-tames" role="group" aria-label="Distractions">
+        <label class="ob-row">
+          <span class="ob-row-text"><strong>Shorts feed</strong><small>The endless vertical swipe</small></span>
+          <span class="toggle-switch"><input type="checkbox" id="ob-shorts" checked /><span class="toggle-slider"></span></span>
+        </label>
+        <label class="ob-row">
+          <span class="ob-row-text"><strong>Suggested videos</strong><small>The sidebar that never ends</small></span>
+          <span class="toggle-switch"><input type="checkbox" id="ob-suggestions" /><span class="toggle-slider"></span></span>
+        </label>
+        <label class="ob-row">
+          <span class="ob-row-text"><strong>Comments</strong><small>For when the rabbit hole is below the video</small></span>
+          <span class="toggle-switch"><input type="checkbox" id="ob-comments" /><span class="toggle-slider"></span></span>
+        </label>
+        <label class="ob-row">
+          <span class="ob-row-text"><strong>Autoplay</strong><small>Stops the "just one more video" chain</small></span>
+          <span class="toggle-switch"><input type="checkbox" id="ob-autoplay" checked /><span class="toggle-slider"></span></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Step 4 · Daily budget -->
+    <section class="ob-step" data-step="4">
+      <h1 class="ob-title-sm">Set your daily YouTube budget</h1>
+      <p class="ob-lead-sm">When you reach it, YouTube locks for the day. Pick a number you can keep.</p>
+      <div class="ob-stepper-wrap">
+        <button class="ob-stepper-btn" id="ob-budget-minus" aria-label="Less time">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div class="ob-budget" aria-live="polite">
+          <span class="ob-budget-value" id="ob-budget-value">2h</span>
+          <span class="ob-budget-label">per day</span>
+        </div>
+        <button class="ob-stepper-btn" id="ob-budget-plus" aria-label="More time">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="ob-budget-marks" id="ob-budget-marks" aria-hidden="true"></div>
+    </section>
+
+    <!-- Step 5 · Quiet hours -->
+    <section class="ob-step" data-step="5">
+      <h1 class="ob-title-sm">When is YouTube off-limits?</h1>
+      <p class="ob-lead-sm">During quiet hours the site is blocked completely — timers can't extend it.</p>
+      <div class="ob-options" id="ob-quiet" role="radiogroup" aria-label="Quiet hours">
+        <button class="ob-option" data-value="none" role="radio" aria-checked="false">
+          <span class="ob-option-title">No schedule</span>
+          <span class="ob-option-sub">I'll block manually when I need to</span>
+        </button>
+        <button class="ob-option" data-value="nights" role="radio" aria-checked="false">
+          <span class="ob-option-title">Nights · 22:00 – 07:00</span>
+          <span class="ob-option-sub">Protect your wind-down and sleep</span>
+        </button>
+        <button class="ob-option" data-value="work" role="radio" aria-checked="false">
+          <span class="ob-option-title">Work hours · 09:00 – 17:00</span>
+          <span class="ob-option-sub">YouTube waits until the workday ends</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Step 6 · Focus style -->
+    <section class="ob-step" data-step="6">
+      <h1 class="ob-title-sm">How firm should FocusTube be?</h1>
+      <p class="ob-lead-sm">You can always loosen this later — but picking now saves you from deciding mid-urge.</p>
+      <div class="ob-options" id="ob-style" role="radiogroup" aria-label="Focus style">
+        <button class="ob-option" data-value="gentle" role="radio" aria-checked="false">
+          <span class="ob-option-title">Gentle</span>
+          <span class="ob-option-sub">Nudges and clean-up only — no hard blocks</span>
+        </button>
+        <button class="ob-option selected" data-value="firm" role="radio" aria-checked="true">
+          <span class="ob-option-title">Firm <span class="ob-recommended">Recommended</span></span>
+          <span class="ob-option-sub">Timers and quiet hours block with a way back</span>
+        </button>
+        <button class="ob-option" data-value="hard" role="radio" aria-checked="false">
+          <span class="ob-option-title">Hard</span>
+          <span class="ob-option-sub">Unblocking requires passing a focus quiz</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Step 7 · Summary -->
+    <section class="ob-step" data-step="7">
+      <div class="ob-done-badge anim-scale-in" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h1 class="ob-title-sm anim-fade-up" style="animation-delay:100ms">You're all set.</h1>
+      <p class="ob-lead-sm anim-fade-up" style="animation-delay:180ms">Here's the experience we built for you:</p>
+      <div class="ob-summary anim-fade-up" id="ob-summary" style="animation-delay:260ms"></div>
+      <div class="ob-actions anim-fade-up" style="animation-delay:340ms">
+        <button class="ob-btn ob-btn-secondary" id="ob-open-dashboard">Open Dashboard</button>
+        <button class="ob-btn ob-btn-primary" id="ob-finish">Open YouTube</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="ob-footer">
+    <button id="ob-skip" class="ob-skip">Skip Setup</button>
+    <button id="ob-next" class="ob-btn ob-btn-primary ob-next" data-next hidden>Continue</button>
+  </footer>
+
+  <script src="../shared/companion-art.js"></script>
+  <script src="../shared/companion-widget.js"></script>
+  <script src="onboarding.js"></script>
+</body>
+</html>

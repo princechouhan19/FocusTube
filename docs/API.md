@@ -308,17 +308,18 @@ displayTimeBlockUI()  // Show block modal
 }
 ```
 
-### glass-theme.js
+### focus-rings.js
 ```javascript
-// Apply glass morphism theme
-
-// Settings
-{
-  modernGlassTheme: false  // Enable glass effect UI
-}
-
-// Applies CSS effects for glass look
+// Apple-Fitness-style daily activity rings (v1.15.0 USP)
+// Exposes window.FGRings: compute(), readGoals(), streakFromPoints(),
+// render(el, data, { size, showLegend }). Rings: Deflected (ads+Shorts+urges,
+// goal 12), Focused (pomodoro minutes, goal 2h), Saved (time-saved minutes,
+// goal 1h). Rendered on dashboard, popup home and the Daily Briefing.
 ```
+
+### (removed) glass-theme.js / glass-theme.css
+The Modern Glass Theme (YouTube glassmorphism skin) was removed in v1.15.0.
+The `modernGlassTheme` setting key is no longer read or written.
 
 ### comment-hider.js
 ```javascript

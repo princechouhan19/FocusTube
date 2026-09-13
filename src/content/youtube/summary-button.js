@@ -125,7 +125,7 @@
       // If missing key, provide guidance instead of just throwing error
       if (!activeKey) {
         const errorMsg = provider === 'gemini' 
-          ? 'Gemini API Key missing. You can get one for FREE at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--lg-primary-hi);text-decoration:underline;">Google AI Studio</a>.'
+          ? 'Gemini API Key missing. You can get one for FREE at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ios-blue);text-decoration:underline;">Google AI Studio</a>.'
           : `Missing ${provider} API Key. Please add it in extension settings.`;
         
         showSummaryModal(
@@ -365,10 +365,10 @@
                 <div class="yfp-error-container">
                   <p class="yfp-error-msg">${escapeErrorHtml(summary.error)}</p>
                   ${summary.isSetup ? `
-                    <div class="lg-card" style="margin-top: var(--lg-space-5); text-align: left;">
-                      <h4 style="margin: 0 0 var(--lg-space-2) 0; color: var(--lg-primary-hi); font-size: var(--lg-text-md); font-weight: var(--lg-weight-bold);">Why do I need a key?</h4>
-                      <p style="margin: 0; color: var(--lg-text-muted); font-size: var(--lg-text-sm); line-height: 1.5;">FocusTube uses direct AI connections to provide summaries. Using your own key keeps the extension free and ensures your data stays private between you and the AI provider.</p>
-                      <p style="margin: var(--lg-space-3) 0 0 0; color: var(--lg-text-muted); font-size: var(--lg-text-sm); line-height: 1.6;">1. Click the link above to get your free key.<br>2. Open FocusTube settings (click the extension icon).<br>3. Paste your key and click Save.</p>
+                    <div class="lg-card" style="margin-top: 16px; text-align: left;">
+                      <h4 style="margin: 0 0 8px 0; color: var(--ios-blue); font-size: var(--ios-text-md); font-weight: 600;">Why do I need a key?</h4>
+                      <p style="margin: 0; color: var(--ios-label-2); font-size: var(--ios-text-sm); line-height: 1.5;">FocusTube uses direct AI connections to provide summaries. Using your own key keeps the extension free and ensures your data stays private between you and the AI provider.</p>
+                      <p style="margin: 10px 0 0 0; color: var(--ios-label-2); font-size: var(--ios-text-sm); line-height: 1.6;">1. Click the link above to get your free key.<br>2. Open FocusTube settings (click the extension icon).<br>3. Paste your key and click Save.</p>
                     </div>
                   ` : ""}
                 </div>`
@@ -425,8 +425,8 @@
           .map((t) => `<span class="yfp-tag">${esc(t)}</span>`)
           .join(""));
 
-    const listIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:var(--lg-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>`;
-    const bulbIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:var(--lg-text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`;
+    const listIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:var(--ios-label-2);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>`;
+    const bulbIcon = `<svg style="width:20px;height:20px;margin-right:8px;vertical-align:middle;color:var(--ios-label-2);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`;
 
     // SECURITY: all AI-supplied fields (title, points, takeaways, topics) are
     // HTML-escaped before insertion to prevent prompt-injection-driven XSS.
@@ -434,15 +434,15 @@
       <h4 class="yfp-summary-title" style="color: #fff;">${esc(summary.title)}</h4>
       
       <div class="yfp-summary-section">
-        <h5 style="display:flex;align-items:center;color:var(--lg-text-muted);">${listIcon} Main Points</h5>
-        <ul style="color: var(--lg-text);">
+        <h5 style="display:flex;align-items:center;color:var(--ios-label-2);">${listIcon} Main Points</h5>
+        <ul style="color: var(--ios-label);">
           ${renderList(summary.mainPoints)}
         </ul>
       </div>
 
       <div class="yfp-summary-section">
-        <h5 style="display:flex;align-items:center;color:var(--lg-text-muted);margin-top:24px;">${bulbIcon} Key Takeaways</h5>
-        <ul style="color: var(--lg-text);">
+        <h5 style="display:flex;align-items:center;color:var(--ios-label-2);margin-top:24px;">${bulbIcon} Key Takeaways</h5>
+        <ul style="color: var(--ios-label);">
           ${renderList(summary.keyTakeaways)}
         </ul>
       </div>

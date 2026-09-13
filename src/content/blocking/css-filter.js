@@ -10,7 +10,6 @@
   // Module state
   let settings = {};
   let styleElement = null;
-  const GLASS_ROOT_CLASS = 'yfp-modern-glass';
 
   // CSS rules for blocking various elements
   const CSS_FILTERS = {
@@ -182,8 +181,6 @@
 
     let cssRules = '';
 
-    toggleModernGlassRoot(!!settings.modernGlassTheme);
-
     // Add rules based on enabled settings
     if (settings.hideBannerAds) {
       cssRules += generateCSSRule(CSS_FILTERS.ads, 'display', 'none');
@@ -246,10 +243,6 @@
       cssRules += generateCSSRule(CSS_FILTERS.merch, 'display', 'none');
     }
 
-    if (settings.modernGlassTheme) {
-      cssRules += generateModernGlassCSS();
-    }
-
     // Add custom rules from settings
     if (settings.customCSSRules && settings.customCSSRules.length > 0) {
       cssRules += settings.customCSSRules.join('\n');
@@ -259,9 +252,7 @@
     styleElement.textContent = cssRules;
     document.head.appendChild(styleElement);
 
-    console.log('[YFP] CSS filters applied', {
-      modernGlassTheme: !!settings.modernGlassTheme
-    });
+    console.log('[YFP] CSS filters applied');
   }
 
   /**
@@ -269,78 +260,6 @@
    */
   function generateCSSRule(selectors, property, value) {
     return `${selectors} { ${property}: ${value} !important; }\n`;
-  }
-
-  function toggleModernGlassRoot(enabled) {
-    const root = document.documentElement;
-    if (!root) return;
-    if (enabled) {
-      root.classList.add(GLASS_ROOT_CLASS);
-      root.setAttribute('data-yfp-modern-glass', '1');
-      if (document.body) document.body.classList.add(GLASS_ROOT_CLASS);
-    } else {
-      root.classList.remove(GLASS_ROOT_CLASS);
-      root.removeAttribute('data-yfp-modern-glass');
-      if (document.body) document.body.classList.remove(GLASS_ROOT_CLASS);
-    }
-  }
-
-  function generateModernGlassCSS() {
-    return `
-      html, body, ytd-app, ytd-browse, ytd-watch-flexy {
-        background: linear-gradient(180deg, #0d1320 0%, #111827 52%, #0e1524 100%) !important;
-      }
-      #page-manager {
-        padding: 10px 12px 16px !important;
-        box-sizing: border-box !important;
-      }
-      #contents.ytd-rich-grid-renderer,
-      ytd-rich-grid-renderer #contents {
-        padding-top: 8px !important;
-        gap: 16px !important;
-      }
-      ytd-rich-grid-row, ytd-rich-item-renderer {
-        margin-top: 10px !important;
-      }
-      ytd-feed-filter-chip-bar-renderer,
-      #chips-wrapper,
-      yt-chip-cloud-renderer {
-        margin-bottom: 10px !important;
-        padding: 6px 8px !important;
-      }
-      ytd-guide-renderer #sections,
-      ytd-guide-renderer #items {
-        padding: 8px !important;
-      }
-      #masthead-container,
-      ytd-guide-renderer,
-      ytd-mini-guide-renderer,
-      ytd-watch-flexy #primary,
-      ytd-watch-flexy #secondary,
-      ytd-rich-grid-renderer,
-      ytd-rich-item-renderer #content,
-      ytd-video-renderer,
-      ytd-compact-video-renderer,
-      ytd-grid-video-renderer,
-      ytd-playlist-panel-renderer,
-      ytd-comments,
-      ytd-comment-thread-renderer,
-      ytd-searchbox #container {
-        background: rgba(20, 26, 38, 0.42) !important;
-        border: 1px solid rgba(255, 255, 255, 0.18) !important;
-        border-radius: 18px !important;
-        backdrop-filter: blur(14px) saturate(140%) !important;
-        -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
-        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28) !important;
-      }
-      ytd-thumbnail img, ytd-thumbnail #thumbnail, #movie_player, .html5-video-player, video {
-        border-radius: 14px !important;
-      }
-      ytd-searchbox #search {
-        background: rgba(255, 255, 255, 0.08) !important;
-        border-radius: 999px !important;
-      }
-    `;
   }
 
   /**

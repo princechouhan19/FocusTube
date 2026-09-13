@@ -216,9 +216,9 @@
       const msg = document.createElement("p");
       Object.assign(msg.style, {
         margin: "0 0 14px 0",
-        fontSize: "var(--lg-text-md)",
+        fontSize: "var(--ios-text-md)",
         lineHeight: "1.5",
-        color: "var(--lg-text)",
+        color: "var(--ios-label)",
         fontStyle: "italic",
       });
       msg.textContent = message; // safe — textContent
@@ -230,17 +230,17 @@
 
       const breathBtn = document.createElement("button");
       breathBtn.className = "lg-btn lg-btn-soft-primary";
-      breathBtn.style.fontSize = "var(--lg-text-sm)";
+      breathBtn.style.fontSize = "var(--ios-text-sm)";
       breathBtn.style.padding = "6px 12px";
-      breathBtn.textContent = "🌬️ 3 Breaths";
+      breathBtn.textContent = "3 Breaths";
       breathBtn.onclick = () => this.startBreathing(card);
       btnRow.appendChild(breathBtn);
 
       const willBtn = document.createElement("button");
       willBtn.className = "lg-btn lg-btn-soft-success";
-      willBtn.style.fontSize = "var(--lg-text-sm)";
+      willBtn.style.fontSize = "var(--ios-text-sm)";
       willBtn.style.padding = "6px 12px";
-      willBtn.textContent = "💪 +1 Willpower";
+      willBtn.textContent = "+1 Willpower";
       willBtn.onclick = async () => {
         willBtn.disabled = true;
         willBtn.textContent = "✓ Noted";
@@ -286,10 +286,10 @@
         width: "80px",
         height: "80px",
         borderRadius: "50%",
-        background: "var(--lg-gradient-primary)",
+        background: "var(--ios-blue)",
         transition: "transform 4s ease-in-out, opacity 4s ease-in-out",
         marginBottom: "16px",
-        boxShadow: "var(--lg-shadow-glow)",
+        boxShadow: "var(--ios-shadow-glow)",
       });
       overlay.appendChild(circle);
 

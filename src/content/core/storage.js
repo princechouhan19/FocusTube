@@ -79,7 +79,6 @@ const DEFAULT_SETTINGS = {
   // Enhanced UI Controls
   autoPauseInactive: false,
   autoTheaterMode: false,
-  modernGlassTheme: false,
   hideComments: false,
   hideInfoCards: false,
   hideEndScreens: false,
@@ -161,7 +160,6 @@ function applyExtensionEnabledOverride(settings) {
       "useNativePlayer",
       "autoPauseInactive",
       "autoTheaterMode",
-      "modernGlassTheme",
       "hideComments",
       "hideInfoCards",
       "hideEndScreens",

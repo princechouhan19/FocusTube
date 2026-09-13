@@ -1,0 +1,438 @@
+/* =========================================================================
+   FocusTube — Apple Design System Kit v1.0 (HIG clone)
+   =========================================================================
+   Component vocabulary cloned from Apple's Human Interface Guidelines
+   (iOS 17 dark mode). Loaded by dashboard.html ONLY; other surfaces
+   (popup / block page / content scripts) stay on liquid-glass.css.
+
+   What lives here:
+     1. iOS system tokens   — colors, fills, labels, separators, radii,
+                              focus ring, motion. Everything is a direct
+                              translation of UIKit semantic colors.
+     2. Type ramp           — SF Pro stack (-apple-system) with the HIG
+                              text styles (Large Title … Caption 2).
+     3. Base treatments     — background, selection, scrollbar, keyboard
+                              focus, reduced-motion.
+
+   Components that dashboard.css assembles from these tokens:
+     · Segmented control  (UISegmentedControl)
+     · Inset-grouped card (secondarySystemGroupedBackground)
+     · Activity ring      (Apple Fitness gradient ring)
+     · Tinted / filled / destructive buttons (UIButton styles)
+     · Grouped list rows  (insetGrouped, hairline separators)
+   ========================================================================= */
+
+:root {
+  /* --- iOS system colors (dark mode) --- */
+  --ios-blue:    #0A84FF;
+  --ios-green:   #30D158;
+  --ios-indigo:  #5E5CE6;
+  --ios-orange:  #FF9F0A;
+  --ios-purple:  #BF5AF2;
+  --ios-red:     #FF453A;
+  --ios-teal:    #40C8E0;
+  --ios-yellow:  #FFD60A;
+  --ios-gray:    #8E8E93;
+
+  /* --- System backgrounds (dark, elevated) --- */
+  --ios-bg:            #000000;   /* systemBackground                */
+  --ios-bg-2:          #1C1C1E;   /* secondarySystemGroupedBackground */
+  --ios-bg-3:          #2C2C2E;   /* tertiarySystemGroupedBackground  */
+  --ios-bg-4:          #3A3A3C;   /* quaternary…                      */
+
+  /* --- System fills (material opacities from HIG "Fills" table) --- */
+  --ios-fill:    rgba(120, 120, 128, 0.36);
+  --ios-fill-2:  rgba(120, 120, 128, 0.32);
+  --ios-fill-3:  rgba(118, 118, 128, 0.24);
+  --ios-fill-4:  rgba(118, 118, 128, 0.18);
+  --ios-fill-5:  rgba(118, 118, 128, 0.12);
+
+  /* --- Label colors (HIG hierarchy) --- */
+  --ios-label:      #FFFFFF;
+  --ios-label-2:    rgba(235, 235, 245, 0.60);
+  --ios-label-3:    rgba(235, 235, 245, 0.30);
+  --ios-label-4:    rgba(235, 235, 245, 0.18);
+
+  /* --- Separators --- */
+  --ios-sep:        rgba(84, 84, 88, 0.65);
+  --ios-sep-opaque: #38383A;
+
+  /* --- Tinted soft fills (10–18% of system color) --- */
+  --ios-blue-soft:   rgba(10, 132, 255, 0.16);
+  --ios-green-soft:  rgba(48, 209, 88, 0.16);
+  --ios-purple-soft: rgba(191, 90, 242, 0.16);
+  --ios-orange-soft: rgba(255, 159, 10, 0.16);
+  --ios-red-soft:    rgba(255, 69, 58, 0.14);
+
+  /* --- Tinted hairline borders (≈32% of system color) --- */
+  --ios-blue-border:   rgba(10, 132, 255, 0.32);
+  --ios-green-border:  rgba(48, 209, 88, 0.32);
+  --ios-purple-border: rgba(191, 90, 242, 0.32);
+  --ios-orange-border: rgba(255, 159, 10, 0.32);
+  --ios-red-border:    rgba(255, 69, 58, 0.32);
+
+  /* --- Radii (HIG: 9pt segmented, 12pt buttons, 16pt grouped cards) --- */
+  --ios-r-sm:   9px;
+  --ios-r-md:   12px;
+  --ios-r-lg:   16px;
+  --ios-r-xl:   20px;
+  --ios-r-full: 999px;
+
+  /* --- Type: SF Pro stack --- */
+  --ios-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+              "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+
+  /* --- Keyboard focus (Apple-style blue halo) --- */
+  --ios-focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.45);
+
+  /* --- Motion: quick, standard ease-out; HIG guidance 150–350ms --- */
+  --ios-speed:     220ms;
+  --ios-speed-slow: 350ms;
+  --ios-ease:      cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* --- Motion (v1.13.0, HIG "Motion" + UIKit animation curves) ---
+     · ease-out    — default entrance curve (easeOutQuart-ish)
+     · sheet       — iOS sheet/alert presentation curve (cocoa UIModal
+                     presentation timing) — used for cards, sheets, ring draw
+     · spring      — gentle overshoot for chips/knobs (UISpringTiming ~0.9s
+                     damping ratio < 1)                        */
+  --ios-ease-out:   cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ios-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ios-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ios-dur-fast: 160ms;
+  --ios-dur:      240ms;
+  --ios-dur-slow: 480ms;
+  --ios-dur-draw: 900ms;
+
+  /* --- Type scale (HIG text styles, px) --- */
+  --ios-text-xs:   11px;
+  --ios-text-sm:   13px;
+  --ios-text-md:   15px;
+  --ios-text-lg:   17px;
+  --ios-text-xl:   20px;
+  --ios-text-2xl:  28px;
+  --ios-text-4xl:  44px;
+
+  /* --- Elevation --- */
+  --ios-shadow-card:  0 8px 24px rgba(0, 0, 0, 0.35);
+  --ios-shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.6);
+  --ios-shadow-glow:  0 0 20px rgba(10, 132, 255, 0.35);
+
+  /* --- Activity ring gradients per Focus-Score tier (Fitness style) --- */
+  --ios-ring-good-track: rgba(48, 209, 88, 0.18);
+  --ios-ring-mid-track:  rgba(255, 159, 10, 0.18);
+  --ios-ring-low-track:  rgba(255, 69, 58, 0.18);
+}
+
+/* =========================================================================
+   Base treatment (applies only inside pages that opt in via .ios-theme)
+   ========================================================================= */
+
+.ios-theme,
+.ios-theme body {
+  background: var(--ios-bg);
+  color: var(--ios-label);
+  font-family: var(--ios-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.ios-theme ::selection {
+  background: rgba(10, 132, 255, 0.35);
+  color: #fff;
+}
+
+/* Legacy ambient-wash element from the glass theme — not part of the
+   Apple look. Hidden whenever a page opts into .ios-theme. */
+.ios-theme .lg-aurora {
+  display: none;
+}
+
+/* HIG type ramp (exposed as utilities; dashboard uses them via component
+   rules so markup stays untouched) */
+.ios-theme .ios-large-title { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; }
+.ios-theme .ios-title2      { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+.ios-theme .ios-headline    { font-size: 16px; font-weight: 600; }
+.ios-theme .ios-body        { font-size: 15px; font-weight: 400; }
+.ios-theme .ios-footnote    { font-size: 13px; font-weight: 400; }
+.ios-theme .ios-caption     { font-size: 12px; font-weight: 400; }
+.ios-theme .ios-caption2    { font-size: 11px; font-weight: 400; }
+
+/* Hairline rule (0.5px — true retina hairline in Chrome) */
+.ios-theme .ios-hairline { border: 0; border-top: 0.5px solid var(--ios-sep); }
+
+/* Keyboard focus — every interactive element gets the Apple halo */
+.ios-theme button:focus-visible,
+.ios-theme [tabindex]:focus-visible,
+.ios-theme label:focus-visible,
+.ios-theme input:focus-visible {
+  outline: none;
+  box-shadow: var(--ios-focus-ring);
+}
+
+/* Scrollbar: near-invisible, iOS dark */
+.ios-theme ::-webkit-scrollbar { width: 8px; height: 8px; }
+.ios-theme ::-webkit-scrollbar-track { background: transparent; }
+.ios-theme ::-webkit-scrollbar-thumb {
+  background: var(--ios-bg-3);
+  border-radius: var(--ios-r-full);
+  border: 2px solid var(--ios-bg);
+}
+.ios-theme ::-webkit-scrollbar-thumb:hover { background: var(--ios-bg-4); }
+
+/* Reduced motion — audit accessibility item */
+@media (prefers-reduced-motion: reduce) {
+  .ios-theme *,
+  .ios-theme *::before,
+  .ios-theme *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================================
+   Motion system (v1.13.0) — HIG presentation semantics
+   =========================================================================
+   · .anim-fade-up     content entrances (cards, rows): rise 10px + fade
+   · .anim-scale-in    modal/alert entrances: 0.94 → 1 with soft spring
+   · .anim-backdrop    scrim/overlay fade
+   · .pressable        UIButton-style touch feedback on any .lg-btn
+   Every animation here is entrance-only (≤480ms, runs once) — HIG warns
+   against looping decoration. Reduced-motion is handled by the universal
+   guard above for .ios-theme pages; the block overlay (which lives on
+   YouTube pages WITHOUT .ios-theme) carries its own guard below.
+   ========================================================================= */
+
+@keyframes ios-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ios-scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ios-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.anim-fade-up  { animation: ios-fade-up var(--ios-dur-slow) var(--ios-ease-sheet) both; }
+.anim-scale-in { animation: ios-scale-in var(--ios-dur-slow) var(--ios-ease-sheet) both; }
+.anim-backdrop { animation: ios-backdrop-in var(--ios-dur) var(--ios-ease-out) both; }
+
+/* UIButton press feedback — scale dip + restore, applied globally to the
+   shared button family (block sheet, popup CTAs, dashboard actions). */
+.lg-btn { transition: transform var(--ios-dur-fast) var(--ios-ease-out), background var(--ios-speed) var(--ios-ease), color var(--ios-speed) var(--ios-ease); }
+.lg-btn:active { transform: scale(0.96); }
+
+/* --- Block overlay entrance (iOS alert presentation) ---
+   Scrim fades while the card scales in on the sheet curve — the same
+   choreography as UIAlertController. Consumers: blocked.html, site-blocker
+   overlay, time-blocker overlay, url-blocker overlay. */
+.lg-block-overlay { animation: ios-backdrop-in var(--ios-dur) var(--ios-ease-out) both; }
+.lg-block-overlay .lg-block-card { animation: ios-scale-in var(--ios-dur-draw) var(--ios-ease-sheet) both; }
+@media (prefers-reduced-motion: reduce) {
+  .lg-block-overlay,
+  .lg-block-overlay .lg-block-card {
+    animation: none !important;
+  }
+}
+
+
+/* =========================================================================
+   Block Overlay — iOS full-screen lock sheet
+   =========================================================================
+   Skin for the shared `.lg-block-*` classes (kept for JS compatibility).
+   Consumers:
+     · src/block-page/blocked.html (loads this file directly)
+     · site-blocker injected overlay (links this file via getURL)
+     · time-blocker YouTube overlay (manifest content_scripts css)
+   Fully self-sufficient: defines layout AND appearance so it works with
+   or without liquid-glass.css loaded first.
+   ========================================================================= */
+
+.lg-block-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--ios-bg);
+  font-family: var(--ios-font);
+  color: var(--ios-label);
+  -webkit-font-smoothing: antialiased;
+}
+
+.lg-block-card {
+  max-width: 460px;
+  width: 100%;
+  padding: 36px 32px;
+  text-align: center;
+  background: var(--ios-bg-2);
+  border: none;
+  border-radius: var(--ios-r-xl);
+  box-shadow: var(--ios-shadow-modal), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+.lg-block-icon {
+  /* Block-level + auto margins: the card relies on text-align:center, so an
+     inline-flex chip would share the line box with any inline sibling (e.g.
+     the banner <img> the overlay builders prepend) and render side-by-side.
+     Forcing a block column keeps logo → chip → title stacked, always. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  color: var(--ios-red);
+  background: var(--ios-red-soft);
+  border: none;
+  border-radius: 22px;
+}
+
+.lg-block-title {
+  margin: 0 0 6px 0;
+  font-size: var(--ios-text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--ios-label);
+}
+
+.lg-block-reason {
+  margin: 0;
+  font-size: var(--ios-text-md);
+  color: var(--ios-label-2);
+}
+
+.lg-block-timer {
+  margin: 18px auto 0;
+  padding: 8px 18px;
+  min-width: 150px;
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--ios-text-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ios-label);
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: var(--ios-r-full);
+}
+
+/* "Until disabled" is a sentence — render as a caption chip, not a clock */
+.lg-block-timer--indefinite {
+  min-width: 0;
+  font-size: var(--ios-text-sm);
+  font-weight: 600;
+  color: var(--ios-label-2);
+}
+
+.lg-block-until {
+  margin: 10px 0 0 0;
+  font-size: var(--ios-text-sm);
+  color: var(--ios-label-3);
+}
+
+.lg-block-message {
+  margin: 18px 0 0 0;
+  font-size: var(--ios-text-sm);
+  line-height: 1.6;
+  color: var(--ios-label-2);
+}
+
+.lg-block-message strong {
+  color: var(--ios-label);
+  font-weight: 600;
+}
+
+.lg-block-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+/* --- Buttons (UIButton styles, kept class names) --- */
+
+.lg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-md);
+  font-weight: 600;
+  border: none;
+  border-radius: var(--ios-r-md);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--ios-speed) var(--ios-ease), color var(--ios-speed) var(--ios-ease);
+}
+
+.lg-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ios-focus-ring);
+}
+
+/* Tinted gray */
+.lg-btn-ghost {
+  color: var(--ios-label);
+  background: var(--ios-fill-3);
+}
+.lg-btn-ghost:hover { background: var(--ios-fill-2); }
+
+/* Filled blue */
+.lg-btn-primary {
+  color: #fff;
+  background: var(--ios-blue);
+}
+.lg-btn-primary:hover { background: #2492ff; }
+
+/* Tinted blue */
+.lg-btn-soft-primary {
+  color: var(--ios-blue);
+  background: var(--ios-blue-soft);
+  padding: 6px 12px;
+  font-size: var(--ios-text-sm);
+}
+.lg-btn-soft-primary:hover { background: rgba(10, 132, 255, 0.26); }
+
+/* Tinted green */
+.lg-btn-soft-success {
+  color: var(--ios-green);
+  background: var(--ios-green-soft);
+  padding: 6px 12px;
+  font-size: var(--ios-text-sm);
+}
+.lg-btn-soft-success:hover { background: rgba(48, 209, 88, 0.26); }
+
+/* --- AI nudge card primitives (rendered inside the block overlay) --- */
+
+.lg-card {
+  background: var(--ios-bg-3);
+  border: none;
+  border-radius: var(--ios-r-md);
+  padding: 14px 16px;
+}
+
+.lg-eyebrow {
+  font-size: var(--ios-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ios-blue);
+}
+
+.lg-flex-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

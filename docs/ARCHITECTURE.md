@@ -48,7 +48,6 @@
     │  │  ├─ auto-pause.js (pause on inactive)          │
     │  │  ├─ theater-mode.js (theater toggle)           │
     │  │  ├─ metrics-hider.js (hide metrics)            │
-    │  │  ├─ glass-theme.js (glass effects)             │
     │  │  ├─ comment-hider.js (hide comments)           │
     │  │  ├─ cards-hider.js (hide cards)                │
     │  │  └─ universal-screenshot.js (screenshots)      │

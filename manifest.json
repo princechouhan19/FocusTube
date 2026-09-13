@@ -1,9 +1,19 @@
 {
   "manifest_version": 3,
   "name": "FocusTube - Productivity & Distraction Control",
-  "version": "1.8.3",
+  "version": "1.17.0",
   "description": "Take control of YouTube: block distractions, hide ads, and boost your productivity with advanced UI controls.",
-  "permissions": ["storage", "tabs", "scripting", "activeTab", "tabGroups", "notifications", "declarativeNetRequest", "idle", "alarms"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab",
+    "tabGroups",
+    "notifications",
+    "declarativeNetRequest",
+    "idle",
+    "alarms"
+  ],
   "host_permissions": [
     "<all_urls>",
     "https://*.youtube.com/*",
@@ -31,7 +41,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "<all_urls>"
+      ],
       "js": [
         "src/content/core/logger.js",
         "src/content/core/event-listener-utils.js",
@@ -43,7 +55,19 @@
       "run_at": "document_start"
     },
     {
-      "matches": ["https://*.youtube.com/*"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/shared/companion-art.js",
+        "src/shared/companion.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.youtube.com/*"
+      ],
       "js": [
         "src/content/core/logger.js",
         "src/content/core/event-listener-utils.js",
@@ -63,19 +87,25 @@
         "src/content/youtube/video-player-controller.js",
         "src/content/blocking/keyword-blocker.js",
         "src/content/blocking/channel-blocker.js",
+        "src/shared/unblock-gate.js",
         "src/content/blocking/url-blocker.js",
         "src/content/blocking/smart-lists.js",
+        "src/content/youtube/watch-intent.js",
+        "src/content/youtube/vim-nav.js",
         "src/content/utils/auto-pause.js",
         "src/content/utils/theater-mode.js",
         "src/content/utils/metrics-hider.js",
-        "src/content/utils/glass-theme.js",
         "src/content/blocking/css-filter.js",
         "src/content/utils/comment-hider.js",
         "src/content/utils/cards-hider.js",
         "src/content/utils/ai-nudge.js",
         "src/content/ui/content.js"
       ],
-      "css": ["src/shared/liquid-glass.css", "src/content/ui/content.css", "src/content/youtube/glass-theme.css"],
+      "css": [
+        "src/shared/liquid-glass.css",
+        "src/shared/apple-ui.css",
+        "src/content/ui/content.css"
+      ],
       "run_at": "document_start"
     }
   ],
@@ -85,10 +115,14 @@
         "public/icons/*",
         "src/icons/banner.png",
         "src/shared/liquid-glass.css",
+        "src/shared/apple-ui.css",
         "src/shared/icons.js",
         "src/block-page/*"
       ],
-      "matches": ["https://*.youtube.com/*", "<all_urls>"]
+      "matches": [
+        "https://*.youtube.com/*",
+        "<all_urls>"
+      ]
     }
   ]
 }

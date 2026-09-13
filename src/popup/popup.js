@@ -54,7 +54,6 @@ const DEFAULT_SETTINGS = {
   hideComments: false,
   hideInfoCards: false,
   autoTheaterMode: false,
-  modernGlassTheme: false,
   pomodoroAdaptiveFocus: true,
   pomodoroFocusShield: true,
   siteLogos: {},
@@ -196,7 +195,6 @@ const TOGGLES_LIST = [
   "hideMerch",
   "hideShareButtons",
   "useTranscript",
-  "modernGlassTheme",
   // v1.1.0 new toggles
   "aiNudgeEnabled",
   "quizStreakMultiplier",
@@ -204,6 +202,11 @@ const TOGGLES_LIST = [
   "pomodoroAdaptiveFocus",
   "pomodoroFocusShield",
   "pomodoroNotify",
+  // v1.17.0 — Companion + Vim nav (flat storage keys, read live by the
+  // content scripts through their own storage listeners)
+  "companionEnabled",
+  "vimNavEnabled",
+  "sleepGuardEnabled",
 ];
 
 let quizState = {
@@ -328,16 +331,16 @@ function checkQuizAnswer() {
   if (answer === quizState.currentQuestion.a.toLowerCase()) {
     quizState.questionsLeft--;
     const container = document.getElementById("quiz-question-container");
-    container.style.background = "rgba(46, 204, 113, 0.2)";
+    container.style.background = "rgba(48, 209, 88, 0.22)";
     setTimeout(() => {
-      container.style.background = "rgba(255,255,255,0.05)";
+      container.style.background = "";
       nextQuestion();
     }, 400);
   } else {
     const container = document.getElementById("quiz-question-container");
-    container.style.background = "rgba(231, 76, 60, 0.2)";
+    container.style.background = "rgba(255, 69, 58, 0.22)";
     setTimeout(() => {
-      container.style.background = "rgba(255,255,255,0.05)";
+      container.style.background = "";
     }, 400);
   }
 }
@@ -444,6 +447,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const dashBtn = document.getElementById("open-dashboard-btn");
   if (dashBtn) {
     dashBtn.addEventListener("click", () => {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL("src/dashboard/dashboard.html"),
+      });
+    });
+  }
+
+  // v1.15.0 — Focus Rings card "Details" jumps to the dashboard, where the
+  // full-size rings, legend and streak live.
+  const ringsDetailsBtn = document.getElementById("rings-open-dashboard");
+  if (ringsDetailsBtn) {
+    ringsDetailsBtn.addEventListener("click", () => {
       chrome.tabs.create({
         url: chrome.runtime.getURL("src/dashboard/dashboard.html"),
       });
@@ -603,6 +617,24 @@ function populateUI(settings) {
     const el = document.getElementById(id);
     if (el) el.checked = settings[id];
   });
+  // v1.17.0 — companion defaults ON (matches companion.js: enabled unless
+  // explicitly set false); keep the popup toggle honest on first run.
+  const companionToggle = document.getElementById("companionEnabled");
+  if (companionToggle && settings.companionEnabled === undefined) {
+    companionToggle.checked = true;
+  }
+
+  // v1.17.0 — Unblock friction tier + Sleep Guard times
+  const gateSel = document.getElementById("unblockGateTier");
+  if (gateSel) {
+    gateSel.value = ["off", "standard", "strict"].includes(settings.unblockGateTier)
+      ? settings.unblockGateTier
+      : "standard";
+  }
+  const sgStart = document.getElementById("sleep-guard-start");
+  const sgEnd = document.getElementById("sleep-guard-end");
+  if (sgStart) sgStart.value = settings.sleepGuardStart || "22:30";
+  if (sgEnd) sgEnd.value = settings.sleepGuardEnd || "07:00";
 }
 
 function updateStatusText(enabled) {
@@ -611,7 +643,7 @@ function updateStatusText(enabled) {
   if (enabled) {
     if (text) {
       text.textContent = "Active and protecting";
-      text.style.color = "var(--lg-success)";
+      text.style.color = "var(--ios-green)";
     }
     if (powerBtn) {
       powerBtn.classList.remove("disabled");
@@ -619,7 +651,7 @@ function updateStatusText(enabled) {
   } else {
     if (text) {
       text.textContent = "Extension disabled";
-      text.style.color = "var(--lg-danger)";
+      text.style.color = "var(--ios-red)";
     }
     if (powerBtn) {
       powerBtn.classList.add("disabled");
@@ -647,6 +679,23 @@ function populateProfile(settings) {
   }
 
   const avatarContainer = document.querySelector(".profile-avatar");
+
+  /**
+   * Default avatar — design-system user icon (ink on amber).
+   * Replaces the old emoji fallback so the popup stays on-palette.
+   */
+  function renderDefaultAvatar(container) {
+    if (!container) return;
+    container.textContent = "";
+    const icon = document.createElement("i");
+    icon.setAttribute("data-icon", "user");
+    icon.className = "ft-icon ft-icon-xl";
+    container.appendChild(icon);
+    if (window.FocusTubeIcons) {
+      window.FocusTubeIcons.injectAll(container);
+    }
+  }
+
   if (avatarContainer) {
     if (settings.profileImage) {
       // SECURITY: build the avatar with DOM APIs so a malicious profileImage
@@ -665,10 +714,10 @@ function populateProfile(settings) {
         img.src = src;
         avatarContainer.appendChild(img);
       } else {
-        avatarContainer.textContent = "👤";
+        renderDefaultAvatar(avatarContainer);
       }
     } else {
-      avatarContainer.textContent = "👤";
+      renderDefaultAvatar(avatarContainer);
     }
   }
 
@@ -676,7 +725,7 @@ function populateProfile(settings) {
   if (profileNameInput) {
     profileNameInput.value = settings.profileName || "";
   }
-  
+
   const profileGoalInput = document.getElementById("profileGoal");
   if (profileGoalInput) {
     profileGoalInput.value = settings.profileGoal || "";
@@ -699,6 +748,160 @@ function formatTime(minutes) {
   const m = minutes % 60;
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
+}
+
+// v1.14.0 — human hours for per-site usage: "8h 10m" instead of "490.0 min".
+// One decimal is kept only below 10 minutes, where precision still matters.
+function formatUsageMinutes(minutes) {
+  const safe = Number(minutes) || 0;
+  if (safe >= 60) {
+    const h = Math.floor(safe / 60);
+    const m = Math.round(safe % 60);
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+  return safe > 0 && safe < 10 ? `${safe.toFixed(1)}m` : `${Math.round(safe)}m`;
+}
+
+// v1.15.0 — Focus Rings on Home: today's Apple-Fitness-style ritual at a
+// glance. Reads today's daily analytics straight from storage (the same
+// recordMetric shape the dashboard rings consume), so no extra messaging is
+// needed and the card still renders when the service worker is asleep.
+function fgTodayKey() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+async function renderHomeRings() {
+  const viz = document.getElementById("home-rings-viz");
+  const status = document.getElementById("home-rings-status");
+  if (!viz || typeof FGRings === "undefined") return;
+  try {
+    const stored = await chrome.storage.local.get(["focusAnalyticsDaily"]);
+    const goals = await FGRings.readGoals();
+    const analytics = (stored && stored.focusAnalyticsDaily) || {};
+    const day = analytics[fgTodayKey()] || {};
+    const ringData = FGRings.compute(day, goals);
+    FGRings.render(viz, ringData, { size: 76, animate: true });
+    // v1.16.0 — celebrate rings that closed since the last visit (deduped by
+    // storage, so this never replays on a simple popup re-open).
+    const todayKey = fgTodayKey();
+    if (typeof FGRings.maybeCelebrate === "function") {
+      FGRings.maybeCelebrate(viz, ringData, { dayKey: todayKey, todayKey }).catch(() => {});
+    }
+    if (status) {
+      status.textContent = ringData.allClosed
+        ? "All three closed — brilliant."
+        : `${ringData.closedCount} of 3 closed — ${3 - ringData.closedCount} to go today`;
+    }
+
+    // v1.17.0 — insurance hint line (freezes banked / repair available).
+    try {
+      const insEl = document.getElementById("home-rings-insurance");
+      if (insEl && typeof FGRings.insuranceFromPoints === "function") {
+        const month = FGRings.monthPointsFromAnalytics
+          ? FGRings.monthPointsFromAnalytics(analytics)
+          : Object.keys(analytics)
+              .sort()
+              .slice(-28)
+              .map((key) => ({ ...analytics[key], dayKey: key }));
+        const ins = FGRings.insuranceFromPoints(month, goals);
+        const parts = [];
+        if (ins.freezesLeft > 0) parts.push(`🛡 ${ins.freezesLeft} freeze${ins.freezesLeft > 1 ? "s" : ""} banked`);
+        if (ins.repair) {
+          const remaining = Math.max(0, ins.repair.neededMinutes - ins.repair.haveMinutes);
+          parts.push(`🔧 ${FGRings.formatMinutes(remaining)} focus left to repair`);
+        }
+        insEl.textContent = parts.join(" · ");
+        insEl.hidden = parts.length === 0;
+      }
+    } catch (_) { /* insurance line is cosmetic */ }
+  } catch (err) {
+    if (status) status.textContent = "Rings unavailable right now";
+    console.warn("[FocusTube] Home rings failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// v1.16.0 — Focus Rings goals editor (Settings → Focus Rings Goals).
+// Writes the `focusRingsGoals` storage key that FGRings.readGoals() merges;
+// the same key powers the dashboard, digest and popup rings.
+// ---------------------------------------------------------------------------
+
+const RINGS_GOALS_STORAGE_KEY = "focusRingsGoals";
+const RINGS_GOAL_KEYS = { deflected: "deflected", focused: "focusMinutes", saved: "savedMinutes" };
+
+function clampRingsGoal(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+async function loadRingsGoalsRaw() {
+  try {
+    const stored = await chrome.storage.local.get(RINGS_GOALS_STORAGE_KEY);
+    const raw = stored && stored[RINGS_GOALS_STORAGE_KEY];
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+async function initRingsGoalsEditor() {
+  const panel = document.getElementById("rings-goals-panel");
+  if (!panel || panel.dataset.bound) return;
+  panel.dataset.bound = "1";
+
+  const raw = await loadRingsGoalsRaw();
+  const state = {
+    deflected: clampRingsGoal(raw.deflected, 1, 200, 12),
+    focusMinutes: clampRingsGoal(raw.focusMinutes, 15, 480, 120),
+    savedMinutes: clampRingsGoal(raw.savedMinutes, 10, 480, 60),
+  };
+
+  const valueEls = {
+    deflected: document.getElementById("rings-goal-deflected"),
+    focused: document.getElementById("rings-goal-focused"),
+    saved: document.getElementById("rings-goal-saved"),
+  };
+
+  const paint = () => {
+    if (valueEls.deflected) valueEls.deflected.textContent = String(state.deflected);
+    if (valueEls.focused) valueEls.focused.textContent = FGRings.formatMinutes(state.focusMinutes);
+    if (valueEls.saved) valueEls.saved.textContent = FGRings.formatMinutes(state.savedMinutes);
+  };
+  paint();
+
+  let saveTimer = null;
+  const persistSoon = () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      saveTimer = null;
+      try {
+        await chrome.storage.local.set({ [RINGS_GOALS_STORAGE_KEY]: { ...state } });
+      } catch (_) {
+        return;
+      }
+      // The rings read goals on every render — repaint the Home card now.
+      renderHomeRings();
+    }, 350);
+  };
+
+  panel.querySelectorAll(".rings-stepper").forEach((stepper) => {
+    stepper.addEventListener("click", (e) => {
+      const btn = e.target.closest(".rings-step-btn");
+      if (!btn) return;
+      const key = RINGS_GOAL_KEYS[stepper.dataset.ring];
+      if (!key) return;
+      const step = Number(stepper.dataset.step) || 1;
+      const min = Number(stepper.dataset.min) || 1;
+      const max = Number(stepper.dataset.max) || 480;
+      const dir = Number(btn.dataset.dir) || 1;
+      state[key] = Math.min(max, Math.max(min, state[key] + dir * step));
+      paint();
+      persistSoon();
+    });
+  });
 }
 
 /**
@@ -885,6 +1088,38 @@ function addEventListeners() {
       }
     });
   }
+
+  // v1.17.0 — Unblock friction tier (shared/unblock-gate.js reads it)
+  const gateSel = document.getElementById("unblockGateTier");
+  if (gateSel) {
+    gateSel.addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (["off", "standard", "strict"].includes(val)) {
+        await saveSettings({ unblockGateTier: val });
+      }
+    });
+  }
+
+  // v1.17.0 — Sleep Guard times (time-blocker + background wind-down read
+  // sleepGuardStart / sleepGuardEnd straight from storage)
+  const sgStart = document.getElementById("sleep-guard-start");
+  const sgEnd = document.getElementById("sleep-guard-end");
+  if (sgStart) {
+    sgStart.addEventListener("change", async (e) => {
+      if (/^\d{2}:\d{2}$/.test(e.target.value)) {
+        await saveSettings({ sleepGuardStart: e.target.value });
+        notifyContentScript();
+      }
+    });
+  }
+  if (sgEnd) {
+    sgEnd.addEventListener("change", async (e) => {
+      if (/^\d{2}:\d{2}$/.test(e.target.value)) {
+        await saveSettings({ sleepGuardEnd: e.target.value });
+        notifyContentScript();
+      }
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1029,13 +1264,13 @@ async function initSmartListsUI() {
   // for actually blocking requests; this inline copy is UI-only.
   // Colors follow the design-system palette (muted, editorial).
   const categories = [
-    { id: "social", label: "Social Media", emoji: "📱", color: "#8a97c6" },
-    { id: "shopping", label: "Shopping", emoji: "🛍️", color: "#8fb77a" },
-    { id: "gaming", label: "Gaming", emoji: "🎮", color: "#b18bc9" },
-    { id: "news", label: "News", emoji: "📰", color: "#cf9448" },
-    { id: "messaging", label: "Messaging", emoji: "💬", color: "#c9809b" },
-    { id: "streaming", label: "Streaming", emoji: "🎬", color: "#c96a62" },
-    { id: "adult", label: "Adult Content", emoji: "🔞", color: "#a05050" },
+    { id: "social", label: "Social Media", icon: "users", color: "#8a97c6" },
+    { id: "shopping", label: "Shopping", icon: "cart", color: "#8fb77a" },
+    { id: "gaming", label: "Gaming", icon: "gamepad", color: "#b18bc9" },
+    { id: "news", label: "News", icon: "news", color: "#cf9448" },
+    { id: "messaging", label: "Messaging", icon: "message", color: "#c9809b" },
+    { id: "streaming", label: "Streaming", icon: "film", color: "#c96a62" },
+    { id: "adult", label: "Adult Content", icon: "alert", color: "#a05050" },
   ];
 
   // Helper to update a chip's visual state.
@@ -1068,14 +1303,17 @@ async function initSmartListsUI() {
       transition: "all 0.2s ease",
     });
 
-    const emoji = document.createElement("span");
-    emoji.textContent = cat.emoji;
-    emoji.style.fontSize = "18px";
-    chip.appendChild(emoji);
+    // Design-system stroke icon (matches the rest of the popup — no emojis).
+    const iconHost = document.createElement("i");
+    iconHost.setAttribute("data-icon", cat.icon);
+    iconHost.className = "ft-icon ft-icon-md";
+    iconHost.style.color = cat.color;
+    iconHost.style.flexShrink = "0";
+    chip.appendChild(iconHost);
 
     const label = document.createElement("span");
     label.style.cssText =
-      "flex: 1; color: var(--lg-text); font-size: 12px; font-weight: 500;";
+      "flex: 1; color: var(--ios-label); font-size: 12px; font-weight: 500;";
     label.textContent = cat.label;
     chip.appendChild(label);
 
@@ -1086,6 +1324,11 @@ async function initSmartListsUI() {
       borderRadius: "50%",
     });
     chip.appendChild(dot);
+
+    // Render the SVG into the icon host (icons.js exposes injectAll).
+    if (window.FocusTubeIcons) {
+      window.FocusTubeIcons.injectAll(chip);
+    }
 
     applyState(chip, dot, cat, isOn);
 
@@ -1222,7 +1465,7 @@ async function refreshWorkspaceList() {
       alignItems: "center",
       padding: "6px 8px",
       fontSize: "11px",
-      color: "var(--lg-text-muted)",
+      color: "var(--ios-label-2)",
       background: "rgba(255,255,255,0.04)",
       borderRadius: "6px",
       marginBottom: "4px",
@@ -1236,7 +1479,7 @@ async function refreshWorkspaceList() {
     Object.assign(del.style, {
       background: "transparent",
       border: "none",
-      color: "var(--lg-danger)",
+      color: "var(--ios-red)",
       cursor: "pointer",
       fontSize: "12px",
     });
@@ -1303,9 +1546,117 @@ async function initTimeLimitUI() {
   setInterval(refreshTimeUsage, 5000);
 }
 
+// v1.14.0 — per-site Focus Timer UI (Time Limits capsules).
+const FOCUS_TIMER_PRESETS = [15, 30, 60, 120];
+const FOCUS_TIMER_CLOCK_SVG =
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+function formatRemainingShort(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+let siteTimerTicker = null;
+
+/** Live countdown for every visible Focus Timer chip (1s cadence). */
+function startSiteTimerTicker() {
+  if (siteTimerTicker) clearInterval(siteTimerTicker);
+  siteTimerTicker = setInterval(() => {
+    const chips = document.querySelectorAll(".site-timer-chip[data-until]");
+    if (chips.length === 0) return;
+    let expired = false;
+    chips.forEach((chip) => {
+      const until = Number(chip.dataset.until) || 0;
+      const remaining = until - Date.now();
+      if (remaining <= 0) {
+        expired = true;
+        return;
+      }
+      const label = formatRemainingShort(remaining);
+      if (chip.textContent !== label) chip.textContent = label;
+    });
+    if (expired) refreshTimeUsage();
+  }, 1000);
+}
+
+/** Open (or close) the inline duration picker inside one site capsule. */
+function toggleTimerPicker(capsuleRow, domain) {
+  const existing = capsuleRow.querySelector(".site-timer-picker");
+  document
+    .querySelectorAll(".site-timer-picker")
+    .forEach((p) => p.remove());
+  if (existing) return; // this capsule's picker was just closed
+
+  const picker = document.createElement("div");
+  picker.className = "site-timer-picker";
+  picker.setAttribute("role", "group");
+  picker.setAttribute("aria-label", `Focus timer duration for ${domain}`);
+
+  const start = async (minutes) => {
+    if (!minutes || minutes <= 0) return;
+    // Close the picker FIRST: the guarded refresh skips re-rendering
+    // while a picker is open, so the new countdown chip must be drawn
+    // into a list without one.
+    picker.remove();
+    try {
+      await chrome.runtime.sendMessage({
+        action: "setSiteTimer",
+        domain,
+        minutes,
+      });
+    } catch (_) {}
+    refreshTimeUsage();
+  };
+
+  FOCUS_TIMER_PRESETS.forEach((minutes) => {
+    const preset = document.createElement("button");
+    preset.className = "site-timer-preset";
+    preset.textContent = minutes >= 60 ? `${minutes / 60}h` : `${minutes}m`;
+    preset.title = `Block ${domain} for ${minutes >= 60 ? `${minutes / 60} hour${minutes > 60 ? "s" : ""}` : `${minutes} minutes`}`;
+    preset.addEventListener("click", () => start(minutes));
+    picker.appendChild(preset);
+  });
+
+  const input = document.createElement("input");
+  input.className = "site-timer-input glass-input";
+  input.type = "number";
+  input.min = "1";
+  input.max = "1440";
+  input.placeholder = "min";
+  input.setAttribute("aria-label", "Custom minutes");
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      start(parseCustomDurationMinutes(input.value));
+    }
+  });
+  picker.appendChild(input);
+
+  const go = document.createElement("button");
+  go.className = "site-timer-start";
+  go.textContent = "Start";
+  go.addEventListener("click", () =>
+    start(parseCustomDurationMinutes(input.value)),
+  );
+  picker.appendChild(go);
+
+  capsuleRow.appendChild(picker);
+  input.focus();
+}
+
 async function refreshTimeUsage() {
   const container = document.getElementById("time-usage-list");
   if (!container) return;
+
+  // v1.14.0 — while a Focus Timer duration picker is open, skip the
+  // periodic re-render: rebuilding the list would yank the picker (and
+  // its input focus) out from under the user. Timer chips keep ticking
+  // on their own 1s ticker meanwhile.
+  if (container.querySelector(".site-timer-picker")) return;
 
   let resp;
   try {
@@ -1315,7 +1666,7 @@ async function refreshTimeUsage() {
   }
   if (!resp || !resp.success) return;
 
-  const { today, limits, logos = {} } = resp;
+  const { today, limits, logos = {}, siteTimers = {} } = resp;
   container.innerHTML = "";
 
   // Build a combined set of domains: those with limits + those with usage today.
@@ -1327,7 +1678,7 @@ async function refreshTimeUsage() {
   if (allDomains.size === 0) {
     const empty = document.createElement("p");
     empty.style.cssText =
-      "color: var(--lg-text-dim); font-size: 11px; text-align: center; padding: 8px;";
+      "color: var(--ios-label-3); font-size: 11px; text-align: center; padding: 8px;";
     empty.textContent = "No time limits set. Add one above.";
     container.appendChild(empty);
     renderHomeUsage([], today || {}, limits || {});
@@ -1356,10 +1707,10 @@ async function refreshTimeUsage() {
       padding: "8px 10px",
       marginBottom: "6px",
       background: isOver
-        ? "var(--lg-danger-soft)"
-        : "var(--lg-glass-bg)",
-      border: `1px solid ${isOver ? "var(--lg-danger-border)" : "var(--lg-glass-border)"}`,
-      borderRadius: "var(--lg-radius-md)",
+        ? "var(--ios-red-soft)"
+        : "var(--ios-fill-4)",
+      border: `1px solid ${isOver ? "var(--ios-red-border)" : "var(--ios-sep)"}`,
+      borderRadius: "var(--ios-r-md)",
     });
 
     // Top row: domain + delete
@@ -1380,7 +1731,7 @@ async function refreshTimeUsage() {
     logo.setAttribute("aria-hidden", "true");
     Object.assign(logo.style, {
       width: "18px", height: "18px", flex: "0 0 18px", borderRadius: "5px",
-      objectFit: "contain", background: "var(--lg-glass-bg)",
+      objectFit: "contain", background: "var(--ios-fill-4)",
     });
     logo.onerror = () => {
       logo.style.display = "none";
@@ -1389,7 +1740,7 @@ async function refreshTimeUsage() {
 
     const name = document.createElement("span");
     name.style.cssText =
-      "color: var(--lg-text); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+      "color: var(--ios-label); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
     name.textContent = domain;
     identity.appendChild(name);
 
@@ -1398,7 +1749,7 @@ async function refreshTimeUsage() {
     Object.assign(del.style, {
       background: "transparent",
       border: "none",
-      color: "var(--lg-text-dim)",
+      color: "var(--ios-label-3)",
       cursor: "pointer",
       fontSize: "12px",
       padding: "2px 6px",
@@ -1412,8 +1763,66 @@ async function refreshTimeUsage() {
       refreshTimeUsage();
     };
 
+    // v1.14.0 — right-side Focus Timer control. Shows a live countdown
+    // chip while a timer runs on this site, otherwise a compact button
+    // that opens the inline duration picker. A site under a permanent /
+    // daily-limit block shows a static "Blocked" tag instead.
+    const right = document.createElement("div");
+    Object.assign(right.style, {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    });
+
+    const timerUntil = Number(siteTimers[domain]) || 0;
+    const permanentBlock = (resp.blockedSites || []).some(
+      (b) =>
+        b &&
+        b.domain &&
+        String(b.domain).replace(/^(https?:\/\/)?(www\.)?/, "") === domain &&
+        Number(b.blockUntil) > Date.now() &&
+        b.reason !== "Focus Timer",
+    );
+
+    if (timerUntil > Date.now()) {
+      const chip = document.createElement("button");
+      chip.className = "site-timer-chip";
+      chip.dataset.until = String(timerUntil);
+      chip.textContent = formatRemainingShort(timerUntil - Date.now());
+      chip.title = "Focus Timer running — click to end early";
+      chip.onclick = async () => {
+        try {
+          await chrome.runtime.sendMessage({
+            action: "setSiteTimer",
+            domain,
+            minutes: 0,
+          });
+        } catch (_) {}
+        refreshTimeUsage();
+      };
+      right.appendChild(chip);
+    } else if (!permanentBlock) {
+      const tbtn = document.createElement("button");
+      tbtn.className = "site-timer-btn";
+      tbtn.title = "Set a Focus Timer for this site";
+      tbtn.setAttribute("aria-label", `Set a focus timer for ${domain}`);
+      tbtn.innerHTML = FOCUS_TIMER_CLOCK_SVG;
+      tbtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleTimerPicker(row, domain);
+      };
+      right.appendChild(tbtn);
+    } else {
+      const locked = document.createElement("span");
+      locked.className = "site-timer-locked";
+      locked.textContent = "Blocked";
+      locked.title = "A permanent block is already active on this site";
+      right.appendChild(locked);
+    }
+
+    right.appendChild(del);
     top.appendChild(identity);
-    top.appendChild(del);
+    top.appendChild(right);
     row.appendChild(top);
 
     // Progress bar
@@ -1421,8 +1830,8 @@ async function refreshTimeUsage() {
       const barBg = document.createElement("div");
       Object.assign(barBg.style, {
         height: "6px",
-        background: "var(--lg-glass-bg)",
-        borderRadius: "var(--lg-radius-full)",
+        background: "var(--ios-fill-4)",
+        borderRadius: "var(--ios-r-full)",
         overflow: "hidden",
       });
 
@@ -1431,12 +1840,12 @@ async function refreshTimeUsage() {
         height: "100%",
         width: `${pct}%`,
         background: isOver
-          ? "var(--lg-danger)"
+          ? "var(--ios-red)"
           : pct > 80
-          ? "var(--lg-warning)"
-          : "var(--lg-gradient-primary)",
-        borderRadius: "var(--lg-radius-full)",
-        transition: "width 0.3s var(--lg-ease-smooth)",
+          ? "var(--ios-orange)"
+          : "var(--ios-blue)",
+        borderRadius: "var(--ios-r-full)",
+        transition: "width 0.3s var(--ios-ease)",
       });
       barBg.appendChild(barFill);
       row.appendChild(barBg);
@@ -1445,13 +1854,13 @@ async function refreshTimeUsage() {
     // Usage text
     const usage = document.createElement("span");
     usage.style.cssText =
-      "color: var(--lg-text-muted); font-size: 11px;";
+      "color: var(--ios-label-2); font-size: 11px;";
     if (limitMin > 0) {
       usage.textContent = isOver
-        ? `${usedMin.toFixed(1)} / ${limitMin} min — limit reached`
-        : `${usedMin.toFixed(1)} / ${limitMin} min used`;
+        ? `${formatUsageMinutes(usedMin)} / ${formatUsageMinutes(limitMin)} — limit reached`
+        : `${formatUsageMinutes(usedMin)} of ${formatUsageMinutes(limitMin)} used`;
     } else {
-      usage.textContent = `${usedMin.toFixed(1)} min today (no limit set)`;
+      usage.textContent = `${formatUsageMinutes(usedMin)} today (no limit set)`;
     }
     row.appendChild(usage);
 
@@ -1459,6 +1868,9 @@ async function refreshTimeUsage() {
   }
 
   renderHomeUsage(sorted, today || {}, limits || {});
+  // v1.14.0 — keep Focus Timer chips ticking every second (the 5s refresh
+  // alone would read as a frozen timer — the v1.12.1 lesson).
+  startSiteTimerTicker();
 }
 
 /**
@@ -1496,7 +1908,9 @@ function renderHomeUsage(sortedDomains, today, limits) {
     name.textContent = domain;
     const val = document.createElement("span");
     val.textContent =
-      limitMin > 0 ? `${Math.round(usedMin)}/${limitMin}m` : `${Math.round(usedMin)}m`;
+      limitMin > 0
+        ? `${formatUsageMinutes(usedMin)} / ${formatUsageMinutes(limitMin)}`
+        : formatUsageMinutes(usedMin);
     if (isOver) val.classList.add("over");
     top.appendChild(name);
     top.appendChild(val);
@@ -1664,12 +2078,38 @@ async function setTempBlock(minutes) {
 async function renderHomeSummary() {
   const settings = await loadSettings();
 
+  // v1.13.0: first-run hint — show until onboarding is completed.
+  const banner = document.getElementById("setup-banner");
+  if (banner) {
+    const needsSetup = !settings.onboardingComplete;
+    banner.hidden = !needsSetup;
+    banner.classList.toggle("yfp-hidden", !needsSetup);
+    if (needsSetup && !banner.dataset.bound) {
+      banner.dataset.bound = "1";
+      banner.addEventListener("click", () => {
+        try {
+          chrome.tabs.create({
+            url: chrome.runtime.getURL("src/onboarding/onboarding.html"),
+          });
+          window.close();
+        } catch {
+          /* tabs API unavailable in some contexts */
+        }
+      });
+    }
+  }
+
   const time = document.getElementById("home-stats-time");
   const points = document.getElementById("home-stats-points");
   const ads = document.getElementById("home-stats-ads");
   if (time) time.textContent = formatTime(settings.statsTimeSaved);
   if (points) points.textContent = Number(settings.statsWillpowerPoints) || 0;
   if (ads) ads.textContent = Number(settings.statsAdsBlocked) || 0;
+
+  // v1.15.0 — Focus Rings card (today's ritual, Apple-Fitness style).
+  renderHomeRings();
+  // v1.16.0 — editable ring goals in Settings.
+  initRingsGoalsEditor();
 
   const list = document.getElementById("home-protection-list");
   if (!list) return;
@@ -1774,19 +2214,19 @@ async function renderActiveBlocks() {
           justify-content: space-between;
           align-items: center;
           font-size: 12px;
-          border-left: 3px solid var(--lg-primary);
+          border-left: 3px solid var(--ios-blue);
           transition: all 0.2s ease;
         `;
 
         const info = document.createElement('div');
-        info.style.cssText = 'color: var(--lg-text); flex: 1;';
+        info.style.cssText = 'color: var(--ios-label); flex: 1;';
         const domainName = String(block.domain || '').replace(/^(https?:\/\/)?(www\.)?/, '');
         // SECURITY: use DOM APIs to avoid XSS via a stored domain payload.
         const strong = document.createElement('strong');
-        strong.style.cssText = 'color: var(--lg-text); display: block;';
+        strong.style.cssText = 'color: var(--ios-label); display: block;';
         strong.textContent = domainName;
         const span = document.createElement('span');
-        span.style.cssText = 'color: var(--lg-text-muted); font-size: 11px;';
+        span.style.cssText = 'color: var(--ios-label-2); font-size: 11px;';
         span.textContent = `${timeStr} remaining`;
         info.appendChild(strong);
         info.appendChild(span);
@@ -1794,9 +2234,9 @@ async function renderActiveBlocks() {
         const removeBtn = document.createElement('button');
         removeBtn.textContent = '✕';
         removeBtn.style.cssText = `
-          background: var(--lg-danger-soft);
-          border: 1px solid var(--lg-danger-border);
-          color: var(--lg-danger);
+          background: var(--ios-red-soft);
+          border: 1px solid var(--ios-red-border);
+          color: var(--ios-red);
           border-radius: 4px;
           cursor: pointer;
           padding: 4px 8px;

@@ -5,18 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FocusTube Dashboard</title>
     <link rel="stylesheet" href="../shared/liquid-glass.css" />
+    <link rel="stylesheet" href="../shared/apple-ui.css" />
     <link rel="stylesheet" href="dashboard.css" />
     <script src="../shared/icons.js"></script>
+    <script src="../shared/focus-score.js"></script>
+    <script src="../shared/focus-rings.js"></script>
+    <script src="../shared/recap-card.js"></script>
+    <script src="../shared/pair-digest.js"></script>
   </head>
-  <body class="lg-surface">
-    <div class="lg-aurora"></div>
+  <body class="ios-theme" data-ft-companion="dashboard">
 
     <div class="dashboard-shell">
       <!-- Compact Header -->
       <header class="dash-header">
         <div class="dash-header-left">
           <h1>Analytics</h1>
-          <p class="dash-subtitle">Your focus activity on this device</p>
+          <p id="dashboard-date" class="dash-subtitle">Your focus activity on this device</p>
         </div>
         <div class="dash-header-right">
           <div class="range-tabs" role="tablist" aria-label="Report range">
@@ -24,6 +28,9 @@
             <button class="range-tab" data-range="week" role="tab" aria-selected="false" tabindex="-1">Week</button>
             <button class="range-tab" data-range="month" role="tab" aria-selected="false" tabindex="-1">Month</button>
           </div>
+          <button id="digest-btn" class="icon-btn" title="Daily Briefing — your focus report" aria-label="Open Daily Briefing">
+            <i data-icon="sparkles" class="ft-icon ft-icon-md"></i>
+          </button>
           <button id="refresh-btn" class="icon-btn" title="Refresh data" aria-label="Refresh data">
             <i data-icon="refresh" class="ft-icon ft-icon-md"></i>
           </button>
@@ -40,6 +47,21 @@
       <section class="hero-score">
         <div class="score-ring-large" id="score-ring">
           <svg class="score-svg" viewBox="0 0 120 120">
+            <defs>
+              <!-- Apple Fitness ring gradients, one per score tier -->
+              <linearGradient id="ring-grad-good" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7CE8A6"/>
+                <stop offset="100%" stop-color="#30D158"/>
+              </linearGradient>
+              <linearGradient id="ring-grad-mid" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#FFCE6B"/>
+                <stop offset="100%" stop-color="#FF9F0A"/>
+              </linearGradient>
+              <linearGradient id="ring-grad-low" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#FF8A80"/>
+                <stop offset="100%" stop-color="#FF453A"/>
+              </linearGradient>
+            </defs>
             <circle class="score-track" cx="60" cy="60" r="52"/>
             <circle class="score-fill" id="score-fill" cx="60" cy="60" r="52"/>
           </svg>
@@ -80,12 +102,63 @@
         </div>
       </section>
 
+      <!-- Focus Rings (v1.15.0 USP) — Apple-Fitness-style daily ritual -->
+      <section class="panel rings-panel" aria-label="Focus Rings">
+        <div class="rings-head">
+          <h2>Focus Rings</h2>
+          <span class="panel-subtitle" id="rings-subtitle">Close all three, every day</span>
+        </div>
+        <div class="rings-body">
+          <div id="rings-viz" class="rings-viz"></div>
+          <div class="rings-legend" id="rings-legend">
+            <div class="rings-legend-row">
+              <span class="rings-dot rings-dot--deflected" aria-hidden="true"></span>
+              <div class="rings-legend-copy">
+                <span class="rings-legend-label">Deflected</span>
+                <span class="rings-legend-hint">Ads, Shorts &amp; urges skipped</span>
+              </div>
+              <span class="rings-legend-val" id="ring-val-deflected">0 / 12</span>
+            </div>
+            <div class="rings-legend-row">
+              <span class="rings-dot rings-dot--focused" aria-hidden="true"></span>
+              <div class="rings-legend-copy">
+                <span class="rings-legend-label">Focused</span>
+                <span class="rings-legend-hint">Pomodoro focus time</span>
+              </div>
+              <span class="rings-legend-val" id="ring-val-focused">0m / 2h</span>
+            </div>
+            <div class="rings-legend-row">
+              <span class="rings-dot rings-dot--saved" aria-hidden="true"></span>
+              <div class="rings-legend-copy">
+                <span class="rings-legend-label">Saved</span>
+                <span class="rings-legend-hint">Time saved by blockers</span>
+              </div>
+              <span class="rings-legend-val" id="ring-val-saved">0m / 1h</span>
+            </div>
+          </div>
+        </div>
+        <p class="rings-streak" id="rings-streak" hidden></p>
+        <p class="rings-insurance" id="rings-insurance" hidden></p>
+      </section>
+
       <!-- Metrics Grid -->
       <section class="metrics-section">
         <div class="section-header">
-          <h2 id="range-title">Today</h2>
-          <p id="range-subtitle" class="section-subtitle"></p>
-          <button id="retry-load" class="retry-btn" hidden>Retry loading</button>
+          <div class="section-header-left">
+            <h2 id="range-title">Today</h2>
+            <p id="range-subtitle" class="section-subtitle"></p>
+            <button id="retry-load" class="retry-btn" hidden>Retry loading</button>
+          </div>
+          <div class="day-nav-wrap" role="group" aria-label="Browse data by day">
+            <button id="day-prev" class="day-nav-btn" title="Previous day" aria-label="Previous day">
+              <i data-icon="chevron-left" class="ft-icon ft-icon-md"></i>
+            </button>
+            <span id="day-nav-label" class="day-nav-label" title="Viewing today — press < to browse previous days">Today</span>
+            <button id="day-next" class="day-nav-btn" title="Already on today" aria-label="Next day" disabled>
+              <i data-icon="chevron-right" class="ft-icon ft-icon-md"></i>
+            </button>
+            <button id="day-today" class="day-nav-today" hidden title="Return to today's report">Today</button>
+          </div>
         </div>
         <div class="metric-grid">
           <article class="metric-card">
@@ -116,6 +189,13 @@
               <span class="metric-label">Quit Attempts</span>
             </div>
           </article>
+          <article class="metric-card">
+            <div class="metric-icon metric-icon-blue"><i data-icon="target" class="ft-icon ft-icon-lg"></i></div>
+            <div class="metric-body">
+              <span class="metric-value" id="metric-intent">—</span>
+              <span class="metric-label">Intent Match</span>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -139,8 +219,8 @@
         <!-- Top Sites -->
         <div class="panel top-sites-panel">
           <div class="panel-header">
-            <h2>Top Sites Today</h2>
-            <span class="panel-subtitle">By time spent</span>
+            <h2 id="top-sites-title">Top Sites Today</h2>
+            <span id="top-sites-subtitle" class="panel-subtitle">By time spent</span>
           </div>
           <div id="top-sites-list" class="top-sites-list"></div>
         </div>      </section>
@@ -148,7 +228,8 @@
       <!-- Heatmap -->
       <section class="panel heatmap-panel">
         <div class="panel-header">
-          <h2>30-Day Activity</h2>
+          <h2 id="heatmap-title">Monthly Activity</h2>
+          <span id="heatmap-subtitle" class="panel-subtitle"></span>
         </div>
         <div id="heatmap-grid" class="heatmap-grid"></div>
         <div class="heatmap-legend">
@@ -160,6 +241,46 @@
           <i class="heat-cell level-4"></i>
           <span>More</span>
         </div>
+      </section>
+
+      <!-- Monthly Review (v1.16.0) — animated month overview with weekly badges -->
+      <section class="panel monthly-review-panel" id="monthly-review" aria-label="Monthly Review">
+        <div class="panel-header">
+          <h2 id="mr-title">Monthly Review</h2>
+          <span id="mr-subtitle" class="panel-subtitle"></span>
+          <div class="mr-actions">
+            <button id="mr-recap-btn" class="mr-action-btn" title="Render this week as a shareable PNG (100% local)">Export recap card</button>
+            <button id="mr-pair-btn" class="mr-action-btn" title="Compare your ring week with a partner — copy/paste, nothing leaves your device">Pair week</button>
+          </div>
+        </div>
+        <div id="mr-pair" class="mr-pair" hidden></div>
+        <div class="mr-tiles">
+          <div class="mr-tile">
+            <span class="mr-tile-value" id="mr-saved">0m</span>
+            <span class="mr-tile-label">Time saved</span>
+          </div>
+          <div class="mr-tile">
+            <span class="mr-tile-value" id="mr-deflected">0</span>
+            <span class="mr-tile-label">Deflections</span>
+          </div>
+          <div class="mr-tile">
+            <span class="mr-tile-value" id="mr-sessions">0</span>
+            <span class="mr-tile-label">Focus sessions</span>
+          </div>
+          <div class="mr-tile">
+            <span class="mr-tile-value" id="mr-rings">0</span>
+            <span class="mr-tile-label">Rings closed</span>
+          </div>
+        </div>
+        <div class="mr-block">
+          <h3 class="mr-block-title">Rings day by day</h3>
+          <div id="mr-days" class="mr-days" role="list" aria-label="Rings closed on each day of the month"></div>
+        </div>
+        <div class="mr-block">
+          <h3 class="mr-block-title">Weekly badges</h3>
+          <div id="mr-badges" class="mr-badges" role="list" aria-label="Weekly all-rings badges"></div>
+        </div>
+        <p class="mr-best" id="mr-best" hidden></p>
       </section>
 
       <!-- Watch Time & Topics -->
@@ -218,14 +339,17 @@
           <span id="sync-status-badge" class="sync-badge">Checking…</span>
         </div>
         <p class="sync-help">
-          Pick one JSON file on your PC (for example in Documents, or a Dropbox/OneDrive
-          folder to also share across computers) as the shared data store. Choose the
-          <strong>same file</strong> in every browser where FocusTube is installed — daily
-          stats, time spent per site, site blocks, and daily time limits stay in sync
-          everywhere. No cloud, no account; the data never leaves your disk.
+          Pick a <strong>folder</strong> on your PC (for example in Documents, or a
+          Dropbox/OneDrive folder to also share across computers). FocusTube keeps one
+          small file per month inside it — <em>focustube-September-2025.json</em> — and
+          starts the next month's file automatically, so nothing ever grows into one
+          huge archive. Choose the <strong>same folder</strong> in every browser where
+          FocusTube is installed; picking it also restores the monthly files already in
+          it. Daily stats, time spent per site, site blocks, and daily time limits stay
+          in sync everywhere. No cloud, no account; the data never leaves your disk.
         </p>
         <div class="sync-actions">
-          <button id="sync-pick-btn" class="sync-btn primary">Choose data file…</button>
+          <button id="sync-pick-btn" class="sync-btn primary">Choose data folder…</button>
           <button id="sync-now-btn" class="sync-btn">Sync now</button>
           <button id="sync-disconnect-btn" class="sync-btn danger">Disconnect</button>
           <button id="sync-export-btn" class="sync-btn">Export data file</button>
@@ -241,6 +365,8 @@
       </footer>
     </div>
 
+    <script src="../shared/companion-art.js"></script>
+    <script src="../shared/companion-widget.js"></script>
     <script src="dashboard.js"></script>
     <script src="sync-ui.js"></script>
   </body>

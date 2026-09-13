@@ -3,13 +3,19 @@
  *
  * Page-side companion to the background file-sync engine. The File System
  * Access API requires a document context (and a user gesture) to show the
- * file picker, so the handle is chosen HERE and persisted in IndexedDB,
- * where the background service worker picks it up for its periodic
- * read → merge → write cycles.
+ * picker, so the handle is chosen HERE and persisted in IndexedDB, where the
+ * background service worker picks it up for its periodic read → merge →
+ * write cycles.
  *
- * Browsers without the File System Access API (e.g. Firefox) keep the
- * Export / Import buttons as a manual fallback that produces and consumes
- * the exact same JSON format.
+ * v1.16.0 — MONTHLY ARCHIVE MODE. The primary flow now picks a FOLDER; the
+ * engine keeps one JSON file per calendar month inside it
+ * (focustube-September-2025.json) and rotates automatically at month end,
+ * so no single file ever grows unbounded and every month stays as a small
+ * archive. Picking a folder also imports every focustube-*.json already in
+ * it, restoring prior months into this browser. Browsers without directory
+ * picking keep the classic single-file flow; browsers without the File
+ * System Access API (e.g. Firefox) keep Export / Import as the manual
+ * fallback — exports now use the same monthly naming scheme.
  */
 
 (() => {
@@ -18,6 +24,16 @@
   const SYNC_DB_VERSION = 1;
   const SYNC_STORE = "handles";
   const SYNC_HANDLE_KEY = "dataFile";
+  const SYNC_DIR_KEY = "dataDir";
+
+  const SYNC_MONTH_NAMES = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  // Guard rails for the one-time history import after a folder is picked.
+  const HISTORY_IMPORT_MAX_FILES = 60;
+  const HISTORY_IMPORT_MAX_BYTES = 8 * 1024 * 1024;
+  const MONTH_FILE_RE = /^focustube-.+\.json$/i;
 
   const badge = document.getElementById("sync-status-badge");
   const detail = document.getElementById("sync-detail");
@@ -30,8 +46,11 @@
   const supportsFSA =
     typeof window.showSaveFilePicker === "function" &&
     typeof indexedDB !== "undefined";
+  const supportsDir =
+    typeof window.showDirectoryPicker === "function" &&
+    typeof indexedDB !== "undefined";
 
-  if (!supportsFSA) {
+  if (!supportsFSA && !supportsDir) {
     if (pickBtn) pickBtn.style.display = "none";
   }
 
@@ -91,10 +110,37 @@
     }
   }
 
-  const getStoredHandle = () =>
-    idbOp("readonly", (s) => s.get(SYNC_HANDLE_KEY)).catch(() => null);
-  const putStoredHandle = (handle) =>
-    idbOp("readwrite", (s) => s.put(handle, SYNC_HANDLE_KEY));
+  const getStored = (key) =>
+    idbOp("readonly", (s) => s.get(key)).catch(() => null);
+  const putStored = (key, handle) =>
+    idbOp("readwrite", (s) => s.put(handle, key));
+
+  function monthFileName(now = new Date()) {
+    return `focustube-${SYNC_MONTH_NAMES[now.getMonth()]}-${now.getFullYear()}.json`;
+  }
+
+  function monthKey(now = new Date()) {
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  /** Page-side mirror of the background's month scoping for exports. */
+  function filterPayloadDaysToMonth(payload, mKey) {
+    if (!payload || typeof payload !== "object") return payload;
+    const prefix = `${mKey}-`;
+    const filterMap = (map) => {
+      const out = {};
+      for (const [day, value] of Object.entries(map || {})) {
+        if (String(day).startsWith(prefix)) out[day] = value;
+      }
+      return out;
+    };
+    return {
+      ...payload,
+      analyticsDaily: filterMap(payload.analyticsDaily),
+      timeUsage: filterMap(payload.timeUsage),
+      topicStats: filterMap(payload.topicStats),
+    };
+  }
 
   async function send(action, extra = {}) {
     try {
@@ -120,7 +166,9 @@
     if (!status || typeof status !== "object") {
       badge.classList.add("off");
       badge.textContent = "Not set up";
-      detail.textContent = supportsFSA
+      detail.textContent = supportsDir
+        ? "Choose a folder to start monthly syncing."
+        : supportsFSA
         ? "Choose a data file to start syncing."
         : manualSyncHelp();
       return;
@@ -132,11 +180,19 @@
     const pendingDetail = status.pendingChanges
       ? ` ${timeAgo(status.pendingSince)} of local changes are waiting safely on this device.`
       : "";
+    const monthly = status.syncMode === "monthly";
 
     if (hasFile && status.needsPermission) {
       badge.classList.add("warn");
       badge.textContent = "Reconnect needed";
-      detail.textContent = `Access to "${status.fileName}" was revoked by the browser. Click "Choose data file…" and pick the same file again.`;
+      const target = monthly
+        ? `the sync folder "${status.folderName || "FocusTube"}"`
+        : `"${status.fileName}"`;
+      detail.textContent = `Access to ${target} was revoked by the browser. Click "Choose data ${
+        monthly ? "folder" : "file"
+      }…" and pick the same ${
+        monthly ? "folder" : "file"
+      } again.`;
       if (status.pendingChanges) detail.textContent += pendingDetail;
       return;
     }
@@ -144,14 +200,16 @@
     if (hasFile && status.lastResult === "unknown") {
       badge.classList.add("on");
       badge.textContent = "Connected";
-      detail.textContent = `Shared file: ${status.fileName}. The background service worker couldn't be reached just now — it will sync within a minute. If this message persists, reload the extension.`;
+      detail.textContent = monthly
+        ? `Monthly files in "${status.folderName || "your folder"}": current file ${status.fileName}. The background service worker couldn't be reached just now — it will sync within a minute.`
+        : `Shared file: ${status.fileName}. The background service worker couldn't be reached just now — it will sync within a minute. If this message persists, reload the extension.`;
       return;
     }
 
     if (hasFile && status.lastResult === "error") {
       badge.classList.add("warn");
       badge.textContent = "Sync error";
-      detail.textContent = `Last sync failed: ${status.lastError || "unknown error"} (file: ${status.fileName}). Make sure the file isn't open in another program.`;
+      detail.textContent = `Last sync failed: ${status.lastError || "unknown error"} (file: ${status.fileName}). Make sure it isn't open in another program.`;
       return;
     }
 
@@ -161,19 +219,26 @@
         ? `${Math.max(1, Math.round(status.fileBytes / 1024))} KB`
         : "";
       badge.textContent = `Syncing · ${timeAgo(status.lastSyncAt)}${kb ? ` · ${kb}` : ""}`;
-      detail.textContent = `Shared file: ${status.fileName}. Last write ${timeAgo(
-        status.lastWriteAt || status.lastSyncAt,
-      )}${kb ? ` (${kb})` : ""}. Every browser using this same file shows the same dashboard and limits.${pendingDetail}`;
+      detail.textContent = monthly
+        ? `Monthly archive: ${status.fileName} in "${status.folderName || "your folder"}". A fresh file starts automatically each month — earlier months stay on disk as small archives.${pendingDetail}`
+        : `Shared file: ${status.fileName}. Last write ${timeAgo(
+            status.lastWriteAt || status.lastSyncAt,
+          )}${kb ? ` (${kb})` : ""}. Every browser using this same file shows the same dashboard and limits.${pendingDetail}`;
       return;
     }
 
     badge.classList.add("off");
     badge.textContent = status.pendingChanges ? "Saved locally" : "Not set up";
-    detail.textContent = supportsFSA
-      ? status.pendingChanges
-        ? `Your data is safely saved in this browser.${pendingDetail} Choose a data file to sync it whenever you are ready.`
-        : "Choose a data file to start syncing."
-      : manualSyncHelp();
+    detail.textContent =
+      supportsDir || supportsFSA
+        ? status.pendingChanges
+          ? `Your data is safely saved in this browser.${pendingDetail} Choose a data ${
+              supportsDir ? "folder" : "file"
+            } to sync it whenever you are ready.`
+          : supportsDir
+          ? "Choose a folder to start monthly syncing."
+          : "Choose a data file to start syncing."
+        : manualSyncHelp();
   }
 
   async function refreshStatus() {
@@ -188,13 +253,27 @@
     if (!status || typeof status !== "object") {
       // Messaging failed (SW asleep, stale context, or an older background
       // without the sync handlers). Fall back to local facts so a stored
-      // file is never reported as "not set up".
-      const handle = await getStoredHandle().catch(() => null);
-      status = handle
+      // handle is never reported as "not set up".
+      const [fileHandle, dirHandle] = await Promise.all([
+        getStored(SYNC_HANDLE_KEY),
+        getStored(SYNC_DIR_KEY),
+      ]);
+      status = dirHandle
         ? {
             hasFile: true,
             connected: true,
-            fileName: handle.name || "focustube-data.json",
+            syncMode: "monthly",
+            folderName: dirHandle.name || "",
+            fileName: monthFileName(),
+            lastResult: "unknown",
+            lastSyncAt: 0,
+          }
+        : fileHandle
+        ? {
+            hasFile: true,
+            connected: true,
+            syncMode: "file",
+            fileName: fileHandle.name || "focustube-data.json",
             lastResult: "unknown",
             lastSyncAt: 0,
           }
@@ -216,33 +295,136 @@
     /* chrome.storage unavailable (e.g. stale context) — status refreshes on action */
   }
 
+  /**
+   * One-time history import after a folder is picked: every focustube-*.json
+   * already in the folder (previous months, or the current month written by
+   * another browser) is merged into local storage. The merge is max-based
+   * and idempotent, so re-reading the current month file is harmless.
+   */
+  async function importFolderHistory(dirHandle) {
+    let imported = 0;
+    let skipped = 0;
+    try {
+      for await (const entry of dirHandle.values()) {
+        if (imported + skipped >= HISTORY_IMPORT_MAX_FILES) break;
+        if (entry.kind !== "file" || !MONTH_FILE_RE.test(entry.name)) continue;
+        try {
+          const file = await entry.getFile();
+          if (file.size > HISTORY_IMPORT_MAX_BYTES) {
+            skipped += 1;
+            continue;
+          }
+          const text = await file.text();
+          if (!text.trim()) {
+            skipped += 1;
+            continue;
+          }
+          const payload = JSON.parse(text);
+          if (!payload || typeof payload !== "object") {
+            skipped += 1;
+            continue;
+          }
+          const resp = await send("syncApplyImportedPayload", { payload });
+          if (resp?.success) imported += 1;
+          else skipped += 1;
+        } catch (_) {
+          skipped += 1;
+        }
+      }
+    } catch (_) {
+      /* entry iteration unsupported — history import stays best-effort */
+    }
+    return { imported, skipped };
+  }
+
+  async function requestHandlePermission(handle) {
+    try {
+      if (typeof handle.queryPermission === "function") {
+        const perm = await handle.queryPermission({ mode: "readwrite" });
+        if (perm === "granted") return true;
+      }
+      if (typeof handle.requestPermission === "function") {
+        const granted = await handle.requestPermission({ mode: "readwrite" });
+        return granted === "granted";
+      }
+    } catch (_) {
+      /* fall through */
+    }
+    return false;
+  }
+
+  async function finishConnection(reason) {
+    let resp = null;
+    try {
+      resp = await send("syncNow", { reason });
+    } catch (_) {}
+    try {
+      await refreshStatus();
+    } catch (_) {}
+    if (resp?.result?.success) {
+      window.location.reload(); // show the freshly merged data
+    }
+  }
+
   if (pickBtn) {
     pickBtn.addEventListener("click", async () => {
-      // Reconnect path: a stored handle just needs permission re-granted.
-      const existing = await getStoredHandle();
+      // Reconnect path (monthly folder): a stored directory handle just
+      // needs permission re-granted.
+      const dir = await getStored(SYNC_DIR_KEY);
+      if (dir && dir.queryPermission) {
+        const perm = await requestHandlePermission(dir).catch(() => false);
+        if (perm) {
+          await finishConnection("reconnected");
+          return;
+        }
+        // Permission denied or prompt unavailable → fall through to a fresh pick.
+      }
+
+      // Reconnect path (legacy single file).
+      const existing = await getStored(SYNC_HANDLE_KEY);
       if (existing && existing.queryPermission) {
-        try {
-          const perm = await existing.queryPermission({ mode: "readwrite" });
-          if (perm !== "granted") {
-            const granted = await existing.requestPermission({
-              mode: "readwrite",
-            });
-            if (granted === "granted") {
-              await send("syncNow", { reason: "reconnected" });
-              await refreshStatus();
-              return;
-            }
-          } else {
-            await send("syncNow", { reason: "reconnected" });
-            await refreshStatus();
-            return;
-          }
-        } catch (_) {
-          /* fall through to a fresh pick */
+        const perm = await requestHandlePermission(existing).catch(() => false);
+        if (perm) {
+          await finishConnection("reconnected");
+          return;
         }
       }
 
-      if (!supportsFSA) return;
+      if (!supportsDir && !supportsFSA) return;
+
+      // Preferred: MONTHLY FOLDER mode (v1.16.0).
+      if (supportsDir) {
+        try {
+          const dirHandle = await window.showDirectoryPicker({
+            id: "focustube-sync",
+            mode: "readwrite",
+            startIn: "documents",
+          });
+          await putStored(SYNC_DIR_KEY, dirHandle);
+          // Drop any legacy single-file handle — the folder replaces it.
+          if (existing) {
+            try {
+              await idbOp("readwrite", (s) => s.delete(SYNC_HANDLE_KEY));
+            } catch (_) {}
+          }
+
+          if (detail) {
+            detail.textContent = `Checking "${dirHandle.name}" for previous monthly files…`;
+          }
+          const { imported } = await importFolderHistory(dirHandle);
+          if (detail && imported > 0) {
+            detail.textContent = `Restored ${imported} monthly file${imported === 1 ? "" : "s"} into this browser. Syncing…`;
+          }
+          await finishConnection("picked");
+        } catch (err) {
+          if (err?.name !== "AbortError" && detail) {
+            detail.textContent = `Could not use that folder: ${err?.message || err}`;
+          }
+        }
+        return;
+      }
+
+      // Fallback: classic single-file mode.
       try {
         const handle = await window.showSaveFilePicker({
           suggestedName: "focustube-data.json",
@@ -253,23 +435,13 @@
             },
           ],
         });
-        await putStoredHandle(handle);
-
+        await putStored(SYNC_HANDLE_KEY, handle);
         // The file is stored from this point — a transient messaging
         // failure here is NOT "could not use that file"; the periodic
         // background sync will pick it up.
-        let resp = null;
-        try {
-          resp = await send("syncNow", { reason: "picked" });
-        } catch (_) {}
-        try {
-          await refreshStatus();
-        } catch (_) {}
-        if (resp?.result?.success) {
-          window.location.reload(); // show the freshly merged data
-        }
+        await finishConnection("picked");
       } catch (err) {
-        if (err?.name !== "AbortError") {
+        if (err?.name !== "AbortError" && detail) {
           detail.textContent = `Could not use that file: ${err?.message || err}`;
         }
       }
@@ -302,17 +474,21 @@
         detail.textContent = "Export failed — could not read local data.";
         return;
       }
-      const blob = new Blob([JSON.stringify(resp.payload, null, 2)], {
+      // v1.16.0 — monthly naming: focustube-<Month>-<Year>.json containing
+      // that month's daily data (config rides along). Small, self-contained
+      // archive files instead of one file that grows forever.
+      const name = monthFileName();
+      const payload = filterPayloadDaysToMonth(resp.payload, monthKey());
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "focustube-data.json";
+      a.download = name;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      detail.textContent =
-        "Downloaded “focustube-data.json” to your Downloads folder. On the other browser's FocusTube dashboard, click “Import data file” and select it.";
+      detail.textContent = `Downloaded “${name}” to your Downloads folder. On the other browser's FocusTube dashboard, click “Import data file” and select it (repeat for other months' files if you want their history too).`;
     });
   }
 
@@ -337,7 +513,7 @@
           payload = JSON.parse(text);
         } catch (_) {
           detail.textContent =
-            `“${file.name}” is not valid JSON. Use the focustube-data.json produced by “Export data file” (or by a successful sync).`;
+            `“${file.name}” is not valid JSON. Use a focustube-<Month>-<Year>.json file produced by “Export data file” (or by a successful sync).`;
           return;
         }
 

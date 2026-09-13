@@ -1,0 +1,551 @@
+/**
+ * FocusTube — Daily Briefing (v1.14.0)
+ * Apple HIG dark sheet on the shared --ios-* token system (apple-ui.css).
+ * Motion: staggered card entrance, growing bars, drawing score ring —
+ * every animation is entrance-only and collapses under
+ * prefers-reduced-motion.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 60% 40% at 15% -5%, rgba(10, 132, 255, 0.10), transparent 60%),
+    radial-gradient(ellipse 50% 42% at 90% 0%, rgba(94, 92, 230, 0.09), transparent 62%),
+    var(--ios-bg);
+  color: var(--ios-label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  justify-content: center;
+}
+
+.dg-wrap {
+  width: 100%;
+  max-width: 640px;
+  padding: 40px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Header ------------------------------------------------------------- */
+
+.dg-header {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.dg-eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ios-blue);
+}
+
+.dg-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.dg-date {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ios-label-2);
+}
+
+/* Cards --------------------------------------------------------------- */
+
+.dg-card {
+  background: var(--ios-bg-2);
+  border: 1px solid rgba(84, 84, 88, 0.4);
+  border-radius: var(--ios-r-lg);
+  padding: 18px 20px;
+  animation: dg-fade-up var(--ios-dur-slow, 0.5s) var(--ios-ease-sheet, cubic-bezier(0.32, 0.72, 0, 1)) both;
+}
+
+.dg-card:nth-of-type(1) { animation-delay: 40ms; }
+.dg-stats               { animation-delay: 80ms; }
+.dg-card:nth-of-type(3) { animation-delay: 120ms; }
+.dg-card:nth-of-type(4) { animation-delay: 160ms; }
+.dg-card:nth-of-type(5) { animation-delay: 200ms; }
+.dg-card:nth-of-type(6) { animation-delay: 240ms; }
+.dg-card:nth-of-type(7) { animation-delay: 280ms; }
+.dg-card:nth-of-type(8) { animation-delay: 320ms; }
+.dg-actions             { animation: dg-fade-up var(--ios-dur-slow, 0.5s) var(--ios-ease-sheet, cubic-bezier(0.32, 0.72, 0, 1)) 380ms both; }
+
+@keyframes dg-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dg-card-title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ios-label-2);
+}
+
+/* Hero ----------------------------------------------------------------- */
+
+.dg-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.dg-ring-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex: 0 0 120px;
+}
+
+.dg-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.dg-ring-bg {
+  fill: none;
+  stroke: var(--ios-fill-4);
+  stroke-width: 10;
+}
+
+.dg-ring-fill {
+  fill: none;
+  stroke: var(--ios-blue);
+  stroke-width: 10;
+  stroke-linecap: round;
+  /* dasharray/dashoffset set from JS; transition draws the ring */
+  transition: stroke-dashoffset 1s var(--ios-ease-sheet, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+.dg-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.dg-ring-score {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.dg-ring-cap {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ios-label-3);
+}
+
+.dg-hero-copy {
+  min-width: 0;
+}
+
+.dg-streak {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dg-hero-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ios-label-2);
+}
+
+/* Stat tiles ------------------------------------------------------------ */
+
+.dg-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.dg-stat {
+  background: var(--ios-bg-2);
+  border: 1px solid rgba(84, 84, 88, 0.4);
+  border-radius: var(--ios-r-md);
+  padding: 12px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dg-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.dg-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ios-label-3);
+}
+
+/* Bars ------------------------------------------------------------------- */
+
+.dg-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  height: 110px;
+  padding: 0 4px;
+}
+
+.dg-bar-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dg-bar {
+  width: 100%;
+  max-width: 34px;
+  min-height: 4px;
+  border-radius: 6px 6px 3px 3px;
+  background: var(--ios-blue);
+  opacity: 0.55;
+  transition: height 0.7s var(--ios-ease-sheet, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+.dg-bar.today {
+  opacity: 1;
+  background: linear-gradient(180deg, var(--ios-indigo), var(--ios-blue));
+  box-shadow: 0 0 14px rgba(10, 132, 255, 0.35);
+}
+
+.dg-bar.empty {
+  background: var(--ios-fill-4);
+  opacity: 1;
+}
+
+.dg-bar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ios-label-3);
+}
+
+.dg-bar-label.today {
+  color: var(--ios-blue);
+}
+
+.dg-bars-hint {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: var(--ios-label-3);
+}
+
+/* Sites ------------------------------------------------------------------- */
+
+.dg-site-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dg-site-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dg-site-row img {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--ios-fill-4);
+  object-fit: contain;
+  flex: 0 0 18px;
+}
+
+.dg-site-name {
+  flex: 0 0 auto;
+  max-width: 130px;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dg-site-bar {
+  flex: 1;
+  height: 7px;
+  background: var(--ios-fill-5);
+  border-radius: var(--ios-r-full);
+  overflow: hidden;
+}
+
+.dg-site-bar-fill {
+  height: 100%;
+  border-radius: var(--ios-r-full);
+  background: linear-gradient(90deg, var(--ios-orange), var(--ios-red));
+  transition: width 0.8s var(--ios-ease-sheet, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+.dg-site-mins {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ios-label-2);
+}
+
+/* Topics ------------------------------------------------------------------- */
+
+.dg-topic-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dg-topic-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ios-label);
+  background: var(--ios-fill-5);
+  border: 1px solid var(--ios-sep);
+  border-radius: var(--ios-r-full);
+  padding: 5px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dg-topic-chip.up {
+  color: var(--ios-green);
+  border-color: var(--ios-green-border);
+  background: var(--ios-green-soft);
+}
+
+/* Field note ---------------------------------------------------------------- */
+
+.dg-study {
+  border-color: var(--ios-blue-border);
+  background:
+    linear-gradient(180deg, rgba(10, 132, 255, 0.07), rgba(10, 132, 255, 0.03)),
+    var(--ios-bg-2);
+}
+
+.dg-study-text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dg-study-cite {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ios-label-3);
+}
+
+/* Quote ---------------------------------------------------------------------- */
+
+.dg-quote {
+  text-align: center;
+  padding: 22px 26px;
+}
+
+.dg-quote-mark {
+  margin: 0;
+  font-family: ui-serif, "New York", Georgia, "Times New Roman", serif;
+  font-size: 40px;
+  line-height: 0.6;
+  color: var(--ios-blue);
+}
+
+.dg-quote-text {
+  margin: 10px 0 8px;
+  font-family: ui-serif, "New York", Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.dg-quote-author {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ios-label-2);
+}
+
+/* Plan ------------------------------------------------------------------------- */
+
+.dg-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dg-plan-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  border-radius: var(--ios-r-sm);
+  cursor: pointer;
+  transition: background 0.2s var(--ios-ease, ease-out);
+}
+
+.dg-plan-item:hover {
+  background: var(--ios-fill-5);
+}
+
+.dg-plan-item input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.dg-plan-item:has(input:checked) span {
+  color: var(--ios-label-3);
+  text-decoration: line-through;
+}
+
+/* Actions ------------------------------------------------------------------------ */
+
+.dg-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.dg-btn {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--ios-blue);
+  background: var(--ios-fill-4);
+  border: none;
+  border-radius: var(--ios-r-full);
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: transform 0.2s var(--ios-ease, ease-out),
+    background 0.2s var(--ios-ease, ease-out), filter 0.2s var(--ios-ease, ease-out);
+}
+
+.dg-btn:hover { background: var(--ios-fill-3); }
+.dg-btn:active { transform: scale(0.96); }
+
+.dg-btn.primary {
+  color: #ffffff;
+  background: var(--ios-blue);
+}
+
+.dg-btn.primary:hover { filter: brightness(1.1); }
+
+.dg-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ios-label-3);
+  text-align: center;
+  padding: 6px 0;
+}
+
+/* Narrow screens ------------------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .dg-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dg-title {
+    font-size: 24px;
+  }
+}
+
+/* Reduced motion: collapse every entrance to instant --------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-card,
+  .dg-actions {
+    animation: none;
+  }
+  .dg-ring-fill,
+  .dg-bar,
+  .dg-site-bar-fill,
+  .dg-plan-item,
+  .dg-btn {
+    transition: none;
+  }
+}
+
+/* =========================================================================
+   Focus Rings (v1.15.0 USP)
+   ========================================================================= */
+
+.dg-rings {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.dg-rings .fg-legend {
+  flex: 1;
+  min-width: 170px;
+  gap: 0.7em;
+}
+
+/* v1.17.0 — Monday "Calibrate this week" (Adaptive Ring Goals) */
+.dg-cal-sub { margin: -6px 0 12px; font-size: 12.5px; color: var(--ios-secondary-label, rgba(235,235,245,.55)); }
+.dg-cal-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.dg-cal-row {
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 12px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  font-variant-numeric: tabular-nums;
+}
+.dg-cal-ring { font-weight: 700; font-size: 13px; }
+.dg-cal-ring.up { color: #92E82A; }
+.dg-cal-ring.down { color: #FFD60A; }
+.dg-cal-from { color: rgba(255,255,255,.55); font-size: 13px; }
+.dg-cal-arrow { color: rgba(255,255,255,.4); font-size: 12px; }
+.dg-cal-to { font-weight: 800; font-size: 14px; color: #fff; }
+.dg-cal-actions { display: flex; gap: 10px; }
+.dg-cal-foot { margin: 12px 0 0; font-size: 11px; color: rgba(255,255,255,.4); }

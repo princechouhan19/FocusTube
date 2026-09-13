@@ -1,0 +1,532 @@
+/* =========================================================================
+   FocusTube Onboarding — Apple Setup Assistant style (v1.13.0)
+   =========================================================================
+   One question per screen, generous type, a thin progress bar, iOS sheet
+   transitions between steps, spring feedback on selections. Inherits every
+   token from ../shared/apple-ui.css (.ios-theme is on <body>).
+   ========================================================================= */
+
+.ob-body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ios-bg);
+  user-select: none;
+}
+
+/* --- Top bar: back + progress ------------------------------------------ */
+.ob-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px 0;
+  min-height: 40px;
+}
+
+.ob-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  color: var(--ios-blue);
+  background: transparent;
+  border: none;
+  border-radius: var(--ios-r-full);
+  cursor: pointer;
+  transition: background var(--ios-speed) var(--ios-ease),
+    transform var(--ios-dur-fast) var(--ios-ease-out);
+}
+.ob-back[hidden] { display: none; }
+.ob-back:hover { background: var(--ios-fill-5); }
+.ob-back:active { transform: scale(0.92); }
+
+.ob-progress {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--ios-r-full);
+  background: var(--ios-fill-3);
+  overflow: hidden;
+}
+.ob-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--ios-r-full);
+  background: var(--ios-label);
+  transition: width var(--ios-dur-slow) var(--ios-ease-sheet);
+}
+
+/* --- Main stage --------------------------------------------------------- */
+.ob-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.ob-step {
+  display: none;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+}
+.ob-step.active { display: block; }
+.ob-step.slide-in-right { animation: ob-slide-right var(--ios-dur-slow) var(--ios-ease-sheet) both; }
+.ob-step.slide-in-left  { animation: ob-slide-left  var(--ios-dur-slow) var(--ios-ease-sheet) both; }
+
+@keyframes ob-slide-right {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes ob-slide-left {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* --- Type ---------------------------------------------------------------- */
+.ob-logo {
+  display: block;
+  height: 64px;
+  width: auto;
+  margin: 0 auto 22px;
+}
+.ob-title {
+  margin: 0 0 12px;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+}
+.ob-title-sm {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.ob-lead,
+.ob-lead-sm {
+  margin: 0 auto 28px;
+  max-width: 400px;
+  font-size: var(--ios-text-md);
+  line-height: 1.55;
+  color: var(--ios-label-2);
+}
+.ob-lead-sm { margin-bottom: 24px; }
+.ob-footnote {
+  margin-top: 18px;
+  font-size: var(--ios-text-xs);
+  color: var(--ios-label-3);
+}
+
+/* --- Buttons -------------------------------------------------------------- */
+.ob-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ob-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 150px;
+  padding: 14px 26px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-md);
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--ios-dur-fast) var(--ios-ease-out),
+    background var(--ios-speed) var(--ios-ease),
+    color var(--ios-speed) var(--ios-ease);
+}
+.ob-btn:active { transform: scale(0.96); }
+.ob-btn-primary {
+  color: #fff;
+  background: var(--ios-blue);
+}
+.ob-btn-primary:hover { background: #2f95f6; }
+.ob-btn-secondary {
+  color: var(--ios-blue);
+  background: var(--ios-blue-soft, rgba(10, 132, 255, 0.16));
+}
+.ob-btn-secondary:hover { background: rgba(10, 132, 255, 0.24); }
+
+/* --- Footer: skip + continue ---------------------------------------------- */
+.ob-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 26px 22px;
+  min-height: 56px;
+}
+.ob-skip {
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-sm);
+  font-weight: 500;
+  color: var(--ios-label-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--ios-speed) var(--ios-ease);
+}
+.ob-skip:hover { color: var(--ios-label-2); }
+.ob-next[hidden] { display: none; }
+
+/* --- Step 1: goal chips ---------------------------------------------------- */
+.ob-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.ob-chip {
+  padding: 11px 20px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-md);
+  font-weight: 600;
+  color: var(--ios-label);
+  background: var(--ios-bg-2);
+  border: 1px solid var(--ios-sep);
+  border-radius: var(--ios-r-full);
+  cursor: pointer;
+  transition: transform var(--ios-dur-fast) var(--ios-ease-spring),
+    background var(--ios-speed) var(--ios-ease),
+    border-color var(--ios-speed) var(--ios-ease),
+    color var(--ios-speed) var(--ios-ease);
+}
+.ob-chip:active { transform: scale(0.94); }
+.ob-chip.selected {
+  color: #fff;
+  background: var(--ios-blue);
+  border-color: transparent;
+}
+
+/* --- Step 2: inset-grouped toggle rows (Settings style) -------------------- */
+.ob-list {
+  text-align: left;
+  background: var(--ios-bg-2);
+  border-radius: var(--ios-r-lg);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ob-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 16px;
+  cursor: pointer;
+}
+.ob-row + .ob-row { box-shadow: 0 0.5px 0 0 var(--ios-sep); }
+.ob-row-text { display: flex; flex-direction: column; gap: 2px; }
+.ob-row-text strong {
+  font-size: var(--ios-text-md);
+  font-weight: 600;
+}
+.ob-row-text small {
+  font-size: var(--ios-text-xs);
+  color: var(--ios-label-2);
+}
+
+/* The onboarding page loads apple-ui.css WITHOUT popup.css, so the UISwitch
+   skin is reproduced here (identical values to popup.css .toggle-slider). */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: var(--ios-r-full);
+  transition: background var(--ios-speed-slow) var(--ios-ease);
+}
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--ios-speed-slow) var(--ios-ease-spring);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.16);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--ios-green);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateY(-50%) translateX(20px);
+  background: #fff;
+}
+
+/* --- Step 3: budget stepper -------------------------------------------------- */
+.ob-stepper-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 22px;
+}
+.ob-stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  color: var(--ios-label);
+  background: var(--ios-bg-2);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  transition: transform var(--ios-dur-fast) var(--ios-ease-spring),
+    background var(--ios-speed) var(--ios-ease);
+}
+.ob-stepper-btn:hover { background: var(--ios-bg-3); }
+.ob-stepper-btn:active { transform: scale(0.9); }
+.ob-stepper-btn:disabled { opacity: 0.35; cursor: default; }
+
+.ob-budget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 150px;
+}
+.ob-budget-value {
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  transition: transform var(--ios-dur-fast) var(--ios-ease-spring);
+}
+.ob-budget-value.bump { transform: scale(1.08); }
+.ob-budget-label {
+  font-size: var(--ios-text-sm);
+  color: var(--ios-label-2);
+}
+
+.ob-budget-marks {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.ob-mark {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ios-fill-3);
+  transition: background var(--ios-speed) var(--ios-ease),
+    transform var(--ios-speed) var(--ios-ease-spring);
+}
+.ob-mark.on {
+  background: var(--ios-blue);
+  transform: scale(1.2);
+}
+
+/* --- Steps 4/5: option cards -------------------------------------------------- */
+.ob-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.ob-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 18px;
+  font-family: var(--ios-font);
+  text-align: left;
+  color: var(--ios-label);
+  background: var(--ios-bg-2);
+  border: 1.5px solid transparent;
+  border-radius: var(--ios-r-lg);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  transition: border-color var(--ios-speed) var(--ios-ease),
+    background var(--ios-speed) var(--ios-ease),
+    transform var(--ios-dur-fast) var(--ios-ease-out);
+}
+.ob-option:active { transform: scale(0.985); }
+.ob-option.selected {
+  border-color: var(--ios-blue);
+  background: rgba(10, 132, 255, 0.10);
+}
+.ob-option-title {
+  font-size: var(--ios-text-md);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ob-option-sub {
+  font-size: var(--ios-text-xs);
+  color: var(--ios-label-2);
+}
+.ob-recommended {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ios-blue);
+  background: var(--ios-blue-soft, rgba(10, 132, 255, 0.16));
+  border-radius: var(--ios-r-full);
+}
+
+/* --- Step 6: summary ------------------------------------------------------------ */
+.ob-done-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  color: var(--ios-green);
+  background: rgba(48, 209, 88, 0.14);
+  border-radius: 50%;
+}
+.ob-summary {
+  text-align: left;
+  background: var(--ios-bg-2);
+  border-radius: var(--ios-r-lg);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.ob-sum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: var(--ios-text-sm);
+}
+.ob-sum-row + .ob-sum-row { box-shadow: 0 0.5px 0 0 var(--ios-sep); }
+.ob-sum-key { color: var(--ios-label-2); }
+.ob-sum-val { font-weight: 600; text-align: right; }
+
+/* --- Reduced motion: collapse step slides (guard also in apple-ui.css) ----- */
+@media (prefers-reduced-motion: reduce) {
+  .ob-step.slide-in-right,
+  .ob-step.slide-in-left {
+    animation: none;
+  }
+}
+
+/* --- Small screens ---------------------------------------------------------- */
+@media (max-width: 480px) {
+  .ob-title { font-size: 28px; }
+  .ob-title-sm { font-size: 22px; }
+  .ob-stepper-wrap { gap: 18px; }
+  .ob-footer { flex-direction: column-reverse; gap: 10px; align-items: stretch; }
+  .ob-footer .ob-btn { width: 100%; }
+}
+
+/* =========================================================================
+   v1.17.0 — Step 1: name + anime buddy select (Mika / Haru)
+   ========================================================================= */
+.ob-name-input {
+  width: min(340px, 100%);
+  margin: 4px auto 22px;
+  padding: 12px 16px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-md);
+  font-weight: 500;
+  color: var(--ios-label);
+  background: var(--ios-bg-2);
+  border: 1px solid var(--ios-sep);
+  border-radius: var(--ios-r-md, 12px);
+  outline: none;
+  text-align: center;
+  transition: border-color var(--ios-speed) var(--ios-ease),
+    box-shadow var(--ios-speed) var(--ios-ease);
+}
+.ob-name-input::placeholder { color: var(--ios-label-3); }
+.ob-name-input:focus {
+  border-color: var(--ios-blue);
+  box-shadow: 0 0 0 3.5px rgba(10, 132, 255, 0.18);
+}
+
+.ob-buddies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 218px));
+  gap: 14px;
+  justify-content: center;
+}
+.ob-buddy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 16px 14px 14px;
+  font-family: var(--ios-font);
+  color: var(--ios-label);
+  background: var(--ios-bg-2);
+  border: 1.5px solid transparent;
+  border-radius: var(--ios-r-lg);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  transition: border-color var(--ios-speed) var(--ios-ease),
+    background var(--ios-speed) var(--ios-ease),
+    transform var(--ios-dur-fast) var(--ios-ease-spring);
+}
+.ob-buddy:hover { transform: translateY(-2px); }
+.ob-buddy:active { transform: scale(0.97); }
+.ob-buddy.selected {
+  border-color: var(--ios-blue);
+  background: rgba(10, 132, 255, 0.10);
+}
+.ob-buddy-art { line-height: 0; }
+.ob-buddy-name {
+  margin-top: 8px;
+  font-size: var(--ios-text-lg, 17px);
+  font-weight: 700;
+}
+.ob-buddy-tag {
+  font-size: var(--ios-text-xs);
+  color: var(--ios-label-2);
+}
+.ob-buddy-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  background: var(--ios-blue);
+  border-radius: var(--ios-r-full);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity var(--ios-speed) var(--ios-ease),
+    transform var(--ios-dur-fast) var(--ios-ease-spring);
+}
+.ob-buddy.selected .ob-buddy-check { opacity: 1; transform: scale(1); }
+
+@media (max-width: 480px) {
+  .ob-buddies { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ob-buddy-art svg { width: 84px; height: auto; }
+}

@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FocusTube</title>
     <link rel="stylesheet" href="../shared/liquid-glass.css" />
+    <link rel="stylesheet" href="../shared/apple-ui.css" />
     <link rel="stylesheet" href="popup.css" />
     <script src="../shared/icons.js"></script>
+    <script src="../shared/focus-rings.js"></script>
   </head>
-  <body>
+  <body class="ios-theme">
     <div class="popup-container">
       <!-- Unified Navigation Bar -->
       <nav class="navbar glass-panel">
@@ -36,6 +38,17 @@
 
       <!-- ═══════════════════════ HOME ═══════════════════════ -->
       <div id="home-view" class="view-container active">
+        <!-- v1.13.0: first-run "finish setup" banner (Apple welcome style) -->
+        <button id="setup-banner" class="setup-banner yfp-hidden" hidden>
+          <span class="setup-banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8z"/></svg>
+          </span>
+          <span class="setup-banner-text">
+            <strong>Finish setup</strong>
+            <small>Personalize FocusTube in under a minute</small>
+          </span>
+          <svg class="setup-banner-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
         <!-- Status hero -->
         <div class="glass-panel master-control">
           <div class="master-label">
@@ -98,6 +111,24 @@
             <div class="stat-chip-text">
               <strong id="home-stats-ads">0</strong>
               <span>ads blocked</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Focus Rings (v1.15.0 USP) — today's daily ritual -->
+        <div class="glass-panel home-card rings-card">
+          <div class="home-card-head">
+            <h3 class="panel-title">
+              <i data-icon="zap" class="ft-icon ft-icon-sm"></i> Focus Rings
+            </h3>
+            <button class="link-btn" id="rings-open-dashboard">Details</button>
+          </div>
+          <div id="home-rings-body" class="rings-card-body">
+            <div id="home-rings-viz" class="rings-card-viz"></div>
+            <div class="rings-card-copy">
+              <p class="rings-card-status" id="home-rings-status">Loading today's rings…</p>
+              <p class="rings-card-insurance" id="home-rings-insurance" hidden></p>
+              <p class="rings-card-caption">Deflected · Focused · Saved</p>
             </div>
           </div>
         </div>
@@ -168,6 +199,23 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+
+          <!-- Sleep Guard (v1.17.0) — evening-first preset with wind-down -->
+          <div class="setting-item" style="border: none; padding: 12px 0 0">
+            <div class="setting-info">
+              <label class="setting-label">🌙 Sleep Guard</label>
+              <p class="setting-description">Evening YouTube block + a wind-down briefing 30 min before it starts. Late-night screens cost tomorrow's focus.</p>
+              <div class="schedule-inputs">
+                <input type="time" id="sleep-guard-start" />
+                <span>to</span>
+                <input type="time" id="sleep-guard-end" />
+              </div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="sleepGuardEnabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
         </div>
 
         <!-- Block Any Site -->
@@ -216,10 +264,10 @@
             <button class="timer-btn" id="site-block-btn">Block</button>
           </div>
 
-          <div style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
-            <p style="color: #fff; font-size: 12px; font-weight: 600; margin: 0 0 8px 0;">ACTIVE BLOCKS</p>
+          <div style="margin-top: 16px; border-top: 1px solid var(--lg-glass-border); padding-top: 12px;">
+            <p style="color: var(--lg-text-dim); font-size: var(--lg-text-xs); font-weight: var(--lg-weight-semibold); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px 0;">Active Blocks</p>
             <div id="active-blocks-list" style="max-height: 200px; overflow-y: auto;">
-              <p style="color: #888; font-size: 12px; text-align: center; padding: 8px;">No blocks active</p>
+              <p style="color: var(--lg-text-dim); font-size: var(--lg-text-sm); text-align: center; padding: 8px;">No blocks active</p>
             </div>
           </div>
         </div>
@@ -227,7 +275,7 @@
         <!-- Smart Lists -->
         <div class="glass-panel focus-control-panel" id="smart-lists-panel">
           <h3 class="panel-title"><i data-icon="list" class="ft-icon ft-icon-md"></i> Smart Lists</h3>
-          <p style="color: #a1a1aa; font-size: 11px; margin: 0 0 12px 0;">Choose your distractions once. Focus sessions can temporarily add a protective shield without changing your choices.</p>
+          <p style="color: var(--lg-text-muted); font-size: var(--lg-text-xs); margin: 0 0 12px 0;">Choose your distractions once. Focus sessions can temporarily add a protective shield without changing your choices.</p>
           <div id="smart-lists-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <!-- chips injected by popup.js -->
           </div>
@@ -266,10 +314,10 @@
         <!-- Pomodoro -->
         <div class="glass-panel focus-control-panel" id="pomodoro-panel">
           <h3 class="panel-title"><i data-icon="timer" class="ft-icon ft-icon-md"></i> Pomodoro Timer</h3>
-          <div id="pomodoro-display" style="text-align: center; padding: 16px 0;">
-            <div id="pomodoro-phase-label" style="font-size: 12px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Ready</div>
-            <div id="pomodoro-time" style="font-size: 38px; font-weight: 700; color: #f8fafc; font-family: 'Courier New', monospace; letter-spacing: 1px;">25:00</div>
-            <div id="pomodoro-cycle-label" style="font-size: 11px; color: #666; margin-top: 4px;">Cycle 1 of 4</div>
+          <div id="pomodoro-display" class="pomodoro-display">
+            <div id="pomodoro-phase-label" class="pomodoro-phase">Ready</div>
+            <div id="pomodoro-time" class="pomodoro-clock">25:00</div>
+            <div id="pomodoro-cycle-label" class="pomodoro-cycle">Cycle 1 of 4</div>
           </div>
           <div class="timer-grid" id="pomodoro-controls">
             <button class="timer-btn" id="pomodoro-start"><i data-icon="play" class="ft-icon ft-icon-sm"></i> Start</button>
@@ -277,23 +325,46 @@
             <button class="timer-btn" id="pomodoro-skip"><i data-icon="skip" class="ft-icon ft-icon-sm"></i> Skip</button>
             <button class="timer-btn" id="pomodoro-stop"><i data-icon="stop" class="ft-icon ft-icon-sm"></i> Stop</button>
           </div>
-          <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; display: flex; flex-direction: column; gap: 6px;">
-            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
-              <span>Focus Shield (Social, Gaming, Streaming, Shopping)</span>
-              <input type="checkbox" id="pomodoro-focus-shield" checked />
-            </label>
-            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
-              <span>Adaptive focus length (learns from completion)</span>
-              <input type="checkbox" id="pomodoro-adaptive-focus" checked />
-            </label>
-            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
-              <span>Deep Work (always include Social)</span>
-              <input type="checkbox" id="pomodoro-deep-work" />
-            </label>
-            <label style="display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 12px;">
-              <span>Notifications</span>
-              <input type="checkbox" id="pomodoro-notify" checked />
-            </label>
+          <div class="pomodoro-options">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Focus Shield</label>
+                <p class="setting-description">Also blocks Social, Gaming, Streaming, Shopping</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="pomodoro-focus-shield" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Adaptive Focus Length</label>
+                <p class="setting-description">Learns from your completions</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="pomodoro-adaptive-focus" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Deep Work</label>
+                <p class="setting-description">Always include Social</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="pomodoro-deep-work" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <label class="setting-label">Notifications</label>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="pomodoro-notify" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -639,18 +710,6 @@
               </div>
               <div id="blockedKeywordsList" class="yfp-tag-list"></div>
             </div>
-            <div class="setting-item">
-              <div class="setting-info">
-                <label class="setting-label">Modern Glass Theme</label>
-                <p class="setting-description">
-                  Glassmorphism UI: blur, transparency, rounded panels
-                </p>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="modernGlassTheme" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
           </div>
         </details>
       </div>
@@ -759,6 +818,91 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+
+          <div class="setting-item setting-item-stacked">
+            <div class="setting-info">
+              <label class="setting-label">Unblock Friction</label>
+              <p class="setting-description">Cost that scales with your day: state a reason, wait a beat, and on Strict or after 3+ unblocks — take the quiz. (Proportionality keeps autonomy; friction beats willpower.)</p>
+            </div>
+            <select id="unblockGateTier" class="glass-input compact-select">
+              <option value="off">Off — one click</option>
+              <option value="standard" selected>Standard — reason + pause</option>
+              <option value="strict">Strict — reason + pause + quiz</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Vim-style keys</label>
+              <p class="setting-description">j/k scroll, f fullscreen, ? help. Exit keys are first-class: Esc goes back, x closes the tab.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="vimNavEnabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Companion (v1.17.0) — the anime focus buddy (Mika / Haru) -->
+        <div class="glass-panel settings-list" id="companion-panel">
+          <h3 class="panel-title"><i data-icon="sparkles" class="ft-icon ft-icon-md"></i> Companion</h3>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label">Show your focus buddy on every site</label>
+              <p class="setting-description">Your anime buddy — Mika or Haru, chosen in onboarding — reacts to every site's score with its own face, cheers your focus and gently calls out rabbit holes. Tap it for rings, the buddy switcher &amp; quick actions; drag it anywhere; snooze it for an hour anytime. It also greets you on the dashboard, block pages and digest.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="companionEnabled" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Focus Rings Goals (v1.16.0) — editable daily ring targets -->
+        <div class="glass-panel settings-list" id="rings-goals-panel">
+          <h3 class="panel-title"><i data-icon="target" class="ft-icon ft-icon-md"></i> Focus Rings Goals</h3>
+          <p class="setting-description rings-goals-lede">Tune your three daily rings — challenging, but reachable.</p>
+
+          <div class="rings-goal-row">
+            <span class="rings-goal-dot rings-goal-dot--deflected" aria-hidden="true"></span>
+            <div class="rings-goal-info">
+              <span class="rings-goal-label">Deflected</span>
+              <span class="rings-goal-hint">Ads, Shorts &amp; urges skipped per day</span>
+            </div>
+            <div class="rings-stepper" data-ring="deflected" data-min="1" data-max="200" data-step="2" data-unit="count">
+              <button type="button" class="rings-step-btn" data-dir="-1" aria-label="Decrease Deflected goal">&minus;</button>
+              <span class="rings-step-value" id="rings-goal-deflected">12</span>
+              <button type="button" class="rings-step-btn" data-dir="1" aria-label="Increase Deflected goal">+</button>
+            </div>
+          </div>
+
+          <div class="rings-goal-row">
+            <span class="rings-goal-dot rings-goal-dot--focused" aria-hidden="true"></span>
+            <div class="rings-goal-info">
+              <span class="rings-goal-label">Focused</span>
+              <span class="rings-goal-hint">Pomodoro focus time per day</span>
+            </div>
+            <div class="rings-stepper" data-ring="focused" data-min="15" data-max="480" data-step="15" data-unit="minutes">
+              <button type="button" class="rings-step-btn" data-dir="-1" aria-label="Decrease Focused goal">&minus;</button>
+              <span class="rings-step-value" id="rings-goal-focused">2h</span>
+              <button type="button" class="rings-step-btn" data-dir="1" aria-label="Increase Focused goal">+</button>
+            </div>
+          </div>
+
+          <div class="rings-goal-row">
+            <span class="rings-goal-dot rings-goal-dot--saved" aria-hidden="true"></span>
+            <div class="rings-goal-info">
+              <span class="rings-goal-label">Saved</span>
+              <span class="rings-goal-hint">Time saved by blockers per day</span>
+            </div>
+            <div class="rings-stepper" data-ring="saved" data-min="10" data-max="480" data-step="10" data-unit="minutes">
+              <button type="button" class="rings-step-btn" data-dir="-1" aria-label="Decrease Saved goal">&minus;</button>
+              <span class="rings-step-value" id="rings-goal-saved">1h</span>
+              <button type="button" class="rings-step-btn" data-dir="1" aria-label="Increase Saved goal">+</button>
+            </div>
+          </div>
+
+          <p class="setting-description rings-goals-note">Goals apply starting today and update the rings everywhere instantly.</p>
         </div>
 
         <!-- Utilities -->
@@ -790,26 +934,26 @@
         </button>
 
         <div class="glass-panel profile-header">
-          <div class="profile-avatar"></div>
-          <h2 id="profile-name-display">Guest User</h2>
-          <p id="profile-email-display" style="opacity: 0.5; font-size: 11px; margin-top: -4px; margin-bottom: 8px;">Not logged in</p>
-          <p id="profile-goal-display" style="opacity: 0.7; font-size: 12px">
-            No goal set
-          </p>
-
-          <div class="profile-stats">
-            <div class="stat-card">
-              <div class="stat-value" id="stats-time-saved">0h</div>
-              <div class="stat-label">Time Saved</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value" id="stats-ads-blocked">0</div>
-              <div class="stat-label">Ads Blocked</div>
-            </div>
+          <div class="profile-avatar"><i data-icon="user" class="ft-icon ft-icon-xl"></i></div>
+          <div class="profile-info">
+            <h2 id="profile-name-display">Guest User</h2>
+            <p id="profile-email-display">Not logged in</p>
+            <p id="profile-goal-display">No goal set</p>
           </div>
         </div>
 
-        <div class="glass-panel" style="padding: 16px">
+        <div class="glass-panel profile-stats-panel">
+          <div class="profile-stat">
+            <span>Time Saved</span>
+            <strong id="stats-time-saved">0h</strong>
+          </div>
+          <div class="profile-stat">
+            <span>Ads Blocked</span>
+            <strong id="stats-ads-blocked">0</strong>
+          </div>
+        </div>
+
+        <div class="glass-panel edit-profile-panel">
           <h3 class="panel-title">Edit Profile</h3>
           <div class="input-group">
             <label for="profileName">Name</label>
@@ -841,7 +985,7 @@
         <p style="color:var(--lg-text-muted); font-size:14px; margin-bottom:16px;">To turn off FocusTube or cancel an active block, you must solve 5 hard questions from <span id="quiz-topic-label" style="color:var(--lg-primary-hi);font-weight:bold;">Math</span>. (<span id="quiz-progress">0/5</span>)</p>
         <p style="color:var(--lg-warning); font-size:12px; margin-bottom:12px;"><strong>Time left: <span id="quiz-timer">30</span>s</strong> | Paste disabled!</p>
 
-        <div id="quiz-question-container" style="background:rgba(255,255,255,0.05); padding:16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); margin-bottom:16px;">
+        <div id="quiz-question-container" style="background:var(--lg-glass-bg); padding:16px; border-radius:var(--lg-radius-md); border:1px solid var(--lg-glass-border); margin-bottom:16px;">
           <h3 id="quiz-question" style="margin:0; font-size:16px; line-height:1.4; color:var(--lg-text);">Loading...</h3>
         </div>
 

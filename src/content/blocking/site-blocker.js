@@ -131,29 +131,31 @@ async function checkIfSiteBlocked() {
 }
 
 /**
- * Format remaining time efficiently.
+ * Format remaining time as a ticking clock (H:MM:SS / MM:SS).
+ *
+ * Seconds are ALWAYS shown so the overlay visibly updates every second —
+ * the previous "2h 14m" format only changed once a minute, which read
+ * as a frozen, non-realtime timer.
+ *
  * Smart Lists blocks use `Number.MAX_SAFE_INTEGER` as the end time;
- * we render those as "until disabled" rather than a huge number.
+ * those render as "until disabled" rather than a huge number.
  */
 function formatRemainingTime(endTime) {
   if (!Number.isFinite(endTime) || endTime >= Number.MAX_SAFE_INTEGER) {
     return 'until disabled';
   }
   const remaining = Math.max(0, endTime - Date.now());
-  if (remaining <= 0) return '0s';
+  if (remaining <= 0) return '0:00';
 
   const totalSeconds = Math.floor(remaining / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+  const pad = (n) => String(n).padStart(2, '0');
 
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  } else {
-    return `${seconds}s`;
-  }
+  return hours > 0
+    ? `${hours}:${pad(minutes)}:${pad(seconds)}`
+    : `${minutes}:${pad(seconds)}`;
 }
 
 /**
@@ -172,6 +174,18 @@ function ensureLiquidGlassCSS() {
     link.type = 'text/css';
     link.href = chrome.runtime.getURL('src/shared/liquid-glass.css');
     (document.head || document.documentElement).appendChild(link);
+  } catch (_) {
+    // If we can't load the CSS (e.g. restricted context), the overlay
+    // will still work - it just won't have the liquid-glass styling.
+  }
+  try {
+    if (document.getElementById('focustube-apple-ui-link')) return;
+    const appleLink = document.createElement('link');
+    appleLink.id = 'focustube-apple-ui-link';
+    appleLink.rel = 'stylesheet';
+    appleLink.type = 'text/css';
+    appleLink.href = chrome.runtime.getURL('src/shared/apple-ui.css');
+    (document.head || document.documentElement).appendChild(appleLink);
   } catch (_) {
     // If we can\'t load the CSS (e.g. restricted context), the overlay
     // will still work — it just won\'t have the liquid-glass styling.
@@ -209,7 +223,8 @@ function displayBlockPage() {
 
     const icon = document.createElement('div');
     icon.className = 'lg-block-icon';
-    icon.textContent = '🔒';
+    icon.innerHTML =
+      '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 
     const title = document.createElement('h1');
     title.className = 'lg-block-title';
@@ -223,11 +238,16 @@ function displayBlockPage() {
     timerDisplay.className = 'lg-block-timer';
     timerDisplay.id = 'block-timer';
     timerDisplay.textContent = formatRemainingTime(blockEndTime);
+    if (!Number.isFinite(blockEndTime) || blockEndTime >= Number.MAX_SAFE_INTEGER) {
+      // "until disabled" is a sentence, not a clock — shrink the chip so
+      // it doesn't render as a giant wrapped headline.
+      timerDisplay.classList.add('lg-block-timer--indefinite');
+    }
 
     const message = document.createElement('p');
     message.className = 'lg-block-message';
     const strong = document.createElement('strong');
-    strong.style.color = 'var(--lg-text)';
+    strong.style.color = 'var(--ios-label)';
     strong.textContent = 'Stay Focused!';
     message.appendChild(strong);
     message.appendChild(document.createElement('br'));

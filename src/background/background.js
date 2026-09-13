@@ -118,7 +118,6 @@ const DEFAULT_SETTINGS = {
   // Enhanced UI Controls
   autoPauseInactive: false,
   autoTheaterMode: false,
-  modernGlassTheme: false,
   hideComments: false,
   hideInfoCards: false,
   hideEndScreens: false,
@@ -231,13 +230,24 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
   if (details.reason === "install") {
     try {
-      await chrome.tabs.create({
-        url: "https://www.youtube.com",
-        active: true,
-      });
-      debugLog("Opened YouTube after installation");
+      // v1.13.0: first-run opens the Apple-style onboarding flow instead of
+      // dropping the user straight onto YouTube. Onboarding's final step
+      // hands off to YouTube (and writes the chosen settings).
+      const flag = await chrome.storage.local.get("onboardingComplete");
+      if (!flag.onboardingComplete) {
+        await chrome.tabs.create({
+          url: chrome.runtime.getURL("src/onboarding/onboarding.html"),
+          active: true,
+        });
+      } else {
+        await chrome.tabs.create({
+          url: "https://www.youtube.com",
+          active: true,
+        });
+      }
+      debugLog("Opened post-install page");
     } catch (err) {
-      console.error("[FocusTube BG] Error opening YouTube:", err);
+      console.error("[FocusTube BG] Error opening post-install page:", err);
     }
   }
 
@@ -269,7 +279,97 @@ debugLog("🚀 Service worker started");
 // extension update.
 chrome.runtime.onStartup.addListener(() => {
   cleanupTranscriptCache().catch(() => {});
+  openDailyDigestIfDue().catch(() => {});
+  openSleepGuardWindDownIfDue().catch(() => {});
 });
+
+// ---------------------------------------------------------------------------
+// Sleep Guard wind-down (v1.17.0) — 30 minutes before the guard window
+// starts, open the evening digest once per day. Evidence: the fresh-start
+// effect has a mirror image — night is the worst time to start anything
+// (Dai/Milkman/Riis 2014), so the wind-down arrives while there is still
+// time to choose the evening on purpose.
+// ---------------------------------------------------------------------------
+async function openSleepGuardWindDownIfDue() {
+  try {
+    const stored = await chrome.storage.local.get([
+      "sleepGuardEnabled",
+      "sleepGuardStart",
+      "sleepGuardWindDownShown",
+      "onboardingComplete",
+    ]);
+    if (!stored.sleepGuardEnabled || !stored.sleepGuardStart) return;
+    if (!stored.onboardingComplete) return;
+
+    const [h, m] = String(stored.sleepGuardStart).split(":").map(Number);
+    if (!Number.isFinite(h)) return;
+    const now = new Date();
+    const start = new Date(
+      now.getFullYear(), now.getMonth(), now.getDate(), h, m || 0, 0, 0,
+    );
+    const windDownAt = new Date(start.getTime() - 30 * 60 * 1000);
+    if (now < windDownAt || now >= start) return;
+
+    const pad = (n) => String(n).padStart(2, "0");
+    const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    if (stored.sleepGuardWindDownShown === todayKey) return;
+
+    await chrome.storage.local.set({ sleepGuardWindDownShown: todayKey });
+    await chrome.tabs.create({
+      url: chrome.runtime.getURL("src/digest/digest.html?mode=evening"),
+      active: true,
+    });
+    debugLog("🌙 Sleep Guard wind-down digest opened");
+  } catch (err) {
+    debugLog("Sleep Guard wind-down error:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Daily Briefing (v1.14.0) — src/digest/
+// ---------------------------------------------------------------------------
+// Once per calendar day, on the FIRST browser start, open the digest page:
+//   05:00–12:59 → morning briefing (yesterday reviewed + today's plan)
+//   13:00–22:59 → evening wind-down (today so far + sleep-protective tips)
+//   23:00–04:59 → suppressed entirely (nothing about a focus app should
+//                 interrupt sleep)
+// UX grounding (see IMPROVEMENTS.md v1.14.0): a MORNING recap wins for
+// behavior change (fresh-start effect, Dai/Milkman/Riis 2014; planning
+// before exposure beats willpower during it), while the evening slot is
+// the fallback recap, reframed as a gentle wind-down. New users who
+// haven't finished onboarding get onboarding instead — never both.
+async function openDailyDigestIfDue() {
+  try {
+    const stored = await chrome.storage.local.get([
+      "digestLastShown",
+      "onboardingComplete",
+    ]);
+    if (!stored.onboardingComplete) return;
+
+    const now = new Date();
+    const h = now.getHours();
+    if (h < 5 || h >= 23) return;
+
+    const pad = (n) => String(n).padStart(2, "0");
+    const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    if (stored.digestLastShown === todayKey) return;
+
+    const mode = h < 13 ? "morning" : "evening";
+    await chrome.storage.local.set({
+      digestLastShown: todayKey,
+      digestLastMode: mode,
+    });
+    await chrome.tabs.create({
+      url: chrome.runtime.getURL(
+        `src/digest/digest.html?mode=${mode}`,
+      ),
+      active: true,
+    });
+    debugLog(`📊 Daily digest opened (${mode})`);
+  } catch (err) {
+    debugLog("Daily digest error:", err);
+  }
+}
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
@@ -383,6 +483,15 @@ function getDayKey(timestamp = Date.now()) {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+// Inverse of getDayKey: parse "YYYY-MM-DD" into a local-midnight Date.
+// Returns null for malformed keys so callers can fall back to today.
+function parseDayKey(key) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key || ""));
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 async function recordMetric(metric, amount = 1) {
   const safeAmount = Number(amount) || 0;
   if (!metric || safeAmount === 0) {
@@ -417,7 +526,7 @@ async function recordMetric(metric, amount = 1) {
   return { success: true };
 }
 
-async function getDashboardStats() {
+async function getDashboardStats(options = {}) {
   const stored = await chrome.storage.local.get([
     ANALYTICS_KEY,
     "statsShortsSkipped",
@@ -433,6 +542,8 @@ async function getDashboardStats() {
     "profileGoal",
     "timeUsage",
     "topicStats",
+    "topicSeconds",
+    "siteLogos",
   ]);
 
   const lifetime = {
@@ -456,24 +567,59 @@ async function getDashboardStats() {
     };
     await chrome.storage.local.set({ [ANALYTICS_KEY]: analytics });
   }
-  const ranges = { day: 1, week: 7, month: 30 };
+
+  // Day navigation (v1.10.0): the dashboard can anchor the whole report on a
+  // past day via options.anchorKey ("YYYY-MM-DD"). Future or malformed keys
+  // clamp back to today, so a stale anchor can never leak tomorrow's (empty)
+  // data into the UI.
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const anchor = (() => {
+    const parsed = parseDayKey(options && options.anchorKey);
+    if (!parsed) return today;
+    return parsed.getTime() > today.getTime() ? today : parsed;
+  })();
+  const anchorKey = getDayKey(anchor.getTime());
+  const sameMonthAsToday =
+    anchor.getFullYear() === today.getFullYear() &&
+    anchor.getMonth() === today.getMonth();
+
+  // "Month" is a calendar-month view, not a rolling 30-day approximation.
+  // On Sep 3 it has 3 points (Sep 1–3); on Feb 29 it has 29 points.
+  // Anchored on a past month it expands to that full month instead.
+  const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const monthEnd = sameMonthAsToday
+    ? today
+    : new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+  const monthDays =
+    Math.round((monthEnd.getTime() - monthStart.getTime()) / 86400000) + 1;
+  const ranges = {
+    day: { end: anchor, days: 1 },
+    week: { end: anchor, days: 7 },
+    month: { end: monthEnd, days: monthDays },
+  };
   const metricKeys = Object.keys(METRIC_TO_TOTAL_KEY);
 
   const timeUsage = stored.timeUsage || {};
   const topicStats = stored.topicStats || {};
+  const topicSeconds = stored.topicSeconds || {};
 
   const report = {};
   const watchTime = {}; // seconds watched per range (all tracked domains)
-  const topics = {}; // top topics per range: [{topic, count}]
-  for (const [label, days] of Object.entries(ranges)) {
+  const topics = {}; // top topics per range: [{topic, count, minutes, prevCount}]
+  const siteUsage = {}; // seconds per domain for each dashboard range
+  for (const [label, window] of Object.entries(ranges)) {
     const totals = Object.fromEntries(metricKeys.map((k) => [k, 0]));
     const points = [];
     let secondsWatched = 0;
     const topicAgg = {};
+    const topicSecAgg = {};
+    const siteAgg = {};
 
-    for (let offset = days - 1; offset >= 0; offset -= 1) {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
+    for (let offset = window.days - 1; offset >= 0; offset -= 1) {
+      // setDate (not ms arithmetic) keeps each point on the intended calendar
+      // day across DST shifts.
+      const date = new Date(window.end);
       date.setDate(date.getDate() - offset);
       const key = getDayKey(date.getTime());
       const dayMetrics = analytics[key] || {};
@@ -486,25 +632,76 @@ async function getDashboardStats() {
       });
 
       const dayUsage = timeUsage[key] || {};
+      let pointSeconds = 0;
       for (const sec of Object.values(dayUsage)) {
-        secondsWatched += Number(sec) || 0;
+        const safeSeconds = Number(sec) || 0;
+        pointSeconds += safeSeconds;
+        secondsWatched += safeSeconds;
       }
+      for (const [domain, sec] of Object.entries(dayUsage)) {
+        siteAgg[domain] = (siteAgg[domain] || 0) + (Number(sec) || 0);
+      }
+      point.timeSpentSeconds = pointSeconds;
+      point.activeSites = Object.keys(dayUsage).length;
 
       const dayTopics = topicStats[key] || {};
       for (const [topic, count] of Object.entries(dayTopics)) {
         const t = String(topic).slice(0, 40);
         topicAgg[t] = (topicAgg[t] || 0) + (Number(count) || 0);
       }
+      const dayTopicSeconds = topicSeconds[key] || {};
+      for (const [topic, sec] of Object.entries(dayTopicSeconds)) {
+        const t = String(topic).slice(0, 40);
+        topicSecAgg[t] = (topicSecAgg[t] || 0) + (Number(sec) || 0);
+      }
 
       points.push(point);
     }
+
+    // Trend comparison: the window immediately BEFORE this range, of the
+    // same length, so the dashboard can show "▲ 42%" vs the previous
+    // period instead of an absolute number in a vacuum.
+    const prevAgg = {};
+    {
+      const prevEnd = new Date(window.end);
+      prevEnd.setDate(prevEnd.getDate() - window.days);
+      for (let offset = 0; offset < window.days; offset += 1) {
+        const date = new Date(prevEnd);
+        date.setDate(date.getDate() - offset);
+        const key = getDayKey(date.getTime());
+        for (const [topic, count] of Object.entries(topicStats[key] || {})) {
+          const t = String(topic).slice(0, 40);
+          prevAgg[t] = (prevAgg[t] || 0) + (Number(count) || 0);
+        }
+      }
+    }
+
     report[label] = { totals, points };
     watchTime[label] = secondsWatched;
     topics[label] = Object.entries(topicAgg)
-      .map(([topic, count]) => ({ topic, count }))
+      .map(([topic, count]) => ({
+        topic,
+        count,
+        minutes: Math.round((topicSecAgg[topic] || 0) / 60),
+        prevCount: prevAgg[topic] || 0,
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+    siteUsage[label] = siteAgg;
   }
+
+  // Oldest day key with any recorded data (analytics, time usage or topics).
+  // The dashboard uses this to stop the "< previous day" button at the first
+  // day that could possibly hold history (storage keeps 120 days).
+  const dataKeys = [
+    ...Object.keys(analytics),
+    ...Object.keys(timeUsage),
+    ...Object.keys(topicStats),
+  ].filter((k) => parseDayKey(k));
+  const dataEarliestKey =
+    dataKeys.length > 0
+      ? dataKeys.reduce((min, k) => (k < min ? k : min))
+      : anchorKey;
 
   return {
     success: true,
@@ -518,6 +715,17 @@ async function getDashboardStats() {
     report,
     watchTime,
     topics,
+    siteUsage,
+    siteLogos: stored.siteLogos || {},
+    generatedAt: Date.now(),
+    anchorKey,
+    todayKey: getDayKey(now.getTime()),
+    dataEarliestKey,
+    calendar: {
+      monthLabel: anchor.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+      monthDaysElapsed: sameMonthAsToday ? now.getDate() : monthDays,
+      daysInMonth: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate(),
+    },
   };
 }
 
@@ -1251,7 +1459,7 @@ async function addTimeLimitDNR(domain, blockUntil) {
           priority: 2, // higher than Smart Lists
           action: {
             type: "redirect",
-            redirect: { extensionPath: "/src/block-page/blocked.html?d=" + encodeURIComponent(domain) + "&reason=time" },
+            redirect: { extensionPath: "/src/block-page/blocked.html?d=" + encodeURIComponent(domain) + "&reason=time&until=" + blockUntil },
           },
           condition: {
             urlFilter: "||" + domain + "^",
@@ -1409,6 +1617,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     timeLimitTick().catch(() => {});
   } else if (alarm.name === SYNC_ALARM_NAME) {
     syncNow("alarm").catch(() => {});
+    // v1.17.0 — catch the wind-down window even if the browser has been
+    // open across the whole evening (cheap: storage read short-circuits).
+    openSleepGuardWindDownIfDue().catch(() => {});
   }
 });
 
@@ -1470,10 +1681,52 @@ const SYNC_DB_NAME = "focustube-file-sync";
 const SYNC_DB_VERSION = 1;
 const SYNC_STORE = "handles";
 const SYNC_HANDLE_KEY = "dataFile";
+// v1.16.0 — monthly archive mode. When the user picks a FOLDER instead of a
+// file, the engine writes one JSON file per calendar month inside it and
+// rotates automatically when the month ends: focustube-September-2025.json →
+// focustube-October-2025.json. Old months remain on disk as archives.
+const SYNC_DIR_KEY = "dataDir";
 const SYNC_STATUS_KEY = "syncStatus";
 const SYNC_ALARM_NAME = "focustube-file-sync-tick";
 const SYNC_FILE_VERSION = 2;
 const SYNC_LIFETIME_KEYS = Object.values(METRIC_TO_TOTAL_KEY);
+const SYNC_MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** The archive file for the current month, e.g. "focustube-September-2025.json". */
+function currentMonthFileName(now = new Date()) {
+  return `focustube-${SYNC_MONTH_NAMES[now.getMonth()]}-${now.getFullYear()}.json`;
+}
+
+/** "YYYY-MM" for the current month — the prefix shared by its day keys. */
+function currentMonthKey(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Keep only the day-keyed sections that belong to `monthKey` ("YYYY-MM").
+ * Config sections (settings, limits, block lists, logos) are month-agnostic
+ * and ride along so a monthly file can still configure a fresh browser.
+ */
+function filterPayloadDaysToMonth(payload, monthKey) {
+  if (!payload || typeof payload !== "object") return payload;
+  const prefix = `${monthKey}-`;
+  const filterMap = (map) => {
+    const out = {};
+    for (const [day, value] of Object.entries(map || {})) {
+      if (String(day).startsWith(prefix)) out[day] = value;
+    }
+    return out;
+  };
+  return {
+    ...payload,
+    analyticsDaily: filterMap(payload.analyticsDaily),
+    timeUsage: filterMap(payload.timeUsage),
+    topicStats: filterMap(payload.topicStats),
+  };
+}
 
 // A deliberate allowlist: credentials, browser handles, runtime state, and
 // machine-specific UI state never enter the portable data file.
@@ -1486,7 +1739,7 @@ const SYNC_SETTINGS_KEYS = [
   "hideNotifications", "hideCreateButton", "hideVoiceSearch", "hideShareButtons", "hideComments",
   "hideInfoCards", "hideEndScreens", "hideLiveChat", "hideNextVideo", "hideMoreVideos",
   "hideVideoMetrics", "hideVideoDuration", "hideMerch", "autoPauseInactive", "autoTheaterMode",
-  "modernGlassTheme", "smartListsEnabled", "pomodoroFocusMinutes", "pomodoroShortBreakMinutes",
+  "smartListsEnabled", "pomodoroFocusMinutes", "pomodoroShortBreakMinutes",
   "pomodoroLongBreakMinutes", "pomodoroCyclesBeforeLongBreak", "pomodoroDeepWork",
   "pomodoroAdaptiveFocus", "pomodoroFocusShield", "pomodoroAutoStartBreaks",
   "pomodoroAutoStartFocus", "pomodoroNotify", "aiNudgeEnabled", "quizDifficulty",
@@ -1536,9 +1789,21 @@ async function syncGetFileHandle() {
   }
 }
 
+async function syncGetDirHandle() {
+  try {
+    return (await syncIdbOp("readonly", (s) => s.get(SYNC_DIR_KEY))) || null;
+  } catch (err) {
+    debugLog("syncGetDirHandle failed:", err);
+    return null;
+  }
+}
+
 async function syncClearFileHandleSafe() {
   try {
-    await syncIdbOp("readwrite", (s) => s.delete(SYNC_HANDLE_KEY));
+    await syncIdbOp("readwrite", (s) => {
+      s.delete(SYNC_HANDLE_KEY);
+      s.delete(SYNC_DIR_KEY);
+    });
   } catch (err) {
     debugLog("syncClearFileHandle failed:", err);
   }
@@ -1905,13 +2170,20 @@ async function syncSetStatus(patch) {
 }
 
 async function syncGetStatus() {
-  const handle = await syncGetFileHandle();
+  const [handle, dirHandle] = await Promise.all([
+    syncGetFileHandle(),
+    syncGetDirHandle(),
+  ]);
   const stored = await chrome.storage.local.get([SYNC_STATUS_KEY, "syncMeta"]);
   const status = stored[SYNC_STATUS_KEY] || {};
+  const monthly = !!dirHandle;
   return {
     ...status,
-    hasFile: !!handle,
-    fileName: handle?.name || status.fileName || "",
+    hasFile: !!handle || monthly,
+    syncMode: monthly ? "monthly" : "file",
+    folderName: monthly ? dirHandle.name || "" : "",
+    monthFileName: monthly ? currentMonthFileName() : "",
+    fileName: monthly ? currentMonthFileName() : handle?.name || status.fileName || "",
     pendingChanges: !!stored.syncMeta?.pendingSince,
     pendingSince: Number(stored.syncMeta?.pendingSince) || 0,
   };
@@ -1925,7 +2197,16 @@ async function syncNow(reason = "manual") {
   }
   syncInFlight = true;
   try {
-    const handle = await syncGetFileHandle();
+    // Monthly folder mode (v1.16.0) or the legacy single-file mode.
+    const dirHandle = await syncGetDirHandle();
+    let handle = null;
+    let monthly = false;
+    if (dirHandle) {
+      monthly = true;
+      handle = dirHandle;
+    } else {
+      handle = await syncGetFileHandle();
+    }
     if (!handle) {
       await syncSetStatus({ connected: false, needsPermission: false });
       return { success: false, error: "no-file" };
@@ -1948,16 +2229,49 @@ async function syncNow(reason = "manual") {
       return { success: false, error: "needs-permission" };
     }
 
-    const remote = await syncReadFile(handle);
+    // In monthly mode the file name is computed EVERY cycle — that is the
+    // whole rotation mechanism: when the calendar month flips, the next
+    // sync simply creates and fills the new month's archive file.
+    if (monthly) {
+      try {
+        handle = await dirHandle.getFileHandle(currentMonthFileName(), {
+          create: true,
+        });
+      } catch (err) {
+        debugLog("syncNow: cannot open month file:", err?.message);
+        await syncSetStatus({
+          connected: true,
+          needsPermission: true,
+          lastResult: "needs-permission",
+          lastError: String(err?.message || err),
+        });
+        return { success: false, error: "needs-permission" };
+      }
+    }
+
+    const monthKey = currentMonthKey();
+    const remoteRaw = await syncReadFile(handle);
+    // A monthly archive must only ever merge days of its own month — a
+    // stray foreign day would be written back and then never rotate away.
+    const remote = monthly && remoteRaw
+      ? filterPayloadDaysToMonth(remoteRaw, monthKey)
+      : remoteRaw;
     const local = await syncBuildLocalPayload();
     const merged = syncMergePayloads(local, remote || {});
     const configChanged = await syncApplyPayload(merged);
-    const fileJson = JSON.stringify(merged, null, 2);
-    await syncWriteFile(handle, merged);
+    // The file gets the month-scoped view of the merge (config rides along);
+    // chrome.storage keeps the FULL merge, so older months stay browsable.
+    const filePayload = monthly
+      ? filterPayloadDaysToMonth(merged, monthKey)
+      : merged;
+    const fileJson = JSON.stringify(filePayload, null, 2);
+    await syncWriteFile(handle, filePayload);
     await syncSetStatus({
       connected: true,
       needsPermission: false,
       fileName: handle.name || "focustube-data.json",
+      syncMode: monthly ? "monthly" : "file",
+      folderName: monthly ? dirHandle.name || "" : "",
       lastResult: "ok",
       lastSyncAt: Date.now(),
       lastWriteAt: Date.now(),
@@ -2500,67 +2814,154 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       switch (message.action) {
-        case "recordMetric":
-          if (
-            !isNonEmptyString(message.metric, 64) ||
-            !METRIC_TO_TOTAL_KEY[message.metric]
-          ) {
-            sendResponse({
-              success: false,
-              error: "Unsupported metric",
-            });
+        case "vimCloseTab": {
+          // v1.17.0 — Vim-style nav exit key. Content scripts cannot close
+          // tabs they didn't open; the background can. Guarded to the
+          // sender's own tab so a page can't close arbitrary tabs.
+          const tabId = sender && sender.tab ? sender.tab.id : null;
+          if (tabId == null) {
+            sendResponse({ success: false, error: "No sender tab" });
             return;
           }
-          await recordMetric(message.metric, message.amount);
+          try {
+            await chrome.tabs.remove(tabId);
+            sendResponse({ success: true });
+          } catch (err) {
+            sendResponse({ success: false, error: String(err) });
+          }
+          return;
+        }
+
+        case "openDashboard": {
+          // v1.17.0 — Companion quick action.
+          try {
+            await chrome.tabs.create({
+              url: chrome.runtime.getURL("src/dashboard/dashboard.html"),
+            });
+            sendResponse({ success: true });
+          } catch (err) {
+            sendResponse({ success: false, error: String(err) });
+          }
+          return;
+        }
+
+        case "recordMetric": {
+          // ⚠️ v1.13.0 anti-gaming: this message bus is reachable from every
+          // content script. Background-computed metrics — timeSavedMinutes
+          // (union-deduped in setTempBlock) and pomodoroCompleted — are NOT
+          // externally writable, and externally allowed amounts are clamped.
+          // Previously an unclamped amount let a single forged message
+          // ({metric:"timeSavedMinutes", amount: 1e6}) max the score.
+          const EXTERNAL_METRICS = new Set([
+            "shortsSkipped",
+            "adsBlocked",
+            "summariesGenerated",
+            "willpowerPoints",
+          ]);
+          const amount = Math.floor(Number(message.amount));
+          if (
+            !EXTERNAL_METRICS.has(message.metric) ||
+            !Number.isFinite(amount) ||
+            amount < 1
+          ) {
+            sendResponse({ success: false, error: "Unsupported metric" });
+            return;
+          }
+          await recordMetric(message.metric, Math.min(100, amount));
           sendResponse({ success: true });
           return;
+        }
 
         case "recordTopic": {
-          // Topics come from the YouTube topic tracker: hashtags + video
-          // category. Counted once per watched video.
+          // Topic Tracker v2 (v1.14.0): the content script sends weighted
+          // topics plus the video's real duration, so topics are counted
+          // per video AND credited watch seconds. v1 string arrays are
+          // still accepted (weight defaults to 1, seconds to 0).
           const rawTopics = Array.isArray(message.topics) ? message.topics : [];
-          const topics = [
-            ...new Set(
-              rawTopics
-                .filter((t) => typeof t === "string")
-                .map((t) =>
-                  t
-                    .trim()
-                    .toLowerCase()
-                    .replace(/[^#\w\s-]/g, "")
-                    .slice(0, 40),
-                )
-                .filter((t) => t.length > 1),
-            ),
-          ].slice(0, 8);
-          if (topics.length === 0) {
+          let entries = rawTopics
+            .map((t) =>
+              typeof t === "string"
+                ? { topic: t, weight: 1 }
+                : t && typeof t.topic === "string"
+                  ? { topic: t.topic, weight: Number(t.weight) || 1 }
+                  : null,
+            )
+            .filter(Boolean)
+            .map((e) => ({
+              topic: e.topic
+                .trim()
+                .toLowerCase()
+                .replace(/[^#\w\s-]/g, "")
+                .slice(0, 40),
+              weight: Math.max(0.1, Math.min(2, e.weight)),
+            }))
+            .filter((e) => e.topic.length > 1);
+
+          // Deduplicate: same topic sent at several weights keeps the max.
+          const deduped = new Map();
+          for (const e of entries) {
+            const prev = deduped.get(e.topic);
+            if (!prev || e.weight > prev.weight) deduped.set(e.topic, e);
+          }
+          entries = [...deduped.values()].slice(0, 8);
+          if (entries.length === 0) {
             sendResponse({ success: false, error: "No valid topics" });
             return;
           }
 
+          const durationSeconds = Math.max(
+            0,
+            Math.min(43200, Number(message.durationSeconds) || 0),
+          );
+          // A video with 3 topics doesn't triple the watch time: each topic
+          // receives a proportional share of the video's seconds.
+          const totalWeight =
+            entries.reduce((sum, e) => sum + e.weight, 0) || 1;
+
           const dayKey = getDayKey();
-          const stored = await chrome.storage.local.get("topicStats");
+          const stored = await chrome.storage.local.get([
+            "topicStats",
+            "topicSeconds",
+          ]);
           const stats = stored.topicStats || {};
+          const seconds = stored.topicSeconds || {};
           const today = stats[dayKey] || {};
-          for (const t of topics) {
-            today[t] = (Number(today[t]) || 0) + 1;
+          const todaySeconds = seconds[dayKey] || {};
+          for (const e of entries) {
+            today[e.topic] = (Number(today[e.topic]) || 0) + 1;
+            todaySeconds[e.topic] = Math.round(
+              (Number(todaySeconds[e.topic]) || 0) +
+                (durationSeconds * e.weight) / totalWeight,
+            );
           }
           stats[dayKey] = today;
+          seconds[dayKey] = todaySeconds;
 
           const trimmed = Object.fromEntries(
             Object.entries(stats)
               .sort(([a], [b]) => a.localeCompare(b))
               .slice(-ANALYTICS_RETENTION_DAYS),
           );
+          const trimmedSeconds = Object.fromEntries(
+            Object.entries(seconds)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .slice(-ANALYTICS_RETENTION_DAYS),
+          );
 
-          await chrome.storage.local.set({ topicStats: trimmed });
+          await chrome.storage.local.set({
+            topicStats: trimmed,
+            topicSeconds: trimmedSeconds,
+          });
           scheduleFileSync();
-          sendResponse({ success: true });
+          sendResponse({ success: true, recorded: entries.length });
           return;
         }
 
         case "getDashboardStats":
-          sendResponse({ success: true, data: await getDashboardStats() });
+          sendResponse({
+            success: true,
+            data: await getDashboardStats(message.options || {}),
+          });
           return;
 
         case "setTempBlock": {
@@ -2571,11 +2972,115 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           const minutes = Number(message.minutes) || 0;
           await chrome.storage.local.set({ tempBlockUntil: until });
-          if (minutes > 0 && Number.isFinite(minutes)) {
-            await recordMetric("timeSavedMinutes", minutes);
+          // ⚠️ Honest "time saved" accounting (v1.13.0 anti-gaming).
+          // v1 credited `minutes` on EVERY press — tapping "Block 30 min"
+          // 100× inflated timeSavedMinutes by 3000 and pinned the Focus
+          // Score at 100. Overlapping block windows describe ONE blocked
+          // interval, so only union growth beyond the already-blocked window
+          // is real time saved. Extending a block credits the extension;
+          // re-pressing inside an active block credits ~0.
+          const now = Date.now();
+          const storedBlock = await chrome.storage.local.get("tempBlockUntilPrev");
+          const prevUntil = Number(storedBlock.tempBlockUntilPrev) || 0;
+          const prevRemaining = Math.max(0, prevUntil - now);
+          const newRemaining = Math.max(0, until - now);
+          const creditedMinutes = Math.max(
+            0,
+            Math.round(
+              (Math.max(prevRemaining, newRemaining) - prevRemaining) / 60000,
+            ),
+          );
+          if (creditedMinutes > 0) {
+            await recordMetric("timeSavedMinutes", creditedMinutes);
           }
+          // Remember this window's end for the next dedupe (separate key so
+          // the live blocker keeps reading tempBlockUntil untouched).
+          await chrome.storage.local.set({ tempBlockUntilPrev: until });
+
           await notifyAllTabs();
-          sendResponse({ success: true, until });
+          sendResponse({ success: true, until, creditedMinutes });
+          return;
+        }
+
+        case "setSiteTimer": {
+          // v1.14.0 — per-site "Focus Timer" from the Time Limits capsules.
+          // Reuses the site-blocker's existing `blockedSites` mechanism
+          // (overlay + ticking countdown come for free). `minutes: 0`
+          // ends the timer early; a permanent/manual block on the same
+          // domain is never downgraded by a timer.
+          const domain = sanitizeDomain(String(message.domain || ""));
+          const minutes = Math.floor(Number(message.minutes) || 0);
+          if (!domain || !domain.includes(".")) {
+            sendResponse({ success: false, error: "Invalid domain" });
+            return;
+          }
+
+          const settings = await loadSettings();
+          const blockedSites = settings.blockedSites || [];
+          const now = Date.now();
+          const existingIdx = blockedSites.findIndex(
+            (s) => s && sanitizeDomain(s.domain) === domain,
+          );
+          const existing = existingIdx >= 0 ? blockedSites[existingIdx] : null;
+
+          if (minutes <= 0) {
+            if (existing && existing.reason === "Focus Timer") {
+              blockedSites.splice(existingIdx, 1);
+              await updateSettings({ blockedSites });
+              await touchSyncMeta("blockedSitesUpdatedAt");
+              scheduleFileSync();
+              await notifyAllTabs();
+            }
+            sendResponse({ success: true, until: 0 });
+            return;
+          }
+
+          if (
+            existing &&
+            Number(existing.blockUntil) > now &&
+            existing.reason !== "Focus Timer"
+          ) {
+            sendResponse({
+              success: false,
+              error: "Site already has an active block",
+            });
+            return;
+          }
+
+          const clamped = Math.max(1, Math.min(1440, minutes));
+          const until = now + clamped * 60000;
+          const entry = { domain, blockUntil: until, reason: "Focus Timer" };
+          if (existingIdx >= 0) {
+            blockedSites[existingIdx] = entry;
+          } else {
+            blockedSites.push(entry);
+          }
+          await updateSettings({ blockedSites });
+          await touchSyncMeta("blockedSitesUpdatedAt");
+          scheduleFileSync();
+          await notifyAllTabs();
+
+          // Honest accounting, same discipline as setTempBlock (v1.13.0):
+          // only UNION growth of this domain's block window is credited.
+          // Re-pressing "30 min" 100× credits 30 minutes, not 3000.
+          const prevMapStored = await chrome.storage.local.get("siteTimerPrev");
+          const prevMap = prevMapStored.siteTimerPrev || {};
+          const prevUntil = Number(prevMap[domain]) || 0;
+          const prevRemaining = Math.max(0, prevUntil - now);
+          const newRemaining = Math.max(0, until - now);
+          const creditedMinutes = Math.max(
+            0,
+            Math.round(
+              (Math.max(prevRemaining, newRemaining) - prevRemaining) / 60000,
+            ),
+          );
+          if (creditedMinutes > 0) {
+            await recordMetric("timeSavedMinutes", creditedMinutes);
+          }
+          prevMap[domain] = until;
+          await chrome.storage.local.set({ siteTimerPrev: prevMap });
+
+          sendResponse({ success: true, until, creditedMinutes });
           return;
         }
 
@@ -2709,10 +3214,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case "getTimeUsage": {
           const dayKey = await getDayKeyLocal();
-          const stored = await chrome.storage.local.get(["timeUsage", "timeLimits", "siteLogos"]);
+          const stored = await chrome.storage.local.get([
+            "timeUsage",
+            "timeLimits",
+            "siteLogos",
+            "blockedSites",
+          ]);
           const usage = stored.timeUsage || {};
           const limits = stored.timeLimits || {};
           const today = usage[dayKey] || {};
+          // v1.14.0 — active per-site Focus Timers, so the Time Limits
+          // capsules can show a live countdown chip instead of the timer
+          // button when a block is already running on that site.
+          const siteTimers = {};
+          for (const s of stored.blockedSites || []) {
+            if (
+              s &&
+              s.reason === "Focus Timer" &&
+              Number(s.blockUntil) > Date.now() &&
+              s.domain
+            ) {
+              siteTimers[sanitizeDomain(s.domain)] = Number(s.blockUntil);
+            }
+          }
           // Backfill icon URLs for existing history/limits on first view.
           // New visits are upgraded to Chrome's page-discovered favicon by
           // updateActiveTab(), so this fallback never needs a brand list.
@@ -2730,6 +3254,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             today: todayMinutes,
             limits,
             logos: refreshed.siteLogos || {},
+            siteTimers,
+            blockedSites: stored.blockedSites || [],
           });
           return;
         }
@@ -2795,11 +3321,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const local = await syncBuildLocalPayload();
           const merged = syncMergePayloads(local, remote);
           const configChanged = await syncApplyPayload(merged);
-          const handle = await syncGetFileHandle();
-          if (handle) {
+          const dirHandle = await syncGetDirHandle();
+          if (dirHandle) {
+            // Monthly mode: only the current month's slice belongs in the
+            // archive file — never write a full multi-month payload into it.
             try {
-              await syncWriteFile(handle, merged);
+              const monthFile = await dirHandle.getFileHandle(
+                currentMonthFileName(),
+                { create: true },
+              );
+              await syncWriteFile(
+                monthFile,
+                filterPayloadDaysToMonth(merged, currentMonthKey()),
+              );
             } catch (_) {}
+          } else {
+            const handle = await syncGetFileHandle();
+            if (handle) {
+              try {
+                await syncWriteFile(handle, merged);
+              } catch (_) {}
+            }
           }
           if (configChanged) {
             await notifyAllTabs();

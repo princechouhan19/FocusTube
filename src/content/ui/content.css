@@ -1,35 +1,36 @@
 /**
- * FocusTube Content Script Styles — Liquid Glass v1.0
+ * FocusTube Content Script Styles — Apple Design System v1.0 (HIG clone)
  *
- * All visual tokens come from src/shared/liquid-glass.css (loaded
- * first via manifest content_scripts.css).
+ * Tokens come from src/shared/apple-ui.css (iOS system colors, SF Pro
+ * stack, fills, separators), loaded via manifest content_scripts.css
+ * on YouTube before this file.
  *
- * This file contains content-script-specific UI: the AI Summary button,
- * summary modal, keyword tags, focus banners, and the modern-glass
- * YouTube theme override.
+ * Contains the extension UI that lives inside YouTube pages: the AI
+ * Summary button, summary modal, tags, focus banner, ad warnings,
+ * channel-block button, URL-block overlay, and pause indicator.
  */
 
 
 /* =========================================================================
-   AI Summary Button
+   AI Summary Button — iOS filled button
    ========================================================================= */
 
 .yfp-summary-button {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--lg-space-2);
-  padding: var(--lg-space-3) var(--lg-space-5);
-  font-family: var(--lg-font);
-  font-size: var(--lg-text-md);
-  font-weight: var(--lg-weight-bold);
-  color: var(--lg-primary-ink);
-  background: var(--lg-primary);
-  border: 1px solid transparent;
-  border-radius: var(--lg-radius-lg);
+  gap: 8px;
+  padding: 10px 18px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-md);
+  font-weight: 600;
+  color: #fff;
+  background: var(--ios-blue);
+  border: none;
+  border-radius: var(--ios-r-md);
   cursor: pointer;
-  margin: var(--lg-space-3) 0;
-  transition: background var(--lg-speed-normal) var(--lg-ease-smooth);
+  margin: 10px 0;
+  transition: background var(--ios-speed) var(--ios-ease);
   user-select: none;
 }
 
@@ -39,16 +40,16 @@
 }
 
 .yfp-summary-button:hover {
-  background: var(--lg-primary-hi);
+  background: #2492ff;
 }
 
 .yfp-summary-button:focus-visible {
   outline: none;
-  box-shadow: var(--lg-focus-ring);
+  box-shadow: var(--ios-focus-ring);
 }
 
 .yfp-summary-button:active {
-  background: var(--lg-primary);
+  background: var(--ios-blue);
 }
 
 .yfp-summary-button.loading {
@@ -58,21 +59,21 @@
 
 
 /* =========================================================================
-   AI Summary Modal
+   AI Summary Modal — iOS sheet
    ========================================================================= */
 
 .yfp-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--lg-z-modal);
+  z-index: 2147483000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--lg-space-6);
+  padding: 24px;
   background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  animation: lg-enter var(--lg-speed-normal) var(--lg-ease-out) both;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: lg-enter var(--ios-speed) var(--ios-ease) both;
 }
 
 .yfp-modal-content {
@@ -81,44 +82,31 @@
   width: 100%;
   max-height: 85vh;
   overflow-y: auto;
-  background: var(--lg-bg-surface);
-  backdrop-filter: blur(20px) saturate(var(--lg-glass-saturate));
-  -webkit-backdrop-filter: blur(20px) saturate(var(--lg-glass-saturate));
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-2xl);
-  box-shadow: var(--lg-shadow-lg), var(--lg-shadow-inset);
-  animation: lg-enter var(--lg-speed-slow) var(--lg-ease-out) both;
-}
-
-/* Top-edge highlight */
-.yfp-modal-content::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--lg-glass-highlight) 50%, transparent 100%);
-  pointer-events: none;
-  z-index: 1;
+  background: var(--ios-bg-2, #1c1c1e);
+  border: none;
+  border-radius: var(--ios-r-xl);
+  box-shadow: var(--ios-shadow-modal), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  animation: lg-enter var(--ios-speed-slow) var(--ios-ease) both;
+  color: var(--ios-label, #fff);
 }
 
 .yfp-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--lg-space-5) var(--lg-space-6);
-  border-bottom: 1px solid var(--lg-glass-border);
+  padding: 16px 20px;
+  border-bottom: 0.5px solid var(--ios-sep, rgba(84, 84, 88, 0.65));
 }
 
 .yfp-modal-header h3 {
   margin: 0;
-  font-size: var(--lg-text-xl);
-  font-weight: var(--lg-weight-bold);
-  color: var(--lg-text);
+  font-size: var(--ios-text-xl);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--ios-label, #fff);
   display: flex;
   align-items: center;
-  gap: var(--lg-space-2);
+  gap: 8px;
 }
 
 .yfp-modal-close {
@@ -129,57 +117,57 @@
   height: 32px;
   font-size: 20px;
   line-height: 1;
-  color: var(--lg-text-muted);
-  background: var(--lg-glass-bg);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-full);
+  color: var(--ios-label-2, rgba(235, 235, 245, 0.6));
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
-  transition: all var(--lg-speed-normal) var(--lg-ease-spring);
+  transition: all var(--ios-speed) var(--ios-ease);
 }
 
 .yfp-modal-close:hover {
-  color: var(--lg-danger);
-  background: var(--lg-danger-soft);
-  border-color: var(--lg-danger-border);
+  color: var(--ios-red);
+  background: var(--ios-red-soft);
 }
 
 .yfp-modal-body {
-  padding: var(--lg-space-6);
+  padding: 20px;
 }
 
 /* Summary content */
 .yfp-summary-title {
-  font-size: var(--lg-text-xl);
-  font-weight: var(--lg-weight-bold);
-  color: var(--lg-text);
-  margin: 0 0 var(--lg-space-4) 0;
+  font-size: var(--ios-text-xl);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--ios-label, #fff);
+  margin: 0 0 14px 0;
 }
 
 .yfp-summary-section {
-  margin-bottom: var(--lg-space-5);
+  margin-bottom: 16px;
 }
 
 .yfp-summary-section h5 {
   display: flex;
   align-items: center;
-  font-size: var(--lg-text-sm);
-  font-weight: var(--lg-weight-bold);
-  color: var(--lg-text-muted);
+  font-size: var(--ios-text-sm);
+  font-weight: 600;
+  color: var(--ios-label-2, rgba(235, 235, 245, 0.6));
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 0 var(--lg-space-2) 0;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px 0;
 }
 
 .yfp-summary-section ul {
   margin: 0;
-  padding-left: var(--lg-space-5);
-  color: var(--lg-text);
-  font-size: var(--lg-text-md);
+  padding-left: 18px;
+  color: var(--ios-label, #fff);
+  font-size: var(--ios-text-md);
   line-height: 1.6;
 }
 
 .yfp-summary-section li {
-  margin-bottom: var(--lg-space-2);
+  margin-bottom: 8px;
 }
 
 .yfp-summary-section svg {
@@ -187,41 +175,41 @@
   height: 20px;
 }
 
-/* Tags */
+/* Tags — tinted capsules */
 .yfp-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--lg-space-2);
-  margin-top: var(--lg-space-4);
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .yfp-tag {
   display: inline-flex;
   align-items: center;
-  padding: var(--lg-space-1) var(--lg-space-3);
-  font-size: var(--lg-text-sm);
-  font-weight: var(--lg-weight-medium);
-  color: var(--lg-primary-hi);
-  background: var(--lg-primary-soft);
-  border: 1px solid var(--lg-primary-border);
-  border-radius: var(--lg-radius-full);
+  padding: 4px 12px;
+  font-size: var(--ios-text-sm);
+  font-weight: 500;
+  color: var(--ios-blue);
+  background: var(--ios-blue-soft);
+  border: none;
+  border-radius: var(--ios-r-full);
 }
 
 /* Error container */
 .yfp-error-container {
   text-align: center;
-  padding: var(--lg-space-5) !important;
+  padding: 16px !important;
 }
 
 .yfp-error-msg {
-  color: var(--lg-text) !important;
-  font-size: var(--lg-text-lg) !important;
+  color: var(--ios-label, #fff) !important;
+  font-size: var(--ios-text-lg) !important;
   line-height: 1.5 !important;
   margin: 0 !important;
 }
 
 .yfp-error-msg a {
-  color: var(--lg-primary-hi);
+  color: var(--ios-blue);
   text-decoration: underline;
 }
 
@@ -229,116 +217,116 @@
 .yfp-pulse-icon {
   width: 24px;
   height: 24px;
-  margin-right: var(--lg-space-2);
+  margin-right: 8px;
   vertical-align: middle;
-  color: var(--lg-text);
+  color: var(--ios-blue);
   animation: lg-pulse 2s ease-in-out infinite;
 }
 
 
 /* =========================================================================
-   Spinner
+   Spinner — iOS activity indicator style
    ========================================================================= */
 
 .yfp-spinner {
   display: inline-block;
   width: 40px;
   height: 40px;
-  border: 3px solid var(--lg-glass-border);
-  border-top-color: var(--lg-primary);
+  border: 3px solid var(--ios-fill-3);
+  border-top-color: var(--ios-blue);
   border-radius: 50%;
   animation: lg-spin 0.8s linear infinite;
 }
 
 
 /* =========================================================================
-   Focus Banner (shown when extension is active)
+   Focus Banner — floating iOS HUD capsule
    ========================================================================= */
 
 .yfp-focus-banner {
   position: fixed;
-  bottom: var(--lg-space-4);
-  right: var(--lg-space-4);
-  z-index: var(--lg-z-overlay);
+  bottom: 16px;
+  right: 16px;
+  z-index: 2147482000;
   display: flex;
   align-items: center;
-  gap: var(--lg-space-3);
-  padding: var(--lg-space-3) var(--lg-space-4);
-  background: var(--lg-glass-bg);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-lg);
-  box-shadow: var(--lg-shadow-md), var(--lg-shadow-inset);
-  font-family: var(--lg-font);
-  font-size: var(--lg-text-sm);
-  color: var(--lg-text);
-  animation: lg-enter var(--lg-speed-slow) var(--lg-ease-spring) both;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(28, 28, 30, 0.82);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: none;
+  border-radius: var(--ios-r-lg);
+  box-shadow: var(--ios-shadow-card);
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-sm);
+  color: var(--ios-label, #fff);
+  animation: lg-enter var(--ios-speed-slow) var(--ios-ease) both;
 }
 
 .yfp-focus-banner button {
-  padding: var(--lg-space-1) var(--lg-space-3);
-  font-family: var(--lg-font);
-  font-size: var(--lg-text-sm);
-  font-weight: var(--lg-weight-bold);
-  color: var(--lg-primary-ink);
-  background: var(--lg-primary);
+  padding: 5px 12px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-sm);
+  font-weight: 600;
+  color: #fff;
+  background: var(--ios-blue);
   border: none;
-  border-radius: var(--lg-radius-sm);
+  border-radius: var(--ios-r-full);
   cursor: pointer;
-  transition: background var(--lg-speed-normal) var(--lg-ease-smooth);
+  transition: background var(--ios-speed) var(--ios-ease);
 }
 
 .yfp-focus-banner button:hover {
-  background: var(--lg-primary-hi);
+  background: #2492ff;
 }
 
 
 /* =========================================================================
-   Ad Warning
+   Ad Warning — iOS amber notice
    ========================================================================= */
 
 .yfp-ad-warning {
   position: relative;
-  padding: var(--lg-space-3) var(--lg-space-4);
-  margin-bottom: var(--lg-space-3);
-  background: var(--lg-warning-soft);
-  border: 1px solid var(--lg-warning-border);
-  border-radius: var(--lg-radius-md);
-  color: var(--lg-warning);
-  font-family: var(--lg-font);
-  font-size: var(--lg-text-sm);
-  font-weight: var(--lg-weight-medium);
-  animation: lg-enter var(--lg-speed-normal) var(--lg-ease-out) both;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: var(--ios-orange-soft);
+  border: none;
+  border-radius: var(--ios-r-md);
+  color: var(--ios-orange);
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-sm);
+  font-weight: 500;
+  animation: lg-enter var(--ios-speed) var(--ios-ease) both;
 }
 
 .yfp-ad-warning strong {
-  color: var(--lg-warning);
+  color: var(--ios-orange);
 }
 
 
 /* =========================================================================
-   Block Channel Button
+   Block Channel Button — destructive tinted
    ========================================================================= */
 
 .yfp-block-channel-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: var(--lg-space-2) var(--lg-space-3);
-  font-family: var(--lg-font);
-  font-size: var(--lg-text-sm);
-  font-weight: var(--lg-weight-medium);
-  color: var(--lg-danger);
-  background: var(--lg-danger-soft);
-  border: 1px solid var(--lg-danger-border);
-  border-radius: var(--lg-radius-md);
+  padding: 8px 12px;
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-sm);
+  font-weight: 500;
+  color: var(--ios-red);
+  background: var(--ios-red-soft);
+  border: none;
+  border-radius: var(--ios-r-md);
   cursor: pointer;
-  transition: all var(--lg-speed-normal) var(--lg-ease-spring);
+  transition: all var(--ios-speed) var(--ios-ease);
 }
 
 .yfp-block-channel-btn:hover {
-  background: var(--lg-danger);
+  background: var(--ios-red);
   color: #fff;
   transform: translateY(-1px);
 }
@@ -350,51 +338,41 @@
 
 
 /* =========================================================================
-   URL Blocked Overlay
+   URL Blocked Overlay — clean black iOS sheet
    ========================================================================= */
 
 .yfp-url-blocked-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--lg-z-blocker);
+  z-index: 2147483000;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--lg-bg-deep);
-  font-family: var(--lg-font);
-}
-
-.yfp-url-blocked-overlay::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 55% 40% at 20% 8%, var(--lg-aurora-1), transparent 60%),
-    radial-gradient(ellipse 45% 45% at 82% 88%, var(--lg-aurora-2), transparent 60%);
-  pointer-events: none;
+  background: var(--ios-bg, #000);
+  font-family: var(--ios-font);
 }
 
 
 /* =========================================================================
-   Pause Indicator
+   Pause Indicator — floating HUD chip
    ========================================================================= */
 
 .yfp-pause-indicator {
   position: fixed;
-  bottom: var(--lg-space-4);
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: var(--lg-z-overlay);
-  padding: var(--lg-space-2) var(--lg-space-4);
-  background: var(--lg-glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-md);
-  color: var(--lg-text);
-  font-family: var(--lg-font);
-  font-size: var(--lg-text-sm);
-  box-shadow: var(--lg-shadow-md);
+  z-index: 2147482000;
+  padding: 8px 14px;
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: none;
+  border-radius: var(--ios-r-full);
+  color: var(--ios-label, #fff);
+  font-family: var(--ios-font);
+  font-size: var(--ios-text-sm);
+  box-shadow: var(--ios-shadow-card);
 }
 
 
@@ -412,10 +390,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--lg-glass-border-hover, rgba(255,255,255,0.14));
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--lg-text-dim, #64748b);
+  background: rgba(255, 255, 255, 0.25);
 }

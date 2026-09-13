@@ -1,205 +1,215 @@
-![FocusTube Banner](src/icons/banner.png)
+<p align="center">
+  <img src="src/icons/banner.png" alt="FocusTube" width="420" />
+</p>
 
-# FocusTube - Ultimate Productivity & Distraction Control
+<h1 align="center">FocusTube — Productivity &amp; Distraction Control for YouTube</h1>
 
-FocusTube is a comprehensive, privacy-first Chrome extension engineered to let you take back control of your YouTube experience. By deeply modifying YouTube's web interface, it eliminates algorithms, hides addictive content like Shorts, and protects your attention using dynamic intervention screens.
+<p align="center">
+  <strong>A privacy-first Chrome extension (Manifest V3) that turns YouTube from a slot machine back into a tool.</strong><br/>
+  Block distractions, close your daily Focus Rings, and get a morning briefing that shows yesterday — before today drifts.
+</p>
 
-## 🎨 v1.2.0 — Unified Liquid Glass Design System
-
-Every screen now shares a single visual language. Previously the popup (purple/teal dark glass), dashboard (cream/sky editorial), content overlays (purple gradient, flat black, Unsplash photos — four different styles), and AI nudge card (Tailwind alpha colors) all used different palettes, radius scales, font stacks, and component patterns.
-
-**Now all 8 surfaces** — popup, dashboard, AI Summary modal, site blocker, time blocker, URL blocker, keyword blocker, AI nudge card — **use one design system**: `src/shared/liquid-glass.css`.
-
-- **Deep liquid background** with slowly drifting aurora blooms (blue, violet, cyan).
-- **Translucent glass panels** with `backdrop-filter: blur(16px) saturate(160%)`, inner-top highlight, and soft shadows.
-- **Spring-easing transitions** everywhere (`cubic-bezier(0.34, 1.56, 0.64, 1)`).
-- **Shimmer sweep** on buttons, **breathing glow** on active elements, **liquid entrance** animation on panels.
-- **One palette**: blue `#3b82f6` → violet `#8b5cf6` primary gradient, emerald success, rose danger, amber warning, cyan accent.
-- **One type scale**, **one radius scale** (8/12/16/20/24/999px), **one shadow scale**, **one z-index scale**.
-- **Dashboard switched from cream/light to dark liquid glass** to match everything else.
-- Also fixed the url-blocker hide-style selector bug (overlay was hiding itself).
-
-## 🚀 v1.1.0 — New Features
-
-Six new productivity features added on top of the v1.0.1 hardening release:
-
-- **🍅 Pomodoro Timer** — built-in 25/5/15 cycles, Deep Work mode (auto-blocks Social during focus), desktop notifications, pause/skip/stop, persists across service-worker restarts.
-- **📋 Smart Lists** — one-click category blocking: Social, Shopping, Gaming, News, Messaging, Streaming, Adult. No expiry — toggle on/off anytime.
-- **📊 Dashboard v2** — Focus Score (0-100) with conic-gradient ring, 30-day GitHub-style heatmap, streak counter, willpower & pomodoro lifetime metrics.
-- **🤖 AI Nudge System** — when a site is blocked, shows a motivational message (60-message local library by default, or AI-generated if enabled) plus a 3-breath animation and +1 willpower button.
-- **🗂️ Tab Manager** — save/load workspaces, group tabs by domain (with colored Chrome tab groups), and "close all non-YouTube tabs" for instant focus restart.
-- **🧠 Quiz Overhaul** — three difficulty levels (Easy riddles / Medium math / Hard logic), plus a streak multiplier that escalates difficulty after 8+ completed pomodoros.
-
-See [`IMPROVEMENTS.md`](./IMPROVEMENTS.md) for the complete changelog.
-
-## 🔒 v1.0.1 — Security & Stability Hardening
-
-This release fixes 23 issues across the codebase, including 4 critical bugs, 7 security fixes, and several performance improvements. Highlights:
-
-- **Fixed duplicate `chrome.runtime.onMessage` listener** in `background.js` that was double-handling every message.
-- **Added the missing `getTranscript` and `aiSummarize` handlers** — the AI Summary button now actually works.
-- **HTML-escaped all AI-generated content** before innerHTML insertion to prevent prompt-injection-driven XSS.
-- **Stopped destroying `document.body.innerHTML`** in the site/url blockers — uses CSS visibility:hidden instead, so other content scripts keep working.
-- **Tightened `web_accessible_resources`** so only icons are exposed to web pages, not the source of every content script.
-- **Stopped monkey-patching the global `console`** — the logger now lives in `window.FocusTubeLogger`.
-- **Replaced a whole-document `MutationObserver`** with YouTube's native `yt-navigate-finish` event for SPA navigation.
-- **Validated all incoming message payloads** in the background service worker.
-
-See [`SECURITY.md`](./SECURITY.md) for the full threat model and [`IMPROVEMENTS.md`](./IMPROVEMENTS.md) for the complete changelog.
-
-## ✨ New Premium v2.1 Update
-
-### 🔄 Local-First Cross-Browser Sync
-
-FocusTube always saves activity and settings in Chrome extension storage first. A
-shared `focustube-data.json` file is optional: when it is disconnected, the
-Dashboard shows **Saved locally** and safely queues changes. Choosing or
-reconnecting the file triggers an immediate merge and push, so offline time is
-not lost.
-
-The shared file includes usage history, metrics, site logos, profile name/avatar/
-goal, blocked topics/keywords, Smart Lists, time limits, Pomodoro preferences,
-and other productivity settings. API keys, passwords, browser session data,
-and file handles never leave the current browser.
-
-### 👤 Profile Personalization
-
-Now FocusTube is more powerful than ever. It automatically fetches your **YouTube Profile Name, Avatar, and Email** to personalize your dashboard.
-
-> **Note:** Profile information is collected locally. Only the display name,
-> avatar, and goal are included in the optional user-chosen sync file; email
-> and credentials remain local.
-
-### 📊 Full-Screen "Stats & Shame" Dashboard
-
-Track your productivity in real-time with a beautiful, newly designed **True Black** aesthetic dashboard.
-
-- **Positive Metrics:** View live counters for Shorts Skipped, Ads Blocked, and AI Summaries Generated.
-- **The Wall of Shame:** Tracks exactly how many times you surrendered and quit a Focus Quiz early.
-
-### ⌨️ Power-User Keyboard Shortcuts
-
-- Press **`S`** while watching any video to attempt an AI Summary.
-
-### 🤖 AI Summaries (Beta Status) ⚠️
-
-> [!IMPORTANT]
-> **Beta Notice:** The AI Summary feature is currently in **Beta** and may not work as expected due to recent changes in YouTube's DOM structure. We are actively working on a more robust scraping engine.
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.17.0-blue" alt="version" />
+  <img src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white" alt="MV3" />
+  <img src="https://img.shields.io/badge/cloud-100%25%20local-success" alt="local-only" />
+  <img src="https://img.shields.io/badge/telemetry-none-success" alt="no telemetry" />
+  <img src="https://img.shields.io/badge/design-Apple%20HIG--inspired-black" alt="design" />
+</p>
 
 ---
 
-## 🚀 Upcoming Features (Roadmap)
+## 📸 See it
 
-- **Vim-Style Navigation:** Browse YouTube entirely using `j`, `k`, `h`, `l` keys.
-- **Advanced Analytics:** Detailed graphs of your focus trends over weeks and months.
-- **More AI Providers:** Support for Claude 3.5, Gemini 2.0, and local LLMs via Ollama.
-- **Custom Themes:** Beyond True Black, including Nord, Solarized, and custom CSS injection.
+**Dashboard — the full picture** (Focus Score, Focus Rings, day navigation, heatmap, monthly review with weekly badges):
+
+<p>
+  <img src="assets/screenshots/dashboard-overview.png" alt="Dashboard overview" width="49%" />
+  <img src="assets/screenshots/dashboard-analytics.png" alt="Dashboard analytics" width="49%" />
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/dashboard-month.png" alt="Dashboard month view with Monthly Review, rings day-by-day and weekly badges" width="86%" />
+</p>
+
+**Popup — the control center** (one click from any page):
+
+<p>
+  <img src="assets/screenshots/popup-home.png" alt="Popup home" width="32%" />
+  <img src="assets/screenshots/popup-focus.png" alt="Popup focus controls" width="32%" />
+  <img src="assets/screenshots/popup-goals.png" alt="Focus Rings goals editor" width="32%" />
+</p>
+
+**Interventions — where the protection happens:**
+
+<p>
+  <img src="assets/screenshots/overlay-focus-timer.png" alt="Focus Timer overlay with live countdown" width="49%" />
+  <img src="assets/screenshots/overlay-site-block.png" alt="Site blocked overlay with focus nudge" width="49%" />
+</p>
+
+<p>
+  <img src="assets/screenshots/block-page.png" alt="Time limit reached block page" width="49%" />
+  <img src="assets/screenshots/digest-morning.png" alt="Morning Daily Briefing" width="49%" />
+</p>
+
+**The Companion, Watch Intent — v1.17.0 flagship features:**
+
+<p>
+  <img src="assets/screenshots/onboarding-buddy.png" alt="Choose your anime focus buddy — Mika or Haru — during onboarding" width="49%" />
+  <img src="assets/screenshots/companion-panel.png" alt="Haru, the floating anime buddy: live site clock, mood engine, buddy switcher and quick actions" width="49%" />
+</p>
+
+**Genshin-style onboarding guidance — your buddy reacts, poses and personalizes every bubble:**
+
+<p>
+  <img src="assets/screenshots/companion-guide.png" alt="Mika reacts with a surprised face while guiding the feed-taming step of onboarding" width="49%" />
+  <img src="assets/screenshots/companion-cheer.png" alt="Mika cheers with sparkles on the final step — We're all set, Alex! Rings await" width="49%" />
+</p>
+
+**…then greets every full screen — dashboard, block page and the morning briefing:**
+
+<p>
+  <img src="assets/screenshots/companion-dashboard.png" alt="Mika waves from the dashboard corner — I'm Mika, I'll keep score while you browse" width="49%" />
+  <img src="assets/screenshots/companion-blocked.png" alt="Haru's surprised face on the block page — Whoa, this one's a rabbit hole, Alex. Future you says thanks" width="49%" />
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/companion-digest.png" alt="Mika opens the morning briefing — Morning! 27m saved yesterday, let's beat it" width="49%" />
+</p>
+
+**The anime duo — 8 emotion faces each, driven by the live site score:**
+
+<p align="center">
+  <img src="assets/screenshots/companion-duo.png" alt="Mika & Haru emotion sheet: joyful, happy, neutral, worried, sad, surprised, sleepy, proud" width="86%" />
+</p>
+
+**First run — an iOS-style setup assistant guided by your buddy:**
+
+<p>
+  <img src="assets/screenshots/onboarding.png" alt="Onboarding setup assistant" width="49%" />
+  <img src="assets/screenshots/watch-intent.png" alt="Watch Intent — what are you here for?" width="49%" />
+</p>
+
+> All screenshots are real production UI captured from the shipped extension — no mockups. See [`assets/screenshots/`](assets/screenshots/) for the full set, including the YouTube controls tab (`popup-youtube.png`), general settings (`popup-settings.png`) and the full Mika & Haru emotion/pose sheet (`companion-duo.png`).
 
 ---
 
-## 🎯 Core Features
+## ✨ Highlights
 
-### 🎥 Video Page Enhancements
+### 🎌 Mika & Haru — your anime focus buddies (NEW in v1.17)
+Pick your guide during onboarding — **Mika** (warm & cheery) or **Haru** (calm & steady) — then they show up everywhere that matters:
+- **In onboarding, Genshin-style** — the buddy stands beside every setup step, pointing at the controls, reacting with its own emotion and pose (wave / guide / cheer), and personalizes every speech bubble with your name.
+- **On every site (floating)** — a chibi-anime buddy with a live site clock, an emotion face driven by the site's score (happy on deep work, worried on feeds, sad in rabbit holes, joyful when your rings close), research-phrased nudges, and a tap-to-expand panel: rings, saved time, *Block site 1h · Snooze 1h · Hide here* — plus a live **Mika ⇄ Haru switcher**.
+- **On every full screen** — the buddy greets you on the dashboard (mood from today's rings), the block page (surprised — "future you says thanks") and the morning digest (proud of your saved minutes). Deliberately absent from the popup/sidebar.
+- **8 emotion faces × 4 poses × 2 characters**, hand-authored parametric SVG (~16 KB, no model downloads, crisp at every DPI) — the duo was built in-house after a search found no redistributable open-source 3D anime pair with a full emotion set. Closed ShadowRoot, drag-anywhere, per-site hide, honors `prefers-reduced-motion`.
 
-- **True Black AI Summary Modal** - Get beautifully formatted, readable bullet points of any video (Powered by Gemini).
-- **Hide All Shorts** - Eradicates the Shorts shelf, sidebar tabs, and forces redirects if you try to visit a `/shorts` URL.
-- **Aggressive Ad Blocking** - Automatically skips video ads and completely wipes out UI banner ads using DOM manipulation.
-- **Autoplay Terminator** - Stops YouTube from auto-playing the next video, guaranteeing you only watch what you click.
-- **Force Highest Quality** - Never manually change the gear icon again; FocusTube requests the highest available bitrate instantly.
+### 🎯 Watch Intent — "What are you here for?" (NEW in v1.17)
+An implementation-intention prompt on YouTube watch pages (Gollwitzer 1999): state your purpose + planned minutes once, and the dashboard gains an **Intent Match rate** — the share of sessions that ended on-purpose. "Just browsing" starts an honest mindful countdown that re-asks when it expires.
 
-### 🧭 Distraction Removers
+### 🛡️ Streak Insurance (NEW in v1.17)
+Freezes are **earned, never bought**: close all rings on 4+ days in a week and the next week banks one freeze that absorbs a missed day (🛡). Miss without one and you can still **repair** the chain — 2× your Focused goal the next day (🔧). The whole ledger is *derived* from your history, so it can't drift or be forged.
 
-- **Homepage Cleaner** - Delete the recommended feed, "People also watched", and Trending tags.
-- **Custom Launchpad** - Force YouTube to open to your Subscriptions, the Search bar, or a completely blank Minimal page.
-- **Focus Timer & Quizzes** - Lock down YouTube for set intervals (e.g. 15 mins). If you try to disable it, you are forced to complete a strict 5-question typing quiz in under 30 seconds.
+### 📈 Adaptive Ring Goals (NEW in v1.17)
+Monday's briefing compares your 4-week trend against each goal and suggests one calibration step up or down — **you** apply or keep (self-set goals outperform assigned ones).
+
+### 🚦 Graduated Unblock Friction (NEW in v1.17)
+The one-click "Temporarily Unblock" becomes a ladder that scales with your day: state a reason (≥12 chars) → a 10–30s pause that grows with each unblock today → quiz on Strict or after 3+ unblocks. Off/Standard/Strict in Settings.
+
+### 🖼️ Weekly Recap Card & 🤝 Accountability Pairing (NEW in v1.17)
+Export your ring week as a branded PNG (100% canvas, local). Then trade pair cards with a partner by copy/paste — only ring counts leave your device, checksum-tamper-evident, no server ever.
+
+### 🌙 Sleep Guard (NEW in v1.17)
+An evening YouTube block (default 22:30–07:00) plus a wind-down briefing opened 30 minutes before it starts — once per day.
+
+### ⌨️ Vim-style keys (NEW in v1.17, opt-in)
+j/k scroll, gg/G, f, t — and the exit keys are first-class: **Esc goes back, x closes the tab**, ? shows help.
+
+### 🎯 Focus Rings — the habit system (USP)
+An Apple-Fitness-style triple activity ring, purpose-built for attention:
+- **Deflected** (red) — ads, Shorts & urges skipped · **Focused** (green) — Pomodoro focus minutes · **Saved** (cyan) — minutes returned by blockers.
+- **Editable goals** in Settings — challenge, but reachable; changes apply instantly everywhere.
+- **Ring-closing celebration** — sparks, glow and an all-rings award when your day closes 3/3 (fully disabled under `prefers-reduced-motion`).
+- **Weekly badges & Monthly Review** — gold/silver/bronze week tiers, a day-by-day mini-ring strip, best-day line.
+- **Anti-gaming by design** — rings display behavior; the Focus Score underneath uses diminishing returns, daily caps and diversity weighting so pressing "Block 30 min" 100× cannot buy a 100 score.
+
+### 🌅 Daily Briefing
+The first browser open of the day shows **yesterday**: Focus Score, rings, 7-day trend chart, where your time went — plus the research-backed reason mornings beat nights (fresh-start effect). Evening opens become a Wind-Down recap of *today* instead.
+
+### 🛡️ Layered distraction control
+- **Per-site & per-category blocking** (Smart Lists: Social, Gaming, News, Shopping…), keyword & channel blocking, Shorts removal.
+- **Focus Timers** — quick 5/15/30/60-min locks and scheduled blocks with live, real-time countdowns (ticking every second, mm:ss → h:mm:ss aware).
+- **Interventions that teach** — AI-nudge cards with a 3-breath animation and a willpower counter, quiz-gated unblocks, live block interstitials.
+
+### 📦 Monthly data archives
+Sync to a folder you own — **one small file per month** (`focustube-<Month>-<Year>.json`), rotated automatically at month end. No file ever grows unbounded; every month is a portable archive. Picking a folder imports the months already in it. Browsers without the File System Access API keep Export / Import.
+
+### 🎨 One design system, everywhere
+Every surface — popup, dashboard, overlays, block page, digest, onboarding — shares the Apple-HIG-inspired token system in `src/shared/apple-ui.css`: SF Pro/SF Mono type ramps, inset-grouped cards, semantic iOS colors, spring easing, and full `prefers-reduced-motion` support.
 
 ---
 
-## 📁 Project Architecture
+## 🧭 Feature Map
 
-```
-FocusTube/
-├── manifest.json                        # Manifest V3 Configuration
-├── README.md                            # Main documentation
-├── docs/                                # 📚 Comprehensive Documentation (NEW!)
-│   ├── PROJECT_STRUCTURE.md             # Folder organization & navigation
-│   ├── ARCHITECTURE.md                  # System design & data flows
-│   ├── API.md                           # Complete API reference
-│   ├── MIGRATION_GUIDE.md               # Structure changes & migration
-│   └── CHANGELOG.md                     # Version history & roadmap
-│
-├── public/                              # Static assets
-│   ├── icons/                           # Extension icons
-│   └── images/                          # App images
-│
-├── src/
-│   ├── background/                      # Background SW (Stats, timers)
-│   ├── popup/                           # Popup UI
-│   ├── dashboard/                       # Dashboard UI
-│   └── content/                         # Content Scripts (Organized)
-│       ├── core/                        # Core utilities
-│       ├── youtube/                     # YouTube-specific features
-│       ├── blocking/                    # Content blocking
-│       ├── controllers/                 # Page controllers
-│       ├── utils/                       # UI utilities
-│       └── ui/                          # UI orchestration
-```
+| Area | What you get |
+|------|--------------|
+| **Video page** | AI Summary modal (Gemini/OpenAI/etc., BYO key), Shorts eradication, ad skipping, autoplay terminator, force-highest-quality |
+| **Blocking** | URL / keyword / channel / Smart Lists / per-site time limits with live timers |
+| **Focus** | Pomodoro (25/5/15, Deep Work auto-block), scheduled blocks, quiz gate |
+| **Insights** | Focus Score (anti-gaming), Focus Rings, 30-day heatmap, activity timeline, watch-time topics, hashtag/topic tracking, day navigation (day/week/month), lifetime totals |
+| **Data** | Monthly archive sync, JSON export/import, 120-day local history |
+| **Extras** | Tab Manager (workspaces, grouping), willpower points, Daily Briefing, onboarding assistant |
 
-## 📚 Documentation
+---
 
-**🎉 Comprehensive documentation is available in the `docs/` folder:**
+## 🔐 Privacy & Security
 
-### 🚀 Start Here
-- **[QUICK_START.md](docs/QUICK_START.md)** - Get up and running in 5 minutes
-- **[DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** - Find what you need
+- **100% local.** Blocking, scoring, analytics and the rings compute on-device. No account, no cloud, no telemetry pipeline.
+- **You own the data.** Sync goes to a folder *you* choose; payloads are plain JSON you can read.
+- **Clean auth.** No Google account scopes — the extension scrapes public DOM, never your private account data.
+- **Hardened MV3.** Validated message payloads, escaped AI output, minimal `web_accessible_resources`. See [`SECURITY.md`](SECURITY.md).
 
-### 📖 Core Documentation
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| [QUICK_START.md](docs/QUICK_START.md) | Setup & common tasks | Everyone |
-| [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | Folder organization | Developers |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design | Developers |
-| [API.md](docs/API.md) | Function reference | Developers |
-| [CHANGELOG.md](docs/CHANGELOG.md) | Version history | Everyone |
-
-### 🔒 v1.0.1 Hardening
-| Document | Purpose |
-|----------|---------|
-| [SECURITY.md](SECURITY.md) | Threat model, fixed issues, reporting policy |
-| [IMPROVEMENTS.md](IMPROVEMENTS.md) | Complete v1.0.1 changelog |
-
-**Choose your path:**
-- **Want a quick setup?** → Read [QUICK_START.md](docs/QUICK_START.md)
-- **Want to contribute?** → Read [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) then [ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- **Need a function?** → Check [API.md](docs/API.md)
-- **Reviewing security?** → Read [SECURITY.md](SECURITY.md)
-- **Not sure where to start?** → Read [DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)
+---
 
 ## 🚀 Installation
 
-### Development Mode (Load Unpacked)
-
-1. Clone or download this repository.
-2. Open Google Chrome and navigate to `chrome://extensions/`.
-3. Enable **Developer Mode** (toggle in the top right corner).
-4. Click **"Load unpacked"**.
-5. Select the `youtube-focus-pro` root folder containing the `manifest.json`.
-6. Pin FocusTube to your toolbar!
-
-## 🔐 Privacy & Security Built-In
-
-- **100% Local Processing:** Operations like ad-blocking, keyword checking, and Shorts redirection happen entirely in your browser using local DOM parsing.
-- **No Tracking Pipeline:** Your viewing habits are not sent to any telemetry server.
-- **Clean Auth:** Because it scrapes public DOM elements instead of using the YouTube Data API `v3`, you never grant the extension read access to your private Google Account data.
-
-## 🤝 Contributing
-
-Contributions are always welcome. Currently looking for active help with:
-
-- Expanding the `keyboard-shortcuts.js` module with Vim-style navigation.
-- Porting the popup UI to a lightweight framework like Preact.
-- Integrating Claude 3.5 Sonnet support for the AI Summarizer.
+1. Download or clone this repository.
+2. Open `chrome://extensions/` and enable **Developer mode**.
+3. Click **Load unpacked** and select the `FocusTube` folder (the one containing `manifest.json`).
+4. Pin FocusTube — the first open walks you through the setup assistant.
 
 ---
 
-**Note**: This extension heavily modifies YouTube's UI. Changes to YouTube's web architecture may require occasional updates to the query selectors in the `src/content/` modules.
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [`docs/QUICK_START.md`](docs/QUICK_START.md) | Get running in 5 minutes |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design & data flows |
+| [`docs/API.md`](docs/API.md) | Module & message API reference |
+| [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) | Folder guide |
+| [`docs/FEATURE_RESEARCH.md`](docs/FEATURE_RESEARCH.md) | **Researched roadmap — what's next and the science behind it** |
+| [`IMPROVEMENTS.md`](IMPROVEMENTS.md) | Complete version-by-version changelog |
+| [`SECURITY.md`](SECURITY.md) | Threat model & hardening history |
+
+---
+
+## 🗺️ Roadmap (researched)
+
+v1.17.0 shipped the researched wave — see
+[`docs/FEATURE_RESEARCH.md`](docs/FEATURE_RESEARCH.md) for the full
+mechanism → evidence → integration map. What's next:
+
+1. **Watch Intent → Focus Score quality signal** — intents already logged; wire the match rate into score v3 (P0)
+2. **Companion 3D variant** — optional WebGL model behind the same mood engine (P2)
+3. **Goal-difficulty-over-time chart** — `focusRingsGoalHistory` is already recorded (P2)
+4. **Encrypted pair relay** — optional tiny relay for hands-free partner sync (P3)
+
+---
+
+## 🤝 Contributing
+
+PRs welcome — especially: expanding the Focus Score's quality signals, new
+Smart List presets, accessibility passes, and translations. Because FocusTube
+heavily touches YouTube's DOM, selector drift is the main maintenance cost;
+see [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) before editing
+content scripts.

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.5] - 2026-09-03
+
+### Fixed
+- 📅 **Real dated dashboard history** - Daily website usage is now included in
+  every Day/Week/Month dashboard point. The 30-Day Activity heatmap reflects
+  recorded browsing time as well as focus actions, and each cell identifies its
+  exact local date, activity level, recorded minutes, and site count.
+- 📈 **Historical top sites** - The Top Sites card now follows the active range:
+  today, the current week, or the last 30 days. The dashboard header displays
+  the current local date. Sync data remains keyed by local `YYYY-MM-DD` dates.
+- 🗓️ **Calendar-month activity** - Monthly Activity now always starts on the
+  1st and ends today, rather than using a rolling 30-day window. It adapts to
+  28-, 29-, 30-, and 31-day months.
+
 ## [1.8.4] - 2026-08-30
 
 ### Added

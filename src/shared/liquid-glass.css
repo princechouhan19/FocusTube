@@ -670,6 +670,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The chip's display:flex would beat the UA's [hidden] rule — keep
+   hidden timers (e.g. Smart List blocks with no countdown) truly hidden. */
+.lg-block-timer[hidden] {
+  display: none;
+}
+
+/* Sentence-length values ("until disabled") — keep the chip, drop the
+   headline-sized clock type so it doesn't wrap awkwardly. */
+.lg-block-timer--indefinite {
+  font-size: var(--lg-text-md);
+  font-weight: var(--lg-weight-semibold);
+  letter-spacing: 0.02em;
+  font-family: var(--lg-font);
+  padding: var(--lg-space-3) var(--lg-space-5);
+}
+
 .lg-block-message {
   margin: var(--lg-space-4) 0 0 0;
   font-size: var(--lg-text-sm);

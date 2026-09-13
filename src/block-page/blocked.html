@@ -5,20 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Site Blocked — FocusTube</title>
   <link rel="stylesheet" href="../shared/liquid-glass.css" />
+  <link rel="stylesheet" href="../shared/apple-ui.css" />
   <style>
     body { margin: 0; min-height: 100vh; }
+    /* Caption under the live countdown — "Unblocks at 23:59" */
+    .lg-block-until {
+      margin: 10px 0 0 0;
+      font-size: var(--ios-text-sm);
+      color: var(--ios-label-3);
+    }
   </style>
 </head>
-<body class="lg-surface">
+<body class="ios-theme" data-ft-companion="blocked">
   <div class="lg-aurora"></div>
-  <div class="lg-block-overlay" style="position: relative; z-index: 1;">
+  <!-- .lg-block-overlay is position:fixed/inset:0 from the design system,
+       so the card is always centered both axes. No inline overrides. -->
+  <div class="lg-block-overlay">
     <div class="lg-block-card">
+      <img class="yfp-banner" src="../icons/banner.png" alt="FocusTube"
+        style="display:block;height:56px;width:auto;object-fit:contain;margin:0 auto 20px;" />
       <div class="lg-block-icon" id="block-icon">
         <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
       <h1 class="lg-block-title" id="block-title">Site Blocked</h1>
       <p class="lg-block-reason" id="block-reason">This site is blocked by FocusTube.</p>
-      <div class="lg-block-timer" id="block-timer" style="display: none;"></div>
+      <div class="lg-block-timer" id="block-timer" hidden>00:00</div>
+      <p class="lg-block-until" id="block-until" hidden></p>
       <p class="lg-block-message" id="block-message">
         Stay focused — this site is blocked to help you maintain productivity.
       </p>
@@ -31,6 +43,8 @@
       </div>
     </div>
   </div>
+  <script src="../shared/companion-art.js"></script>
+  <script src="../shared/companion-widget.js"></script>
   <script src="blocked.js"></script>
 </body>
 </html>

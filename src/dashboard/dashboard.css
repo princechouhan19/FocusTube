@@ -1,32 +1,33 @@
 /**
- * FocusTube Dashboard — Graphite & Honey v2.0
- * Restrained, data-focused. All visual tokens come from
- * src/shared/liquid-glass.css (the design system).
+ * FocusTube Dashboard — Apple Design System v1.0 (HIG clone, iOS dark mode)
+ *
+ * Every component on this page is assembled from the Apple Human Interface
+ * Guidelines vocabulary defined in src/shared/apple-ui.css:
+ *   · Header          → iOS navigation bar with Large Title
+ *   · Range switcher  → UISegmentedControl
+ *   · Day navigation  → iOS date-browser stepper (tinted circles)
+ *   · Focus Score     → Apple Fitness activity ring (tier gradient)
+ *   · Cards           → inset-grouped surfaces (secondarySystemGroupedBackground)
+ *   · Lists           → insetGrouped rows with 0.5px hairline separators
+ *   · Buttons         → filled / tinted / destructive UIButton styles
+ *   · Heatmap         → systemGreen intensity ramp
+ * All tokens come from apple-ui.css — nothing here hardcodes palette values.
  */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: var(--lg-font);
-  background: var(--lg-bg-deep);
-  color: var(--lg-text);
+  font-family: var(--ios-font);
+  background: var(--ios-bg);
+  color: var(--ios-label);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   position: relative;
 }
 
-/* Ambient light — a static, quiet wash */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 55% 40% at 15% 0%, var(--lg-aurora-1), transparent 60%),
-    radial-gradient(ellipse 45% 45% at 90% 90%, var(--lg-aurora-2), transparent 60%);
-}
+/* iOS dark mode is clean black — no ambient washes */
+.lg-aurora, body::before { display: none !important; }
 
 
 /* =========================================================================
@@ -46,7 +47,7 @@ body::before {
 
 
 /* =========================================================================
-   Header
+   Header — large-title navigation bar
    ========================================================================= */
 
 .dash-header {
@@ -58,16 +59,16 @@ body::before {
 }
 
 .dash-header h1 {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--lg-text);
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ios-label);
+  letter-spacing: -0.5px;
   margin: 0;
 }
 
 .dash-subtitle {
-  font-size: 13px;
-  color: var(--lg-text-muted);
+  font-size: 15px;
+  color: var(--ios-label-2);
   margin: 4px 0 0 0;
 }
 
@@ -77,94 +78,96 @@ body::before {
   gap: 12px;
 }
 
-/* Segmented range control (Day / Week / Month) */
+/* Segmented control (UISegmentedControl clone) */
 .range-tabs {
   display: flex;
   gap: 2px;
-  padding: 3px;
-  background: var(--lg-glass-bg);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-md);
+  padding: 2px;
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: var(--ios-r-sm);
 }
 
 .range-tab {
-  padding: 6px 14px;
-  font-family: var(--lg-font);
-  font-size: 12px;
+  padding: 6px 16px;
+  font-family: var(--ios-font);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--lg-text-dim);
+  color: var(--ios-label-2);
   background: transparent;
   border: none;
-  border-radius: var(--lg-radius-sm);
+  border-radius: 7px;
   cursor: pointer;
-  transition: color var(--lg-speed-normal) var(--lg-ease-smooth),
-              background var(--lg-speed-normal) var(--lg-ease-smooth);
+  transition: color var(--ios-speed) var(--ios-ease),
+              background var(--ios-speed) var(--ios-ease);
 }
 
-.range-tab:hover { color: var(--lg-text-muted); }
+.range-tab:hover { color: var(--ios-label); }
 
 .range-tab:focus-visible {
   outline: none;
-  box-shadow: var(--lg-focus-ring);
+  box-shadow: var(--ios-focus-ring);
 }
 
+/* Selected thumb — #636366 like the UIKit dark-mode segment */
 .range-tab.active {
-  color: var(--lg-text);
-  background: var(--lg-glass-bg-active);
+  color: var(--ios-label);
+  background: #636366;
+  box-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.35);
 }
 
+/* Toolbar icon button (iOS tint) */
 .icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  color: var(--lg-text-muted);
+  width: 32px;
+  height: 32px;
+  color: var(--ios-blue);
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--lg-radius-md);
+  border: none;
+  border-radius: var(--ios-r-full);
   cursor: pointer;
-  transition: color var(--lg-speed-normal) var(--lg-ease-smooth),
-              background var(--lg-speed-normal) var(--lg-ease-smooth);
+  transition: color var(--ios-speed) var(--ios-ease),
+              background var(--ios-speed) var(--ios-ease);
 }
 
 .icon-btn:hover {
-  color: var(--lg-text);
-  background: var(--lg-glass-bg-hover);
-  border-color: var(--lg-glass-border);
+  color: var(--ios-blue);
+  background: var(--ios-fill-3);
 }
 
 .icon-btn:focus-visible {
   outline: none;
-  box-shadow: var(--lg-focus-ring);
+  box-shadow: var(--ios-focus-ring);
 }
 
 .user-pill {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 14px 6px 6px;
-  background: var(--lg-glass-bg);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-full);
+  padding: 4px 14px 4px 4px;
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: var(--ios-r-full);
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .user-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--lg-text);
+  color: var(--ios-label);
 }
 
 
 /* =========================================================================
-   Hero Score Section
+   Focus Score — Apple Fitness activity ring
    ========================================================================= */
 
 .hero-score {
@@ -172,18 +175,16 @@ body::before {
   align-items: center;
   gap: 40px;
   padding: 28px 32px;
-  background: var(--lg-glass-bg);
-  backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
-  -webkit-backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-2xl);
-  box-shadow: var(--lg-shadow-sm), var(--lg-shadow-inset);
+  background: var(--ios-bg-2);
+  border: none;
+  border-radius: var(--ios-r-lg);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
 }
 
 .score-ring-large {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 132px;
+  height: 132px;
   flex-shrink: 0;
 }
 
@@ -195,18 +196,18 @@ body::before {
 
 .score-track {
   fill: none;
-  stroke: var(--lg-glass-border);
-  stroke-width: 8;
+  stroke: var(--ios-fill-3);
+  stroke-width: 13;
 }
 
 .score-fill {
   fill: none;
-  stroke: var(--lg-primary);
-  stroke-width: 8;
+  stroke: var(--ios-green);
+  stroke-width: 13;
   stroke-linecap: round;
   stroke-dasharray: 326.7;
   stroke-dashoffset: 326.7;
-  transition: stroke-dashoffset 0.8s var(--lg-ease-smooth), stroke 0.4s ease;
+  transition: stroke-dashoffset 0.8s var(--ios-ease), stroke 0.4s ease;
 }
 
 .score-center {
@@ -219,25 +220,28 @@ body::before {
 }
 
 .score-number {
-  font-size: 36px;
-  font-weight: 800;
-  color: var(--lg-text);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ios-label);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .score-label {
   font-size: 10px;
   font-weight: 600;
-  color: var(--lg-text-dim);
+  color: var(--ios-label-2);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   margin-top: 4px;
 }
 
+/* Workout-summary stat grid */
 .hero-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px 28px;
   flex: 1;
 }
 
@@ -247,24 +251,26 @@ body::before {
   gap: 12px;
 }
 
-.hero-stat .ft-icon {
-  font-size: 22px;
-  color: var(--lg-text-dim);
-}
+/* Per-metric system color (Pomodoros/Willpower/Streak/Time Saved) */
+.hero-stat:nth-child(1) .ft-icon { color: var(--ios-blue); }
+.hero-stat:nth-child(2) .ft-icon { color: var(--ios-yellow); }
+.hero-stat:nth-child(3) .ft-icon { color: var(--ios-orange); }
+.hero-stat:nth-child(4) .ft-icon { color: var(--ios-green); }
+.hero-stat .ft-icon { font-size: 22px; }
 
 .hero-stat-value {
   display: block;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 700;
-  color: var(--lg-text);
+  color: var(--ios-label);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
 
 .hero-stat-label {
   display: block;
-  font-size: 11px;
-  color: var(--lg-text-dim);
+  font-size: 13px;
+  color: var(--ios-label-2);
 }
 
 
@@ -273,43 +279,133 @@ body::before {
    ========================================================================= */
 
 .section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 }
 
+.section-header-left {
+  min-width: 0;
+}
+
 .section-header h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--lg-text);
+  color: var(--ios-label);
+  letter-spacing: -0.3px;
   margin: 0;
 }
 
 .section-subtitle {
+  font-size: 14px;
+  color: var(--ios-label-2);
+  margin: 3px 0 0 0;
+}
+
+/* Day navigation — iOS date-browser stepper: tinted circles + tabular date */
+.day-nav-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.day-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--ios-label);
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: var(--ios-r-full);
+  cursor: pointer;
+  transition: color var(--ios-speed) var(--ios-ease),
+              background var(--ios-speed) var(--ios-ease);
+}
+
+.day-nav-btn:hover:not(:disabled) {
+  background: var(--ios-fill-2);
+}
+
+.day-nav-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ios-focus-ring);
+}
+
+.day-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.day-nav-label {
+  min-width: 84px;
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ios-label);
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-nav-label.is-past {
+  color: var(--ios-blue);
+  cursor: pointer;
+}
+
+.day-nav-label.is-past:hover {
+  text-decoration: underline;
+}
+
+/* Tinted capsule button (UIButton tinted style) */
+.day-nav-today {
+  padding: 6px 13px;
+  font-family: var(--ios-font);
   font-size: 13px;
-  color: var(--lg-text-muted);
-  margin: 2px 0 0 0;
+  font-weight: 600;
+  color: var(--ios-blue);
+  background: var(--ios-blue-soft);
+  border: none;
+  border-radius: var(--ios-r-full);
+  cursor: pointer;
+  transition: background var(--ios-speed) var(--ios-ease);
+}
+
+.day-nav-today:hover {
+  background: rgba(10, 132, 255, 0.26);
+}
+
+.day-nav-today:focus-visible {
+  outline: none;
+  box-shadow: var(--ios-focus-ring);
 }
 
 .retry-btn {
   margin-top: 10px;
   padding: 7px 14px;
-  font-family: var(--lg-font);
-  font-size: 12px;
+  font-family: var(--ios-font);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--lg-primary-hi);
-  background: var(--lg-primary-soft);
-  border: 1px solid var(--lg-primary-border);
-  border-radius: var(--lg-radius-md);
+  color: var(--ios-blue);
+  background: var(--ios-blue-soft);
+  border: none;
+  border-radius: var(--ios-r-full);
   cursor: pointer;
-  transition: background var(--lg-speed-normal) var(--lg-ease-smooth);
+  transition: background var(--ios-speed) var(--ios-ease);
 }
 
 .retry-btn:hover {
-  background: var(--lg-glass-bg-hover);
+  background: rgba(10, 132, 255, 0.26);
 }
 
 
 /* =========================================================================
-   Metric Cards
+   Metric Cards — inset-grouped tiles with tinted icon chips
    ========================================================================= */
 
 .metric-grid {
@@ -323,16 +419,15 @@ body::before {
   align-items: center;
   gap: 14px;
   padding: 18px;
-  background: var(--lg-glass-bg);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-lg);
-  transition: background var(--lg-speed-normal) var(--lg-ease-smooth),
-              border-color var(--lg-speed-normal) var(--lg-ease-smooth);
+  background: var(--ios-bg-2);
+  border: none;
+  border-radius: var(--ios-r-lg);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+  transition: background var(--ios-speed) var(--ios-ease);
 }
 
 .metric-card:hover {
-  background: var(--lg-glass-bg-hover);
-  border-color: var(--lg-glass-border-hover);
+  background: var(--ios-bg-3);
 }
 
 .metric-icon {
@@ -341,14 +436,14 @@ body::before {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: var(--lg-radius-md);
+  border-radius: 10px;
   flex-shrink: 0;
 }
 
-.metric-icon-blue   { background: var(--lg-primary-soft);  color: var(--lg-primary-hi); }
-.metric-icon-green  { background: var(--lg-success-soft);  color: var(--lg-success); }
-.metric-icon-violet { background: var(--lg-violet-soft);   color: var(--lg-secondary); }
-.metric-icon-amber  { background: var(--lg-warning-soft);  color: var(--lg-warning); }
+.metric-icon-blue   { background: var(--ios-blue-soft);   color: var(--ios-blue); }
+.metric-icon-green  { background: var(--ios-green-soft);  color: var(--ios-green); }
+.metric-icon-violet { background: var(--ios-purple-soft); color: var(--ios-purple); }
+.metric-icon-amber  { background: var(--ios-orange-soft); color: var(--ios-orange); }
 
 .metric-body {
   display: flex;
@@ -358,32 +453,31 @@ body::before {
 
 .metric-value {
   font-size: 24px;
-  font-weight: 800;
-  color: var(--lg-text);
+  font-weight: 700;
+  color: var(--ios-label);
   line-height: 1.1;
+  letter-spacing: -0.3px;
   font-variant-numeric: tabular-nums;
 }
 
 .metric-label {
-  font-size: 11px;
-  color: var(--lg-text-dim);
+  font-size: 12px;
+  color: var(--ios-label-2);
   font-weight: 500;
   margin-top: 2px;
 }
 
 
 /* =========================================================================
-   Panels
+   Panels — inset-grouped cards (iOS dark: no borders, surface contrast)
    ========================================================================= */
 
 .panel {
-  background: var(--lg-glass-bg);
-  backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
-  -webkit-backdrop-filter: blur(var(--lg-glass-blur)) saturate(var(--lg-glass-saturate));
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-xl);
+  background: var(--ios-bg-2);
+  border: none;
+  border-radius: var(--ios-r-lg);
   padding: 20px 24px;
-  box-shadow: var(--lg-shadow-sm), var(--lg-shadow-inset);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
 }
 
 .panel-header {
@@ -395,15 +489,15 @@ body::before {
 }
 
 .panel-header h2 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--lg-text);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ios-label);
   margin: 0;
 }
 
 .panel-subtitle {
-  font-size: 12px;
-  color: var(--lg-text-dim);
+  font-size: 13px;
+  color: var(--ios-label-2);
   text-align: right;
 }
 
@@ -420,7 +514,7 @@ body::before {
 
 
 /* =========================================================================
-   Chart
+   Activity Timeline — rounded stacked bars over faint tracks
    ========================================================================= */
 
 .chart-bars {
@@ -429,6 +523,20 @@ body::before {
   gap: 4px;
   height: 180px;
   padding: 8px 0;
+}
+
+/* Friendly empty state for the chart / heatmap panels (first-run UX) */
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ios-label-3);
+  line-height: 1.6;
 }
 
 .chart-bar-group {
@@ -449,6 +557,9 @@ body::before {
   align-items: center;
   height: 140px;
   justify-content: flex-end;
+  background: var(--ios-fill-5);
+  border-radius: 7px 7px 2px 2px;
+  overflow: hidden;
 }
 
 /* Day tab: week context with today emphasized */
@@ -457,26 +568,30 @@ body::before {
 }
 
 .chart-bar-group.today .bar-label {
-  color: var(--lg-primary-hi);
+  color: var(--ios-label);
   font-weight: 700;
 }
 
 .bar-segment {
   width: 100%;
-  border-radius: 2px 2px 0 0;
-  transition: height var(--lg-speed-normal) var(--lg-ease-smooth);
+  border-radius: 0;
+  transition: height var(--ios-speed) var(--ios-ease);
   min-height: 2px;
 }
 
-.bar-segment.blue   { background: var(--lg-chart-1); }
-.bar-segment.green  { background: var(--lg-chart-2); }
-.bar-segment.violet { background: var(--lg-chart-3); }
-.bar-segment.amber  { background: var(--lg-chart-4); }
+/* Top-most segment gets the rounded cap (column-reverse: last child is on top) */
+.bar-segment:last-child { border-radius: 6px 6px 0 0; }
+
+.bar-segment.blue   { background: var(--ios-blue); }
+.bar-segment.green  { background: var(--ios-green); }
+.bar-segment.violet { background: var(--ios-purple); }
+.bar-segment.amber  { background: var(--ios-orange); }
 
 .bar-label {
   font-size: 10px;
-  color: var(--lg-text-dim);
+  color: var(--ios-label-2);
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-legend {
@@ -485,38 +600,37 @@ body::before {
   justify-content: center;
   flex-wrap: wrap;
   margin-top: 12px;
-  font-size: 11px;
-  color: var(--lg-text-muted);
+  font-size: 12px;
+  color: var(--ios-label-2);
 }
 
 .chart-legend .dot {
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 2px;
+  border-radius: 50%;
   margin-right: 5px;
   vertical-align: middle;
 }
 
-.dot-blue   { background: var(--lg-chart-1); }
-.dot-green  { background: var(--lg-chart-2); }
-.dot-violet { background: var(--lg-chart-3); }
-.dot-amber  { background: var(--lg-chart-4); }
+.dot-blue   { background: var(--ios-blue); }
+.dot-green  { background: var(--ios-green); }
+.dot-violet { background: var(--ios-purple); }
+.dot-amber  { background: var(--ios-orange); }
 
 
 /* =========================================================================
-   Top Sites
+   Top Sites — insetGrouped rows, hairline separators
    ========================================================================= */
 
 .top-sites-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .top-sites-empty {
-  color: var(--lg-text-dim);
-  font-size: 12px;
+  color: var(--ios-label-3);
+  font-size: 13px;
   text-align: center;
   padding: 20px 0;
   line-height: 1.5;
@@ -526,30 +640,34 @@ body::before {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 9px 0;
+}
+
+.top-site-row + .top-site-row {
+  border-top: 0.5px solid var(--ios-sep);
 }
 
 .site-logo {
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   object-fit: contain;
-  background: var(--lg-glass-bg);
+  background: var(--ios-fill-3);
 }
 
 .site-logo-fallback {
   display: inline-grid;
   place-items: center;
-  color: var(--lg-text-muted);
+  color: var(--ios-label-2);
   font-size: 10px;
   font-weight: 700;
-  border: 1px solid var(--lg-glass-border);
 }
 
 .top-site-name {
   flex: 0 0 110px;
-  font-size: 12px;
-  color: var(--lg-text-muted);
+  font-size: 13px;
+  color: var(--ios-label);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -558,38 +676,38 @@ body::before {
 .top-site-bar {
   flex: 1;
   height: 6px;
-  background: var(--lg-glass-bg);
-  border: 1px solid var(--lg-glass-border);
-  border-radius: var(--lg-radius-full);
+  background: var(--ios-fill-3);
+  border: none;
+  border-radius: var(--ios-r-full);
   overflow: hidden;
 }
 
 .top-site-bar-fill {
   height: 100%;
-  background: var(--lg-chart-3);
-  border-radius: var(--lg-radius-full);
-  transition: width 0.4s var(--lg-ease-smooth);
+  background: var(--ios-blue);
+  border-radius: var(--ios-r-full);
+  transition: width 0.4s var(--ios-ease);
 }
 
-.top-site-bar-fill.near-limit { background: var(--lg-warning); }
-.top-site-bar-fill.over-limit { background: var(--lg-danger); }
+.top-site-bar-fill.near-limit { background: var(--ios-orange); }
+.top-site-bar-fill.over-limit { background: var(--ios-red); }
 
 .top-site-time {
   flex: 0 0 72px;
   text-align: right;
-  font-size: 12px;
-  color: var(--lg-text);
+  font-size: 13px;
+  color: var(--ios-label);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
-.top-site-time.has-limit { flex: 0 0 78px; color: var(--lg-text-muted); font-weight: 500; }
-.top-site-time.near-limit { color: var(--lg-warning); }
-.top-site-time.over-limit { color: var(--lg-danger); }
+.top-site-time.has-limit { flex: 0 0 78px; color: var(--ios-label-2); font-weight: 500; }
+.top-site-time.near-limit { color: var(--ios-orange); }
+.top-site-time.over-limit { color: var(--ios-red); }
 
 
 /* =========================================================================
-   Heatmap
+   Heatmap — systemGreen intensity ramp (Fitness style)
    ========================================================================= */
 
 .heatmap-grid {
@@ -598,26 +716,37 @@ body::before {
   gap: 3px;
 }
 
+/* Empty-state note spans the full heatmap width, not one cell */
+.heatmap-grid .chart-empty {
+  grid-column: 1 / -1;
+  min-height: 80px;
+}
+
 .heat-cell {
   aspect-ratio: 1;
-  border-radius: 3px;
-  background: var(--lg-glass-bg);
-  border: 1px solid var(--lg-glass-border);
+  border-radius: 4px;
+  background: var(--ios-fill-4);
+  border: none;
   min-height: 14px;
-  transition: transform var(--lg-speed-fast) var(--lg-ease-smooth);
+  transition: transform var(--ios-speed) var(--ios-ease);
   cursor: default;
 }
 
 .heat-cell:hover {
-  transform: scale(1.25);
+  transform: scale(1.15);
   z-index: 1;
 }
 
-/* Amber intensity ramp */
-.heat-cell.level-1 { background: rgba(217, 166, 46, 0.22); border-color: transparent; }
-.heat-cell.level-2 { background: rgba(217, 166, 46, 0.42); border-color: transparent; }
-.heat-cell.level-3 { background: rgba(217, 166, 46, 0.65); border-color: transparent; }
-.heat-cell.level-4 { background: rgba(217, 166, 46, 0.92); border-color: transparent; }
+.heat-cell.future {
+  background: var(--ios-fill-5);
+  opacity: 1;
+}
+
+/* systemGreen intensity ramp */
+.heat-cell.level-1 { background: rgba(48, 209, 88, 0.28); }
+.heat-cell.level-2 { background: rgba(48, 209, 88, 0.48); }
+.heat-cell.level-3 { background: rgba(48, 209, 88, 0.72); }
+.heat-cell.level-4 { background: rgba(48, 209, 88, 1); }
 
 .heatmap-legend {
   display: flex;
@@ -625,8 +754,8 @@ body::before {
   gap: 5px;
   justify-content: flex-end;
   margin-top: 10px;
-  font-size: 11px;
-  color: var(--lg-text-dim);
+  font-size: 12px;
+  color: var(--ios-label-2);
 }
 
 .heatmap-legend .heat-cell {
@@ -642,7 +771,7 @@ body::before {
 
 
 /* =========================================================================
-   Lifetime
+   Lifetime Totals — grouped list rows
    ========================================================================= */
 
 .lifetime-list {
@@ -655,18 +784,18 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--lg-glass-border);
-  font-size: 13px;
-  color: var(--lg-text-muted);
+  padding: 11px 0;
+  border-bottom: 0.5px solid var(--ios-sep);
+  font-size: 15px;
+  color: var(--ios-label-2);
 }
 
 .lifetime-row:last-child { border-bottom: none; }
 
 .lifetime-row strong {
-  color: var(--lg-text);
+  color: var(--ios-label);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -676,8 +805,8 @@ body::before {
    ========================================================================= */
 
 .insight-body {
-  font-size: 14px;
-  color: var(--lg-text-muted);
+  font-size: 15px;
+  color: var(--ios-label-2);
   line-height: 1.6;
   margin-bottom: 16px;
 }
@@ -687,29 +816,30 @@ body::before {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--lg-primary-soft);
-  border: 1px solid var(--lg-primary-border);
-  border-radius: var(--lg-radius-md);
+  background: var(--ios-blue-soft);
+  border: none;
+  border-radius: var(--ios-r-md);
 }
 
 .insight-goal .ft-icon {
-  color: var(--lg-primary-hi);
+  color: var(--ios-blue);
   font-size: 20px;
 }
 
 .insight-goal-label {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--lg-text-dim);
+  color: var(--ios-label-2);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 
 .insight-goal strong {
   display: block;
-  font-size: 14px;
-  color: var(--lg-text);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ios-label);
   margin-top: 2px;
 }
 
@@ -721,10 +851,10 @@ body::before {
 .dash-footer {
   display: flex;
   justify-content: space-between;
-  padding: 16px 0;
-  border-top: 1px solid var(--lg-glass-border);
-  font-size: 11px;
-  color: var(--lg-text-dim);
+  padding: 16px 0 4px;
+  border-top: 0.5px solid var(--ios-sep);
+  font-size: 12px;
+  color: var(--ios-label-3);
 }
 
 
@@ -749,39 +879,27 @@ body::before {
 
 
 /* =========================================================================
-   Scrollbar
-   ========================================================================= */
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--lg-glass-border-hover); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--lg-text-dim); }
-
-
-/* =========================================================================
-   Cross-Browser Data Sync panel
+   Cross-Browser Data Sync panel — iOS button styles
    ========================================================================= */
 
 .sync-panel { margin-top: 0; }
 
 .sync-badge {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--lg-glass-bg-active);
-  border: 1px solid var(--lg-glass-border);
-  color: var(--lg-text-dim);
+  padding: 4px 11px;
+  border-radius: var(--ios-r-full);
+  background: var(--ios-fill-3);
+  border: none;
+  color: var(--ios-label-2);
   white-space: nowrap;
 }
-.sync-badge.on  { background: var(--lg-success-soft); border-color: var(--lg-success-border); color: var(--lg-success); }
-.sync-badge.warn { background: var(--lg-warning-soft); border-color: var(--lg-warning-border); color: var(--lg-warning); }
-.sync-badge.off { background: var(--lg-glass-bg-active); border-color: var(--lg-glass-border); color: var(--lg-text-dim); }
+.sync-badge.on  { background: var(--ios-green-soft);  color: var(--ios-green); }
+.sync-badge.warn { background: var(--ios-orange-soft); color: var(--ios-orange); }
+.sync-badge.off { background: var(--ios-fill-3); color: var(--ios-label-2); }
 
 .sync-help {
-  color: var(--lg-text-muted);
+  color: var(--ios-label-2);
   font-size: 13px;
   line-height: 1.55;
   margin: 12px 0 16px;
@@ -796,45 +914,43 @@ body::before {
 
 .sync-btn {
   appearance: none;
-  border: 1px solid var(--lg-glass-border);
-  background: var(--lg-glass-bg);
-  color: var(--lg-text);
-  font-family: var(--lg-font);
-  font-size: 12.5px;
+  border: none;
+  background: var(--ios-fill-3);
+  color: var(--ios-label);
+  font-family: var(--ios-font);
+  font-size: 14px;
   font-weight: 600;
-  padding: 8px 14px;
-  border-radius: var(--lg-radius-md);
+  padding: 9px 16px;
+  border-radius: var(--ios-r-md);
   cursor: pointer;
-  transition: background var(--lg-speed-normal) var(--lg-ease-smooth),
-              border-color var(--lg-speed-normal) var(--lg-ease-smooth),
-              color var(--lg-speed-normal) var(--lg-ease-smooth);
+  transition: background var(--ios-speed) var(--ios-ease),
+              color var(--ios-speed) var(--ios-ease);
 }
 .sync-btn:hover {
-  background: var(--lg-glass-bg-hover);
-  border-color: var(--lg-glass-border-hover);
+  background: var(--ios-fill-2);
 }
 .sync-btn:focus-visible {
   outline: none;
-  box-shadow: var(--lg-focus-ring);
+  box-shadow: var(--ios-focus-ring);
 }
-.sync-btn:disabled { opacity: 0.5; cursor: default; }
+.sync-btn:disabled { opacity: 0.4; cursor: default; }
 
+/* Filled button */
 .sync-btn.primary {
-  background: var(--lg-primary);
-  border-color: transparent;
-  color: var(--lg-primary-ink);
-  font-weight: 700;
+  background: var(--ios-blue);
+  color: #fff;
 }
-.sync-btn.primary:hover { background: var(--lg-primary-hi); }
+.sync-btn.primary:hover { background: #2492FF; }
 
-.sync-btn.danger:hover {
-  background: var(--lg-danger-soft);
-  border-color: var(--lg-danger-border);
-  color: var(--lg-danger);
+/* Destructive (tinted red) */
+.sync-btn.danger {
+  background: var(--ios-red-soft);
+  color: var(--ios-red);
 }
+.sync-btn.danger:hover { background: rgba(255, 69, 58, 0.24); }
 
 .sync-detail {
-  color: var(--lg-text-dim);
+  color: var(--ios-label-3);
   font-size: 12px;
   margin-top: 12px;
   line-height: 1.5;
@@ -856,24 +972,25 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 16px;
-  background: var(--lg-primary-soft);
-  border: 1px solid var(--lg-primary-border);
-  border-radius: var(--lg-radius-lg);
+  padding: 14px 16px;
+  background: var(--ios-blue-soft);
+  border: none;
+  border-radius: var(--ios-r-md);
   text-align: center;
 }
 
 .watch-total-value {
   font-size: 26px;
-  font-weight: 800;
-  color: var(--lg-primary-hi);
+  font-weight: 700;
+  color: var(--ios-blue);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
   line-height: 1.1;
 }
 
 .watch-total-label {
-  font-size: 11px;
-  color: var(--lg-text-muted);
+  font-size: 12px;
+  color: var(--ios-label-2);
 }
 
 .topics-list {
@@ -892,21 +1009,510 @@ body::before {
 
 .topic-bar-fill {
   height: 100%;
-  background: var(--lg-chart-1);
-  border-radius: var(--lg-radius-full);
-  transition: width 0.4s var(--lg-ease-smooth);
+  background: var(--ios-purple);
+  border-radius: var(--ios-r-full);
+  transition: width 0.4s var(--ios-ease);
 }
 
 .topic-count {
-  flex: 0 0 36px;
+  flex: 0 0 auto;
   text-align: right;
   font-size: 12px;
   font-weight: 600;
-  color: var(--lg-text-muted);
+  color: var(--ios-label-2);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* v1.14.0 — trend chip (▲/▼/NEW) vs the previous same-length window */
+.topic-trend {
+  flex: 0 0 52px;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.topic-trend.up {
+  color: var(--ios-green);
+}
+
+.topic-trend.down {
+  color: var(--ios-red);
+}
+
+.topic-trend.flat {
+  color: var(--ios-label-3);
 }
 
 @media (max-width: 600px) {
   .watch-topics-body { flex-direction: column; }
   .watch-total { flex: none; }
 }
+
+/* =========================================================================
+   Motion (v1.13.0) — HIG entrance choreography
+   Sections rise + fade in a stagger cascade on load; the Focus ring draws
+   on the iOS sheet curve; heatmap cells cascade left→right. All entrance-
+   only, one-shot; the universal reduced-motion guard in apple-ui.css
+   collapses these to 0.01ms for opted-out users.
+   ========================================================================= */
+
+.hero-score,
+.metrics-section,
+.dual-section,
+.panel {
+  animation: ios-fade-up var(--ios-dur-slow) var(--ios-ease-sheet) both;
+}
+
+.hero-score       { animation-delay: 0ms; }
+.metrics-section  { animation-delay: 60ms; }
+.dual-section     { animation-delay: 120ms; }
+.heatmap-panel    { animation-delay: 160ms; }
+.watch-topics-panel { animation-delay: 200ms; }
+.sync-panel       { animation-delay: 240ms; }
+
+/* Fitness-ring draw: stroke-dashoffset is set from JS (empty → target);
+   this transition supplies the 900ms sheet-curve draw. */
+.score-fill {
+  transition: stroke-dashoffset var(--ios-dur-draw) var(--ios-ease-sheet);
+}
+
+/* Heatmap cascade (JS adds .heat-cell-enter + per-cell animationDelay) */
+@keyframes heat-cell-enter {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.heat-cell-enter {
+  animation: heat-cell-enter var(--ios-dur) var(--ios-ease-spring) both;
+}
+
+/* Metric value readouts ease in with their card; number changes are handled
+   by the JS count-up, not CSS. */
+.metric-item { transition: transform var(--ios-dur-fast) var(--ios-ease-out); }
+
+/* =========================================================================
+   Focus Rings (v1.15.0 USP) — Apple Fitness-style daily ritual
+   ========================================================================= */
+
+.rings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.rings-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.rings-head h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ios-label);
+  margin: 0;
+}
+
+.rings-body {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+
+.rings-viz {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 168px;
+}
+
+/* Legend rows mirror the Fitness app: colored dot, metric name, "x / goal". */
+.rings-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 220px;
+  flex: 1;
+  max-width: 340px;
+}
+
+.rings-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rings-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rings-dot--deflected { background: var(--fg-move, #FA114F); }
+.rings-dot--focused   { background: var(--fg-exercise, #92E82A); }
+.rings-dot--saved     { background: var(--fg-stand, #00FDDC); }
+
+.rings-legend-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rings-legend-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ios-label);
+}
+
+.rings-legend-hint {
+  font-size: 11px;
+  color: var(--ios-label-2);
+}
+
+.rings-legend-val {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ios-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rings-streak {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ios-label-2);
+}
+
+@media (max-width: 560px) {
+  .rings-body { gap: 20px; }
+  .rings-viz { min-width: 0; }
+}
+
+/* =========================================================================
+   Monthly Review (v1.16.0) — animated month overview + weekly badges
+   ========================================================================= */
+
+.monthly-review-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Count-up summary tiles */
+.mr-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mr-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--ios-secondary-system-background, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--ios-separator, rgba(255, 255, 255, 0.1));
+  min-width: 0;
+}
+
+.mr-tile-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ios-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mr-tile-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ios-label-2);
+}
+
+.mr-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mr-block-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ios-label-2);
+}
+
+/* Day-by-day mini ring strip */
+.mr-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.mr-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: transform var(--ios-dur-fast, 0.2s) var(--ios-ease-out, ease-out);
+}
+
+.mr-day:hover {
+  transform: scale(1.18);
+  background: var(--ios-tertiary-system-background, rgba(255, 255, 255, 0.08));
+}
+
+.mr-day--3 { border-color: rgba(255, 214, 10, 0.45); background: rgba(255, 214, 10, 0.07); }
+
+.mr-day-viz { line-height: 0; }
+
+.mr-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ios-label-2);
+}
+
+@keyframes mr-day-enter {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.mr-day-enter {
+  animation: mr-day-enter 0.45s var(--ios-ease-spring, cubic-bezier(0.34, 1.3, 0.5, 1)) both;
+}
+
+/* Weekly badges — Fitness award tiers */
+.mr-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mr-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 92px;
+  padding: 12px 6px 9px;
+  border-radius: 16px;
+  background: var(--ios-secondary-system-background, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--ios-separator, rgba(255, 255, 255, 0.1));
+  min-width: 0;
+}
+
+.mr-badge-count {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ios-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.mr-badge-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.mr-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.mr-badge-dot--deflected { background: var(--fg-move, #FA114F); }
+.mr-badge-dot--focused   { background: var(--fg-exercise, #92E82A); }
+.mr-badge-dot--saved     { background: var(--fg-stand, #00FDDC); }
+
+.mr-badge-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ios-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mr-badge--gold {
+  border-color: rgba(255, 214, 10, 0.65);
+  background: linear-gradient(160deg, rgba(255, 214, 10, 0.16), rgba(255, 159, 10, 0.06));
+}
+.mr-badge--gold .mr-badge-count { color: #FFD60A; }
+
+.mr-badge--silver {
+  border-color: rgba(199, 199, 204, 0.55);
+  background: linear-gradient(160deg, rgba(199, 199, 204, 0.16), rgba(142, 142, 147, 0.06));
+}
+.mr-badge--silver .mr-badge-count { color: #E5E5EA; }
+
+.mr-badge--bronze {
+  border-color: rgba(240, 168, 104, 0.55);
+  background: linear-gradient(160deg, rgba(240, 168, 104, 0.16), rgba(184, 117, 3, 0.06));
+}
+.mr-badge--bronze .mr-badge-count { color: #F0A868; }
+
+.mr-badge--none { opacity: 0.55; }
+
+@keyframes mr-badge-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mr-badge-enter {
+  animation: mr-badge-enter 0.5s var(--ios-ease-spring, cubic-bezier(0.34, 1.3, 0.5, 1)) both;
+}
+
+/* Best-day highlight line */
+.mr-best {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ios-label-2);
+}
+
+.mr-best:not([hidden])::before {
+  content: "★ ";
+  color: #FFD60A;
+}
+
+@media (max-width: 640px) {
+  .mr-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mr-day-enter,
+  .mr-badge-enter { animation: none; }
+  .mr-day:hover { transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   v1.17.0 — Streak Insurance, Recap Card, Accountability Pairing, Intent tile
+--------------------------------------------------------------------------- */
+.rings-insurance {
+  margin: 10px 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ios-secondary-label, rgba(235, 235, 245, 0.6));
+}
+.rings-insurance[hidden] { display: none; }
+
+.mr-actions { display: flex; gap: 8px; margin-left: auto; }
+.mr-action-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font: 600 12px -apple-system, "SF Pro Text", Arial, sans-serif;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.mr-action-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.mr-action-btn:active { transform: scale(0.97); }
+.mr-action-btn--primary {
+  background: var(--ios-blue, #0A84FF);
+  border-color: var(--ios-blue, #0A84FF);
+  color: #fff;
+}
+.mr-action-btn:disabled { opacity: 0.45; cursor: default; }
+
+.mr-day { position: relative; }
+.mr-day-glyph {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font-size: 10px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.mr-day--frozen .mr-day-viz { opacity: 0.75; }
+.mr-day--frozen { outline: 1px dashed rgba(10, 132, 255, 0.55); outline-offset: 2px; border-radius: 8px; }
+.mr-day--repaired .mr-day-viz { opacity: 0.85; }
+.mr-day--repaired { outline: 1px dashed rgba(255, 214, 10, 0.5); outline-offset: 2px; border-radius: 8px; }
+
+.mr-pair { margin-top: 14px; }
+.mr-pair[hidden] { display: none; }
+.mr-pair-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.mr-pair-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 720px) { .mr-pair-grid { grid-template-columns: 1fr; } }
+.mr-pair-grid h4 {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}
+.mr-pair-hint { font-weight: 500; color: rgba(255, 255, 255, 0.45); }
+.mr-pair-text {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+  font: 11.5px/1.5 "SF Mono", ui-monospace, Menlo, monospace;
+  margin-bottom: 8px;
+}
+.mr-pair-rowbtns { display: flex; gap: 8px; margin-top: 6px; }
+.mr-pair-status { margin: 8px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+
+/* Side-by-side partner board (FTPair.renderSideBySide) */
+.ftp-board { display: flex; flex-direction: column; gap: 10px; }
+.ftp-row {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.04);
+}
+.ftp-row.mine { border-color: rgba(10, 132, 255, 0.45); background: rgba(10, 132, 255, 0.08); }
+.ftp-who { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.ftp-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+}
+.ftp-dots { display: flex; gap: 6px; }
+.ftp-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.ftp-dot.full { box-shadow: 0 0 6px rgba(146, 232, 42, 0.55); }
+.ftp-meta { font-size: 12px; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; }
+.ftp-empty { font-size: 12.5px; color: rgba(255, 255, 255, 0.45); padding: 4px 2px; }
+
+.metric-card .metric-value.intent-good { color: var(--ios-green, #30D158); }

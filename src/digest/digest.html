@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FocusTube — Daily Briefing</title>
+  <link rel="stylesheet" href="../shared/apple-ui.css" />
+  <link rel="stylesheet" href="digest.css" />
+</head>
+<body data-ft-companion="digest">
+  <main class="dg-wrap">
+
+    <header class="dg-header">
+      <p class="dg-eyebrow" id="dg-eyebrow">Daily Briefing</p>
+      <h1 class="dg-title" id="dg-title">Good morning</h1>
+      <p class="dg-date" id="dg-date"></p>
+    </header>
+
+    <!-- Hero: focus score ring + streak -->
+    <section class="dg-card dg-hero" aria-label="Focus score">
+      <div class="dg-ring-wrap">
+        <svg class="dg-ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="dg-ring-bg" cx="60" cy="60" r="52" />
+          <circle class="dg-ring-fill" id="dg-ring" cx="60" cy="60" r="52" />
+        </svg>
+        <div class="dg-ring-center">
+          <span class="dg-ring-score" id="dg-score">0</span>
+          <span class="dg-ring-cap">Focus Score</span>
+        </div>
+      </div>
+      <div class="dg-hero-copy">
+        <p class="dg-streak" id="dg-streak"></p>
+        <p class="dg-hero-line" id="dg-hero-line"></p>
+      </div>
+    </section>
+
+    <!-- Stat tiles -->
+    <section class="dg-stats" id="dg-stats" aria-label="Key numbers">
+      <div class="dg-stat"><span class="dg-stat-value" id="dg-stat-saved">0m</span><span class="dg-stat-label">Time saved</span></div>
+      <div class="dg-stat"><span class="dg-stat-value" id="dg-stat-watch">0m</span><span class="dg-stat-label">Watch time</span></div>
+      <div class="dg-stat"><span class="dg-stat-value" id="dg-stat-pomo">0</span><span class="dg-stat-label">Focus sessions</span></div>
+      <div class="dg-stat"><span class="dg-stat-value" id="dg-stat-shorts">0</span><span class="dg-stat-label">Shorts skipped</span></div>
+    </section>
+
+    <!-- Focus Rings (v1.15.0 USP) -->
+    <section class="dg-card" aria-label="Focus Rings">
+      <h2 class="dg-card-title" id="dg-rings-title">Yesterday's rings</h2>
+      <div class="dg-rings" id="dg-rings"></div>
+    </section>
+
+    <!-- 7-day chart -->
+    <section class="dg-card" aria-label="Weekly trend">
+      <h2 class="dg-card-title">Time saved · last 7 days</h2>
+      <div class="dg-bars" id="dg-bars"></div>
+      <p class="dg-bars-hint" id="dg-bars-hint"></p>
+    </section>
+
+    <!-- Where the time went -->
+    <section class="dg-card" aria-label="Top sites">
+      <h2 class="dg-card-title" id="dg-sites-title">Where the time went</h2>
+      <div class="dg-site-list" id="dg-sites"></div>
+    </section>
+
+    <!-- Topics -->
+    <section class="dg-card" aria-label="Top topics">
+      <h2 class="dg-card-title">What you watched</h2>
+      <div class="dg-topic-wrap" id="dg-topics"></div>
+    </section>
+
+    <!-- Field note (behavioral science) -->
+    <section class="dg-card dg-study" aria-label="Field note">
+      <h2 class="dg-card-title">Field note</h2>
+      <p class="dg-study-text" id="dg-study"></p>
+      <p class="dg-study-cite" id="dg-study-cite"></p>
+    </section>
+
+    <!-- Quote -->
+    <section class="dg-card dg-quote" aria-label="Quote">
+      <p class="dg-quote-mark" aria-hidden="true">&ldquo;</p>
+      <p class="dg-quote-text" id="dg-quote"></p>
+      <p class="dg-quote-author" id="dg-quote-author"></p>
+    </section>
+
+    <!-- Plan / wind-down -->
+    <section class="dg-card" id="dg-calibration" aria-label="Weekly calibration" hidden>
+      <h2 class="dg-card-title">Calibrate this week</h2>
+      <p class="dg-cal-sub" id="dg-cal-sub"></p>
+      <div id="dg-cal-rows" class="dg-cal-rows"></div>
+      <div class="dg-cal-actions">
+        <button class="dg-btn primary" id="dg-cal-apply">Apply suggestion</button>
+        <button class="dg-btn" id="dg-cal-dismiss">Keep my goals</button>
+      </div>
+      <p class="dg-cal-foot">Self-set goals outperform assigned ones — applying is always your call (Locke &amp; Latham).</p>
+    </section>
+
+    <section class="dg-card" aria-label="Plan">
+      <h2 class="dg-card-title" id="dg-plan-title">Today's plan</h2>
+      <div class="dg-plan" id="dg-plan"></div>
+    </section>
+
+    <footer class="dg-actions">
+      <button class="dg-btn primary" id="dg-open-dash">Open Dashboard</button>
+      <button class="dg-btn" id="dg-close">Got it</button>
+    </footer>
+
+  </main>
+
+  <script src="../shared/focus-score.js"></script>
+  <script src="../shared/focus-rings.js"></script>
+  <script src="../shared/companion-art.js"></script>
+  <script src="../shared/companion-widget.js"></script>
+  <script src="digest.js"></script>
+</body>
+</html>

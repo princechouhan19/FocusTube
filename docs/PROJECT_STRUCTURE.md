@@ -58,7 +58,6 @@ FocusTube/
 │   │   │   ├── auto-pause.js           # Auto-pause functionality
 │   │   │   ├── theater-mode.js         # Theater mode toggle
 │   │   │   ├── metrics-hider.js        # Hide video metrics
-│   │   │   ├── glass-theme.js          # Glass theme effects
 │   │   │   ├── comment-hider.js        # Hide comments section
 │   │   │   ├── cards-hider.js          # Hide info cards
 │   │   │   └── universal-screenshot.js # Screenshot capture
