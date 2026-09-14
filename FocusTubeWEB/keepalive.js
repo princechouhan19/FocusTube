@@ -1,5 +1,5 @@
 const https = require("https");
-const URL = process.env.RENDER_EXTERNAL_URL || "http://localhost:" + (process.env.PORT || 3000);
+const URL = "https://focustube-web.onrender.com";
 
 console.log(`[Keepalive] Starting keepalive ping to ${URL}`);
 
