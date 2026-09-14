@@ -21,8 +21,8 @@ export function DownloadPage() {
   const steps = [
     {
       n: "1",
-      t: "Get the source",
-      d: "Clone the repository, or download it as a ZIP from GitHub and unzip it. No build step — the repo is the extension.",
+      t: "Get the extension",
+      d: "Download the latest ZIP release and extract it anywhere you keep your tools.",
     },
     {
       n: "2",
@@ -32,7 +32,7 @@ export function DownloadPage() {
     {
       n: "3",
       t: "Load unpacked",
-      d: "Click “Load unpacked” and select the FocusTube folder — the one that contains manifest.json.",
+      d: "Click “Load unpacked” and select the extracted FocusTube folder — the one containing manifest.json.",
     },
     {
       n: "4",
@@ -61,17 +61,26 @@ export function DownloadPage() {
           />
           <Reveal delay={0.15}>
             <p className="ft-lead mt-7 max-w-2xl">
-              FocusTube installs from source in about five minutes — no store
+              FocusTube installs directly from source in about five minutes — no store
               review, no account, nothing updating behind your back. You can
               read every line it runs before you run it.
             </p>
           </Reveal>
-          <Reveal delay={0.25} className="mt-9">
+          <Reveal delay={0.25} className="mt-9 flex flex-wrap justify-center gap-4">
+            <a
+              href="https://github.com/princechouhan19/FocusTube/releases/download/v1.17.0/FocusTube-V1.17.0-.zip"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+            >
+              <Download size={17} />
+              Download v1.17.0
+            </a>
             <a
               href={REPO_URL}
               target="_blank"
               rel="noreferrer"
-              className="btn btn-primary"
+              className="btn btn-ghost"
             >
               <Github size={17} />
               Open the repository
@@ -83,21 +92,6 @@ export function DownloadPage() {
 
       <section className="pb-20">
         <div className="ft-container max-w-4xl">
-          <Reveal>
-            <div className="card-ft p-7 md:p-9">
-              <h2 className="text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-ink3">
-                Option A — clone with git
-              </h2>
-              <div className="mt-4">
-                <CodeBlock lang="bash" code={"git clone https://github.com/princechouhan19/FocusTube.git"} />
-              </div>
-              <p className="mt-3 text-[0.88rem] leading-relaxed text-ink2">
-                Prefer a download? Use <strong className="text-ink">Code → Download ZIP</strong> on
-                GitHub, then unzip it anywhere you keep tools.
-              </p>
-            </div>
-          </Reveal>
-
           <div className="mt-14">
             <SectionHead
               eyebrow="Install"
@@ -144,7 +138,7 @@ export function DownloadPage() {
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
               ["Requirements", "Chrome on Manifest V3. Chromium browsers generally work; Brave needs one flag for file sync."],
-              ["Updating", "git pull, then hit reload on the extension card. Your data survives untouched."],
+              ["Updating", "Download the latest release and replace your unpacked folder. Your local data survives untouched."],
               ["After install", "The setup assistant arms your first protections — Shorts gone, ads skipped, rings ready."],
             ].map(([t, d], i) => (
               <Reveal key={t} delay={i * 0.07}>
