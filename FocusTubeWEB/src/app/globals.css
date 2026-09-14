@@ -1,0 +1,465 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ── Self-hosted Geist fonts (variable, woff2) ── */
+@font-face {
+  font-family: "Geist Sans";
+  src: url("/fonts/GeistSans-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   FocusTube Design System — "Graphite & Focus Blue"
+   Derived from the product's apple-ui.css / dashboard tokens:
+   graphite base, one focus-blue accent, tri-color Focus Rings.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* FocusTube primitives — dark is the canonical brand mode */
+  --bg: #0a0a0b;
+  --bg-elev: #101012;
+  --surface: #151517;
+  --surface-2: #1b1b1e;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --fg: #f5f5f7;
+  --fg-2: rgba(245, 245, 247, 0.64);
+  --fg-3: rgba(245, 245, 247, 0.4);
+  --iris: #3d9bff;
+  --iris-2: #66aeff;
+  --iris-deep: #0a5adb;
+  --ring-deflected: #ff375f;
+  --ring-focused: #30d158;
+  --ring-saved: #64d2ff;
+  --ft-blue: #0a84ff;
+
+  /* shadcn compatibility — remapped to FocusTube palette */
+  --radius: 0.75rem;
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: #141416;
+  --popover-foreground: var(--fg);
+  --primary: var(--iris);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-2);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--fg);
+  --destructive: var(--ring-deflected);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--iris);
+  --chart-1: var(--ring-deflected);
+  --chart-2: var(--ring-focused);
+  --chart-3: var(--ring-saved);
+  --chart-4: var(--iris);
+  --chart-5: var(--ft-blue);
+  --sidebar: var(--bg-elev);
+  --sidebar-foreground: var(--fg);
+  --sidebar-primary: var(--iris);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--fg);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--iris);
+}
+
+.light {
+  --bg: #faf9f7;
+  --bg-elev: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f1ec;
+  --line: rgba(24, 21, 14, 0.09);
+  --line-strong: rgba(24, 21, 14, 0.18);
+  --fg: #1d1d1f;
+  --fg-2: rgba(29, 29, 31, 0.66);
+  --fg-3: rgba(29, 29, 31, 0.44);
+  --iris: #0066e6;
+  --iris-2: #3d8bf2;
+  --iris-deep: #0846a8;
+  --ft-blue: #0a84ff;
+
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--bg-elev);
+  --popover-foreground: var(--fg);
+  --primary: var(--iris);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-2);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--fg);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--iris);
+  --sidebar: var(--bg-elev);
+  --sidebar-foreground: var(--fg);
+  --sidebar-primary: var(--iris);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--fg);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--iris);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: "Geist Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  /* FocusTube semantic tokens */
+  --color-paper: var(--bg);
+  --color-paper2: var(--bg-elev);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line2: var(--line-strong);
+  --color-ink: var(--fg);
+  --color-ink2: var(--fg-2);
+  --color-ink3: var(--fg-3);
+  --color-iris: var(--iris);
+  --color-iris2: var(--iris-2);
+  --color-irisdeep: var(--iris-deep);
+  --color-deflected: var(--ring-deflected);
+  --color-focused: var(--ring-focused);
+  --color-saved: var(--ring-saved);
+  --color-ftblue: var(--ft-blue);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-feature-settings: "ss01" on, "cv11" on;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--iris) 32%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--iris);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--fg) 18%, transparent);
+    border-radius: 8px;
+    border: 2px solid var(--bg);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+/* ── Typography ─────────────────────────────────────────── */
+.ft-display {
+  font-weight: 640;
+  letter-spacing: -0.045em;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+.ft-h2 {
+  font-weight: 620;
+  letter-spacing: -0.035em;
+  line-height: 1.14;
+  text-wrap: balance;
+}
+.ft-lead {
+  color: var(--fg-2);
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 620;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--iris);
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.ft-container {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+@media (min-width: 768px) {
+  .ft-container {
+    padding-inline: 2.5rem;
+  }
+}
+.hairline-t {
+  border-top: 1px solid var(--line);
+}
+.hairline-b {
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── Surfaces ───────────────────────────────────────────── */
+.card-ft {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.glass-ft {
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid var(--line);
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font-weight: 560;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  border-radius: 999px;
+  padding: 0.85rem 1.6rem;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.35s ease,
+    color 0.3s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  will-change: transform;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: linear-gradient(180deg, var(--iris-2), var(--iris-deep));
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 8px 24px -10px color-mix(in srgb, var(--iris) 65%, transparent);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 14px 34px -10px color-mix(in srgb, var(--iris) 75%, transparent);
+}
+.btn-ghost {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+.btn-ghost:hover {
+  background: color-mix(in srgb, var(--fg) 11%, transparent);
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+/* ── Browser frame ──────────────────────────────────────── */
+.browser-frame {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--bg) 80%, transparent),
+    0 30px 90px -30px rgba(0, 0, 0, 0.65),
+    0 12px 40px -20px rgba(0, 0, 0, 0.5);
+}
+.light .browser-frame {
+  box-shadow:
+    0 0 0 1px rgba(24, 21, 14, 0.04),
+    0 30px 80px -30px rgba(24, 21, 14, 0.28),
+    0 12px 36px -18px rgba(24, 21, 14, 0.18);
+}
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.9rem;
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── Grain / texture ────────────────────────────────────── */
+.ft-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Marquee ────────────────────────────────────────────── */
+@keyframes ft-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ft-marquee {
+  animation: ft-marquee 36s linear infinite;
+}
+.ft-marquee-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 12%,
+    black 88%,
+    transparent
+  );
+}
+}
+
+/* ── Ring chart ─────────────────────────────────────────── */
+@keyframes ft-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Docs prose ─────────────────────────────────────────── */
+.prose-ft {
+  color: var(--fg-2);
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+.prose-ft h3 {
+  color: var(--fg);
+  font-weight: 620;
+  letter-spacing: -0.02em;
+  font-size: 1.18rem;
+  margin-top: 2.1rem;
+  margin-bottom: 0.7rem;
+}
+.prose-ft p {
+  margin-bottom: 1rem;
+}
+.prose-ft ul {
+  margin: 0.4rem 0 1.2rem;
+  padding-left: 0;
+  list-style: none;
+}
+.prose-ft ul li {
+  position: relative;
+  padding-left: 1.35rem;
+  margin-bottom: 0.55rem;
+}
+.prose-ft ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--iris);
+}
+.prose-ft strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+.prose-ft code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.85em;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+  border: 1px solid var(--line);
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+  color: var(--fg);
+}
+.prose-ft pre {
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  margin: 0.4rem 0 1.4rem;
+}
+.prose-ft pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .ft-marquee {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
