@@ -254,6 +254,11 @@ export function Footer() {
                 <ArrowUpRight size={14} />
               </a>
             </Magnetic>
+            <div className="mt-6">
+              <a href="https://www.producthunt.com/products/focustube-7?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-focustube-8" target="_blank" rel="noopener noreferrer">
+                <img alt="FocusTube - Turn YouTube from a distraction engine into a focused tool | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1250507&theme=neutral&t=1789405113606" />
+              </a>
+            </div>
           </div>
           {footerGroups.map((g) => (
             <nav key={g.title} aria-label={g.title}>
