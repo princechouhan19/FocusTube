@@ -140,7 +140,17 @@
       "youtube.com": 2895
     },
     "2026-09-13": {
-      "chat.z.ai": 1110
+      "chat.z.ai": 1110,
+      "chatgpt.com": 180,
+      "github.com": 376
+    },
+    "2026-09-14": {
+      "canva.com": 60,
+      "chat.z.ai": 2192,
+      "chatgpt.com": 780,
+      "docs.google.com": 731,
+      "github.com": 330,
+      "youtube.com": 810
     }
   },
   "siteLogos": {
@@ -208,6 +218,10 @@
       "url": "https://build.nvidia.com/favicon.ico?favicon.40e0a499ra0f3.ico",
       "updatedAt": 1788898459170
     },
+    "canva.com": {
+      "url": "https://canva.com/favicon.ico",
+      "updatedAt": 1789375775580
+    },
     "cdn.dribbble.com": {
       "url": "https://cdn.dribbble.com/favicon.ico",
       "updatedAt": 1788540961415
@@ -249,8 +263,8 @@
       "updatedAt": 1789065563027
     },
     "docs.google.com": {
-      "url": "https://ssl.gstatic.com/docs/documents/images/docs-favicon-2026-v2.ico",
-      "updatedAt": 1789037450506
+      "url": "https://www.gstatic.com/images/branding/productlogos/forms_2026/v2/web-16dp/logo_forms_2026_color_1x_web_16dp.png",
+      "updatedAt": 1789367747268
     },
     "drive.google.com": {
       "url": "https://ssl.gstatic.com/docs/doclist/images/drive_favicon_2026_32dp.png",
@@ -484,10 +498,15 @@
       "#revenantesports": 1,
       "#teamelite": 1,
       "#totalgamingesports": 1
+    },
+    "2026-09-14": {
+      "#celebration": 1,
+      "#deepmind": 2,
+      "#google": 2
     }
   },
   "profile": {
-    "profileName": "Avatar image",
+    "profileName": "PRINCE",
     "profileGoal": "",
     "profileImage": "https://yt3.ggpht.com/yti/ANjgQV8AVlEgI5MV75M-o6zMUw1xg0x9ImuBjOsIpykaaDROG2M=s88-c-k-c0x00ffffff-no-rj"
   },
@@ -545,7 +564,7 @@
     "pomodoroNotify": true,
     "aiNudgeEnabled": false,
     "quizDifficulty": "easy",
-    "quizStreakMultiplier": false
+    "quizStreakMultiplier": true
   },
   "blockedTopics": {
     "blockedKeywords": [],
@@ -557,9 +576,9 @@
   "syncMeta": {
     "timeLimitsUpdatedAt": 0,
     "blockedSitesUpdatedAt": 1789222296894,
-    "profileUpdatedAt": 1789187539553,
-    "settingsUpdatedAt": 1789243219319,
+    "profileUpdatedAt": 1789325164766,
+    "settingsUpdatedAt": 1789325134158,
     "blockedTopicsUpdatedAt": 1789160522195,
-    "lastMergedAt": 1789321373933
+    "lastMergedAt": 1789377111643
   }
 }

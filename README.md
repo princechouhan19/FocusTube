@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/icons/banner.png" alt="FocusTube" width="420" />
+  <img src="src/icons/banner1.png" alt="FocusTube" width="420" />
 </p>
 
 <h1 align="center">FocusTube — Productivity &amp; Distraction Control for YouTube</h1>
