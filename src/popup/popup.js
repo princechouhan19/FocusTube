@@ -54,6 +54,8 @@ const DEFAULT_SETTINGS = {
   hideComments: false,
   hideInfoCards: false,
   autoTheaterMode: false,
+  ambientLightEnabled: true,
+  ambientLightIntensity: "normal",
   pomodoroAdaptiveFocus: true,
   pomodoroFocusShield: true,
   siteLogos: {},
@@ -179,6 +181,7 @@ const TOGGLES_LIST = [
   "hideNavGaming",
   "hideNavTrending",
   "autoTheaterMode",
+  "ambientLightEnabled",
   "hideInfoCards",
   "hideEndScreens",
   "hideLiveChat",
@@ -612,11 +615,27 @@ function populateUI(settings) {
       : "easy";
   }
 
+  // v1.18.0 — Ambient Light intensity
+  const ambientSel = document.getElementById("ambientLightIntensity");
+  if (ambientSel) {
+    ambientSel.value = ["subtle", "normal", "vibrant"].includes(settings.ambientLightIntensity)
+      ? settings.ambientLightIntensity
+      : "normal";
+  }
+
   // Toggles
   TOGGLES_LIST.forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.checked = settings[id];
   });
+
+  // Intensity row is only meaningful when the glow is on — evaluate after
+  // the toggles above have applied their checked state.
+  const ambientRow = document.getElementById("ambientLightIntensityRow");
+  if (ambientRow) {
+    ambientRow.style.display =
+      document.getElementById("ambientLightEnabled")?.checked ? "" : "none";
+  }
   // v1.17.0 — companion defaults ON (matches companion.js: enabled unless
   // explicitly set false); keep the popup toggle honest on first run.
   const companionToggle = document.getElementById("companionEnabled");
@@ -990,6 +1009,11 @@ function addEventListeners() {
       el.addEventListener("change", async (e) => {
         await saveSettings({ [id]: e.target.checked });
         notifyContentScript();
+        // v1.18.0 — show/hide the Ambient intensity row with its toggle
+        if (id === "ambientLightEnabled") {
+          const row = document.getElementById("ambientLightIntensityRow");
+          if (row) row.style.display = e.target.checked ? "" : "none";
+        }
       });
     }
   });
@@ -1071,6 +1095,21 @@ function addEventListeners() {
     tlSel.addEventListener("change", async (e) => {
       await saveSettings({ transcriptLang: e.target.value });
       notifyContentScript();
+    });
+  }
+
+  // v1.18.0 — Ambient Light intensity (shared/youtube/ambient-light.js reads it)
+  const ambientIntensity = document.getElementById("ambientLightIntensity");
+  if (ambientIntensity) {
+    ambientIntensity.addEventListener("change", async (e) => {
+      const val = e.target.value;
+      if (["subtle", "normal", "vibrant"].includes(val)) {
+        await saveSettings({ ambientLightIntensity: val });
+        if (window.__focusTubeSettings) {
+          window.__focusTubeSettings.ambientLightIntensity = val;
+        }
+        notifyContentScript();
+      }
     });
   }
 

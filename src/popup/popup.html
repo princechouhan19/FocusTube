@@ -589,6 +589,26 @@
             </div>
             <div class="setting-item">
               <div class="setting-info">
+                <label class="setting-label">Ambient Light</label>
+                <p class="setting-description">Cinema glow behind the video, driven by the scene</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="ambientLightEnabled" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item" id="ambientLightIntensityRow">
+              <div class="setting-info">
+                <label class="setting-label">Ambient Intensity</label>
+              </div>
+              <select id="ambientLightIntensity" class="glass-input compact-select">
+                <option value="subtle">Subtle</option>
+                <option value="normal">Normal</option>
+                <option value="vibrant">Vibrant</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
                 <label class="setting-label">Hide Comments</label>
                 <p class="setting-description">Remove comments section</p>
               </div>

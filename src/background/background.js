@@ -118,6 +118,8 @@ const DEFAULT_SETTINGS = {
   // Enhanced UI Controls
   autoPauseInactive: false,
   autoTheaterMode: false,
+  ambientLightEnabled: true, // v1.18.0 — cinema glow behind the player
+  ambientLightIntensity: "normal", // "subtle" | "normal" | "vibrant"
   hideComments: false,
   hideInfoCards: false,
   hideEndScreens: false,
@@ -1739,6 +1741,7 @@ const SYNC_SETTINGS_KEYS = [
   "hideNotifications", "hideCreateButton", "hideVoiceSearch", "hideShareButtons", "hideComments",
   "hideInfoCards", "hideEndScreens", "hideLiveChat", "hideNextVideo", "hideMoreVideos",
   "hideVideoMetrics", "hideVideoDuration", "hideMerch", "autoPauseInactive", "autoTheaterMode",
+  "ambientLightEnabled", "ambientLightIntensity",
   "smartListsEnabled", "pomodoroFocusMinutes", "pomodoroShortBreakMinutes",
   "pomodoroLongBreakMinutes", "pomodoroCyclesBeforeLongBreak", "pomodoroDeepWork",
   "pomodoroAdaptiveFocus", "pomodoroFocusShield", "pomodoroAutoStartBreaks",

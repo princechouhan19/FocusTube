@@ -79,6 +79,8 @@ const DEFAULT_SETTINGS = {
   // Enhanced UI Controls
   autoPauseInactive: false,
   autoTheaterMode: false,
+  ambientLightEnabled: true, // v1.18.0 — cinema glow behind the player
+  ambientLightIntensity: "normal", // "subtle" | "normal" | "vibrant"
   hideComments: false,
   hideInfoCards: false,
   hideEndScreens: false,
